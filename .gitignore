@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Data / cache
+*.duckdb
+*.db
+*.sqlite
+data/
+cache/
+*.csv
+
+# Secrets (DART API key 등)
+secrets.*
+*.key
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# humanize 작업 폴더
+_workspace/

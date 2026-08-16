@@ -1,0 +1,14 @@
+[theme]
+# 절제된 금융 도구 톤. 신호색(🟢🟡🔴)이 화면에서 유일하게 강한 색이어야 해서
+# 기본 강조색은 채도를 낮춘 파랑으로 둔다.
+base = "light"
+primaryColor = "#2a78d6"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f7f7f5"
+textColor = "#1b1b19"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
