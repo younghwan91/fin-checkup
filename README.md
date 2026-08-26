@@ -119,6 +119,10 @@ src/fin_checkup/
 ├── storage/db.py    DuckDB 캐시 (원본 계정 줄을 그대로 보관)
 ├── api/             FastAPI (워커를 백그라운드로 함께 실행)
 ├── auth.py          계정·API 키 (해시만 저장)
+├── config.py        환경변수 설정 (pydantic-settings)
+├── models.py        공통 데이터 모델
+├── format.py        금액·지표 표시 형식 (CLI·Streamlit 공용)
+├── theme.py         화면 색과 스타일 (신호색은 상태 전용)
 ├── service.py       조율 계층 — UI를 모른다
 ├── cli.py           터미널 진입점
 └── app.py           Streamlit 화면
