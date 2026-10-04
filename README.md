@@ -43,6 +43,8 @@ uv run python -m fin_checkup.cli us AAPL            # 미국 (SEC EDGAR)
 uv run streamlit run src/fin_checkup/app.py         # 웹 화면
 ```
 
+기준 사업연도를 주지 않으면 오늘 날짜로 정한다 — 사업보고서 제출 기한(3월 말)이 지난 4월부터는 직전 연도, 그 전에는 두 해 전. `--year` 로 바꿀 수 있다.
+
 | 묶음 | 지표 |
 |---|---|
 | 수익성 | 영업이익률 · 순이익률 · ROE · ROA |
@@ -132,7 +134,7 @@ CLI·Streamlit·FastAPI가 모두 `service.py`를 쓴다. 지표 엔진은 DART�
 API 서버는 한 프로세스가 캐시를 소유하고 알림 워커를 안에서 함께 돌린다 — DuckDB가 단일 writer라 워커를 따로 띄우면 락에서 부딪히기 때문이다.
 
 ```bash
-uv run pytest                          # 419 tests
+uv run pytest                          # 푸시마다 CI 에서도 돈다 (.github/workflows/ci.yml)
 uv run ruff check src tests scripts
 ```
 

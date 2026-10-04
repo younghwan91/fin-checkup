@@ -316,3 +316,22 @@ def test_stability_bands_stay_absolute():
     bands = {d.key: d.band for d in METRIC_DEFS}
     assert bands["debt_ratio"].good == 100 and bands["debt_ratio"].warn == 200
     assert bands["interest_coverage"].warn == 1, "이자를 갚을 수 있는 경계는 1이다"
+
+
+# ── 분모 0 ────────────────────────────────────────────────────────
+
+
+def test_zero_inventory_is_not_applicable_rather_than_missing():
+    """재고가 없는 서비스업은 재고자산을 0 으로 공시한다. 계정은 있었는데 '계정을 찾지
+    못했다'(⚫)로 적으면 거짓말이다. 해당 없음(⊘)이 맞다."""
+    m = get(checkup(fin(revenue=1000, inventories=0)), "inventory_turnover")
+    assert m.signal is Signal.NOT_APPLICABLE
+    assert "재고" in m.note and "찾지 못했다" not in m.note
+
+    m = get(checkup(fin(revenue=1000, trade_receivables=0)), "receivable_turnover")
+    assert m.signal is Signal.NOT_APPLICABLE
+
+
+def test_missing_inventory_is_still_unknown():
+    m = get(checkup(fin(revenue=1000)), "inventory_turnover")
+    assert m.signal is Signal.UNKNOWN

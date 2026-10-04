@@ -283,6 +283,21 @@ def _turnover_note(_cur: Financials, _p: Financials | None, value: float | None)
     return Signal.NEUTRAL, "업종별 편차가 커서 절대 기준을 두지 않는다. 업종 평균·과거 추이로 비교할 것."
 
 
+def _zero_denominator_is_not_applicable(field: str, what: str):
+    """분모가 0 으로 공시된 회전율은 ⚫(계정 없음)가 아니라 ⊘(해당 없음)다.
+
+    재고 없는 서비스업은 재고자산을 0 으로 공시한다. 계정은 있었는데 "찾지 못했다"고
+    적으면 거짓말이고, 사용자는 정규화 결함을 의심하게 된다.
+    """
+
+    def override(cur: Financials, _p: Financials | None, value: float | None) -> tuple[Signal, str] | None:
+        if value is None and getattr(cur, field) == 0:
+            return Signal.NOT_APPLICABLE, f"{what}이(가) 0 으로 공시돼 회전율을 계산하지 않는다."
+        return _turnover_note(cur, _p, value)
+
+    return override
+
+
 METRIC_DEFS: tuple[MetricDef, ...] = (
     # ── ① 수익성 ────────────────────────────────────────────────
     MetricDef(
@@ -402,14 +417,14 @@ METRIC_DEFS: tuple[MetricDef, ...] = (
         "재고가 얼마나 빨리 팔려나가는지. 낮아지면 재고가 쌓이고 있다는 뜻.",
         "매출액 ÷ 재고자산",
         lambda c, p: (_ratio(c.revenue, c.inventories), ""),
-        None, _turnover_note,
+        None, _zero_denominator_is_not_applicable("inventories", "재고자산"),
     ),
     MetricDef(
         "receivable_turnover", "매출채권회전율", Category.EFFICIENCY, "회",
         "외상값을 얼마나 빨리 회수하는지. 낮아지면 못 받는 돈이 늘고 있을 수 있다.",
         "매출액 ÷ 매출채권",
         lambda c, p: (_ratio(c.revenue, c.trade_receivables), ""),
-        None, _turnover_note,
+        None, _zero_denominator_is_not_applicable("trade_receivables", "매출채권"),
     ),
 )
 

@@ -146,7 +146,8 @@ def _print_checkup(title: str, subtitle: str, result, red_flags, currency: str) 
     counts = result.counts
     print(
         f"\n요약: 🟢{counts[Signal.GREEN]} 🟡{counts[Signal.YELLOW]} "
-        f"🔴{counts[Signal.RED]} ⚪{counts[Signal.NEUTRAL]} ⚫{counts[Signal.UNKNOWN]}"
+        f"🔴{counts[Signal.RED]} ⚪{counts[Signal.NEUTRAL]} "
+        f"⊘{counts[Signal.NOT_APPLICABLE]} ⚫{counts[Signal.UNKNOWN]}"
     )
     print(f"\n{DISCLAIMER}")
 
