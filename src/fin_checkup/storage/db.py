@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import functools
 import logging
+import threading
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from types import TracebackType
@@ -196,7 +198,7 @@ class Cache:
         self.read_only = read_only
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            self.conn = duckdb.connect(str(self.db_path), read_only=read_only)
+            self._root = duckdb.connect(str(self.db_path), read_only=read_only)
         except duckdb.IOException as exc:
             if "lock" not in str(exc).lower():
                 raise
@@ -205,8 +207,35 @@ class Cache:
                 "  DuckDB는 한 번에 한 프로세스만 쓸 수 있습니다. "
                 "실행 중인 워커나 Streamlit을 먼저 종료하세요."
             ) from exc
+        self._owner_thread = threading.get_ident()
+        self._local = threading.local()
+        # 메서드 단위 직렬화. 복제 연결끼리도 같은 행을 동시에 고치면 DuckDB 가
+        # 'Conflict on update' 를 던진다(호출량 집계·last_used_at 처럼 매 요청이 건드리는 행).
+        self._lock = threading.RLock()
+        self._cursors: list[duckdb.DuckDBPyConnection] = []
+        self._cursors_lock = threading.Lock()
         if not read_only:
-            self.conn.execute(SCHEMA)
+            self._root.execute(SCHEMA)
+
+    @property
+    def conn(self) -> duckdb.DuckDBPyConnection:
+        """현재 스레드 전용 연결.
+
+        DuckDB 연결 하나를 여러 스레드가 나눠 쓰면 `execute()` 뒤의 `fetchone()`이
+        다른 스레드의 결과를 집어온다 — 예외도 없이 조용히 틀린다. FastAPI 가 동기
+        엔드포인트를 스레드풀에서 돌리므로 요청 두 개가 겹치면 A 의 키로 B 의 user_id 가
+        돌아오는 일이 실제로 났다. 연결을 만든 스레드는 원본을, 다른 스레드는 각자
+        `cursor()` 로 복제한 연결을 쓴다. 같은 DB 인스턴스를 공유하므로 쓰기는 서로 보인다.
+        """
+        if threading.get_ident() == self._owner_thread:
+            return self._root
+        cursor = getattr(self._local, "cursor", None)
+        if cursor is None:
+            cursor = self._root.cursor()
+            self._local.cursor = cursor
+            with self._cursors_lock:
+                self._cursors.append(cursor)
+        return cursor
 
     def __enter__(self) -> Cache:
         return self
@@ -220,7 +249,15 @@ class Cache:
         self.close()
 
     def close(self) -> None:
-        self.conn.close()
+        # 복제 연결이 하나라도 살아 있으면 파일 락이 풀리지 않는다. 전부 닫는다.
+        with self._cursors_lock:
+            cursors, self._cursors = self._cursors, []
+        for cursor in cursors:
+            try:
+                cursor.close()
+            except duckdb.Error:  # 이미 닫혔거나 스레드가 사라진 경우
+                pass
+        self._root.close()
 
     # ------------------------------------------------------------------
     # corp_code
@@ -241,6 +278,9 @@ class Cache:
         self.conn.execute("DELETE FROM corp_codes")
         self._bulk_insert("corp_codes", list(deduped.values()), columns=5)
         return self.conn.execute("SELECT count(*) FROM corp_codes").fetchone()[0]
+
+    def count_corp_codes(self) -> int:
+        return int(self.conn.execute("SELECT count(*) FROM corp_codes").fetchone()[0])
 
     def corp_codes_age(self) -> timedelta | None:
         """마지막 갱신으로부터 지난 시간. 비어 있으면 None."""
@@ -718,6 +758,24 @@ class Cache:
         self.conn.execute(
             "INSERT INTO notified VALUES (?, ?, ?)", [chat_id, rcept_no, datetime.now()]
         )
+
+
+def _synchronized(method):
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    return wrapper
+
+
+# 공개 메서드를 전부 락으로 감싼다. 메서드마다 with 를 쓰면 하나 빠뜨리는 순간 다시
+# 경쟁 상태가 되므로 클래스 수준에서 일괄 적용한다. RLock 이라 메서드끼리 호출해도 된다.
+for _name, _attr in list(vars(Cache).items()):
+    if _name.startswith("__") or not callable(_attr):
+        continue
+    setattr(Cache, _name, _synchronized(_attr))
+del _name, _attr
 
 
 _CORP_FIELDS = ("corp_code", "corp_name", "stock_code", "modify_date")

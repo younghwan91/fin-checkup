@@ -219,3 +219,45 @@ def test_statement_lines_survive_a_large_filing(cache: Cache):
     cache.save_statements(raw)
     got = cache.get_statements("00126380", 2024)
     assert got is not None and len(got.lines) == 900
+
+
+# ── 스레드 안전성 ──────────────────────────────────────────────────
+
+
+def test_cache_is_safe_to_share_across_threads(cache: Cache):
+    """FastAPI는 동기 엔드포인트를 스레드풀에서 돌린다. 연결 하나를 스레드가 나눠 쓰면
+    DuckDB의 `execute().fetchone()`이 다른 스레드의 결과를 집어온다 — 실측으로 요청 네 건 중
+    한 건꼴로 다른 사용자의 user_id가 돌아왔다. 그 상태로 관심종목을 읽고 지우게 된다."""
+    import threading
+
+    from fin_checkup.auth import generate_key
+
+    keys = []
+    for i in range(16):
+        user_id = f"user-{i:02d}"
+        cache.create_account(user_id, f"{user_id}@example.com")
+        issued = generate_key(user_id)
+        cache.save_api_key(issued.key_hash, user_id, issued.prefix)
+        keys.append((issued.key_hash, user_id))
+
+    mismatches: list[tuple[str, str | None]] = []
+    errors: list[BaseException] = []
+
+    def worker(seed: int) -> None:
+        try:
+            for n in range(300):
+                key_hash, expected = keys[(seed + n) % len(keys)]
+                got = cache.resolve_api_key(key_hash)
+                if got != expected:
+                    mismatches.append((expected, got))
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, errors[:3]
+    assert not mismatches, f"{len(mismatches)}건이 다른 사용자로 풀렸다: {mismatches[:3]}"

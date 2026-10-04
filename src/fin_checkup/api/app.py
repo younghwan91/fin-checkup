@@ -127,10 +127,9 @@ def create_app(
     @app.get("/health", response_model=HealthOut, tags=["운영"])
     def health(state: AppState = Depends(get_state)) -> HealthOut:
         used, quota = state.service.dart_budget()
-        corp_count = state.cache.conn.execute("SELECT count(*) FROM corp_codes").fetchone()[0]
         return HealthOut(
             status="ok",
-            corp_codes=int(corp_count),
+            corp_codes=state.cache.count_corp_codes(),
             dart_calls_today=used,
             dart_daily_quota=quota,
             alerts_last_poll=state.cache.get_meta(LAST_POLL_KEY),
