@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from fin_checkup.config import settings  # noqa: E402
 from fin_checkup.dart.normalize import FIELD_SPECS, normalize_statements  # noqa: E402
+from fin_checkup.fiscal import default_fiscal_year  # noqa: E402
 from fin_checkup.metrics.engine import METRIC_DEFS, checkup  # noqa: E402
 from fin_checkup.metrics.sector import Sector, sector_for  # noqa: E402
 from fin_checkup.metrics.signals import Signal  # noqa: E402
@@ -41,7 +42,7 @@ def quantile(values: list[float], pct: float) -> float:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--year", type=int, default=2024)
+    parser.add_argument("--year", type=int, default=default_fiscal_year())
     parser.add_argument("--sector", choices=["all", "general", "financial"], default="general")
     args = parser.parse_args()
 

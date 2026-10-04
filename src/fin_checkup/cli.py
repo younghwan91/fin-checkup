@@ -21,6 +21,7 @@ from fin_checkup.alerts.scheduler import AlertScheduler
 from fin_checkup.alerts.telegram import ConsoleNotifier, Notifier, TelegramNotifier
 from fin_checkup.alerts.worker import AlertWorker
 from fin_checkup.config import settings
+from fin_checkup.fiscal import default_fiscal_year
 from fin_checkup.format import format_metric
 from fin_checkup.metrics.engine import Category, checkup
 from fin_checkup.metrics.redflags import detect_red_flags
@@ -394,20 +395,20 @@ def main(argv: list[str] | None = None) -> int:
     p_sync.set_defaults(func=cmd_sync)
 
     p_collect = sub.add_parser("collect", help="업종 비교용으로 여러 기업 재무를 미리 수집")
-    p_collect.add_argument("--year", type=int, default=2024, help="수집할 사업연도")
+    p_collect.add_argument("--year", type=int, default=default_fiscal_year(), help="수집할 사업연도")
     p_collect.add_argument("--limit", type=int, default=50, help="한 번에 수집할 기업 수")
     p_collect.add_argument("--query", default="", help="특정 이름으로 한정 (예: 삼성)")
     p_collect.set_defaults(func=cmd_collect)
 
     p_check = sub.add_parser("checkup", help="종목코드 또는 회사명으로 건강검진")
     p_check.add_argument("query", help="종목코드(6자리) 또는 회사명")
-    p_check.add_argument("--year", type=int, default=2024, help="기준 사업연도")
+    p_check.add_argument("--year", type=int, default=default_fiscal_year(), help="기준 사업연도")
     p_check.add_argument("--years", type=int, default=5, help="추이를 볼 연수")
     p_check.set_defaults(func=cmd_checkup)
 
     p_us = sub.add_parser("us", help="미국 상장기업 건강검진 (SEC EDGAR)")
     p_us.add_argument("ticker", help="티커 (예: AAPL)")
-    p_us.add_argument("--year", type=int, default=2024, help="기준 회계연도")
+    p_us.add_argument("--year", type=int, default=default_fiscal_year(), help="기준 회계연도")
     p_us.add_argument("--years", type=int, default=5, help="추이를 볼 연수")
     p_us.set_defaults(func=cmd_us)
 
@@ -432,7 +433,7 @@ def main(argv: list[str] | None = None) -> int:
     p_poll.set_defaults(func=cmd_poll)
 
     p_backfill = sub.add_parser("backfill", help="대조군용 지표 값 미리 계산 (DART 호출 없음)")
-    p_backfill.add_argument("--year", type=int, default=2024, help="기준 사업연도")
+    p_backfill.add_argument("--year", type=int, default=default_fiscal_year(), help="기준 사업연도")
     p_backfill.add_argument("--years", type=int, default=2, help="거슬러 올라갈 연수")
     p_backfill.set_defaults(func=cmd_backfill)
 

@@ -17,6 +17,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from fin_checkup.config import settings
+from fin_checkup.fiscal import default_fiscal_year
 from fin_checkup.format import chart_scale, format_metric
 from fin_checkup.metrics.changes import detect_changes
 from fin_checkup.metrics.engine import MONEY, Category, Metric, checkup
@@ -371,7 +372,9 @@ def main() -> None:
             st.rerun()
 
         query = st.text_input("회사명 또는 종목코드", placeholder="예: 삼성전자 · 005930")
-        year = st.number_input("기준 사업연도", min_value=2015, max_value=2100, value=2024, step=1)
+        year = st.number_input(
+            "기준 사업연도", min_value=2015, max_value=2100, value=default_fiscal_year(), step=1
+        )
         years = st.slider("추이 기간(년)", min_value=2, max_value=10, value=5)
 
     if not query:

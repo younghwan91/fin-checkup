@@ -29,6 +29,7 @@ from fin_checkup.api.schemas import (
 from fin_checkup.auth import generate_key, hash_key, normalize_email, user_id_for
 from fin_checkup.config import Settings
 from fin_checkup.config import settings as default_settings
+from fin_checkup.fiscal import default_fiscal_year
 from fin_checkup.service import CheckupService
 from fin_checkup.storage import Cache
 
@@ -175,7 +176,9 @@ def create_app(
     @app.get("/checkup/{query}", response_model=CheckupOut, tags=["조회"])
     async def checkup(
         query: str,
-        year: int = Query(2024, ge=2015, le=2100),
+        year: int | None = Query(
+            None, ge=2015, le=2100, description="기준 사업연도. 비우면 오늘 기준 최신 연도"
+        ),
         years: int = Query(5, ge=2, le=10),
         user_id: str = Depends(get_user_id),
         state: AppState = Depends(get_state),
@@ -184,10 +187,11 @@ def create_app(
         if not matches:
             raise HTTPException(status_code=404, detail=f"'{query}'에 해당하는 상장기업이 없습니다.")
 
-        data = await state.service.run(matches[0], end_year=year, years=years)
+        end_year = year if year is not None else default_fiscal_year()
+        data = await state.service.run(matches[0], end_year=end_year, years=years)
         if data is None:
             raise HTTPException(
-                status_code=404, detail=f"{matches[0].corp_name}의 {year}년 재무제표가 없습니다."
+                status_code=404, detail=f"{matches[0].corp_name}의 {end_year}년 재무제표가 없습니다."
             )
         return CheckupOut.of(data)
 

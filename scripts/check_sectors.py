@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from fin_checkup.config import settings  # noqa: E402
 from fin_checkup.dart.normalize import normalize_statements  # noqa: E402
+from fin_checkup.fiscal import default_fiscal_year  # noqa: E402
 from fin_checkup.metrics.engine import METRIC_DEFS, checkup  # noqa: E402
 from fin_checkup.metrics.sector import sector_for  # noqa: E402
 from fin_checkup.metrics.signals import Signal  # noqa: E402
@@ -53,7 +54,7 @@ def group_for(industry_code: str) -> str | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--year", type=int, default=2024)
+    parser.add_argument("--year", type=int, default=default_fiscal_year())
     args = parser.parse_args()
 
     with Cache(settings.fin_checkup_db_path, read_only=True) as cache:

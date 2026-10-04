@@ -19,13 +19,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from fin_checkup.config import settings  # noqa: E402
 from fin_checkup.dart.client import DartError  # noqa: E402
+from fin_checkup.fiscal import default_fiscal_year  # noqa: E402
 from fin_checkup.service import CheckupService  # noqa: E402
 from fin_checkup.storage import Cache  # noqa: E402
 
 
 async def main() -> int:
     parser = argparse.ArgumentParser(description="전 상장사 재무 수집")
-    parser.add_argument("--year", type=int, default=2024)
+    parser.add_argument("--year", type=int, default=default_fiscal_year())
     parser.add_argument("--limit", type=int, default=0, help="0이면 전체")
     parser.add_argument("--skip", type=int, default=0, help="앞에서 건너뛸 개수")
     args = parser.parse_args()
