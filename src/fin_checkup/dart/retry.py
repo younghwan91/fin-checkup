@@ -23,11 +23,14 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 #: 다시 시도해볼 만한 DART status 코드.
-#: 020 요청제한초과 · 021 조회건수초과 · 800 시스템점검 · 900/901 정의되지 않은 오류
-RETRYABLE_STATUSES = frozenset({"020", "021", "800", "900", "901"})
+#: 800 시스템점검 · 900/901 정의되지 않은 오류
+RETRYABLE_STATUSES = frozenset({"800", "900", "901"})
 
 #: 다시 시도해도 소용없는 것. 키가 틀렸거나 요청 자체가 잘못됐다.
-FATAL_STATUSES = frozenset({"010", "011", "012", "013", "014", "100", "101"})
+#: 020 은 일별 허용량 초과(기본 20,000건)라 몇 초 뒤에 다시 해도 풀리지 않는다 —
+#: 처음엔 재시도 대상에 넣었는데 그건 남은 호출량을 더 빨리 태우는 길이었다.
+#: 021 은 조회 회사 개수 초과(최대 100건)로 요청 자체가 잘못된 것이다.
+FATAL_STATUSES = frozenset({"010", "011", "012", "013", "014", "020", "021", "100", "101"})
 
 #: 다시 시도해볼 만한 HTTP 상태.
 RETRYABLE_HTTP = frozenset({408, 429, 500, 502, 503, 504})
@@ -47,10 +50,6 @@ class RetryPolicy:
         spread = raw * self.jitter
         offset = (rng or random).uniform(-spread, spread)
         return max(0.0, raw + offset)
-
-
-class RateLimitExceeded(RuntimeError):
-    """일별 호출 허용량을 넘었다. 재시도해도 오늘은 풀리지 않는다."""
 
 
 def is_retryable(exc: BaseException) -> bool:

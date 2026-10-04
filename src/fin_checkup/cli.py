@@ -21,6 +21,7 @@ from fin_checkup.alerts.scheduler import AlertScheduler
 from fin_checkup.alerts.telegram import ConsoleNotifier, Notifier, TelegramNotifier
 from fin_checkup.alerts.worker import AlertWorker
 from fin_checkup.config import settings
+from fin_checkup.dart.client import DartError, RateLimitExceeded
 from fin_checkup.fiscal import default_fiscal_year
 from fin_checkup.format import format_metric
 from fin_checkup.metrics.engine import Category, checkup
@@ -78,8 +79,13 @@ async def cmd_collect(args: argparse.Namespace) -> int:
             if cache.get_statements(corp.corp_code, args.year) is not None:
                 skipped += 1
                 continue
-            fin = await service.get_financials(corp.corp_code, args.year)
-            await service.ensure_company(corp.corp_code)
+            try:
+                fin = await service.get_financials(corp.corp_code, args.year)
+                await service.ensure_company(corp.corp_code)
+            except RateLimitExceeded:
+                # 오늘은 더 받을 수 없다. 받은 것까지는 캐시에 남았으니 내일 이어서 받는다.
+                print(f"\n[{i}/{len(targets)}] DART 일별 호출 허용량을 넘었다. 여기서 멈춘다.")
+                break
             done += 1
             status = "○" if fin is None else "●"
             print(f"[{i}/{len(targets)}] {status} {corp.corp_name}", flush=True)
@@ -459,6 +465,10 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(args.func(args))
     except CacheLocked as exc:
         print(f"\n{exc}")
+        return 1
+    except DartError as exc:
+        # 트레이스백 대신 상태 코드와 메시지만. 키가 틀렸거나 한도를 넘은 건 코드 버그가 아니다.
+        print(f"\nDART 오류: {exc}")
         return 1
     except KeyboardInterrupt:
         print("\n중지했습니다.")

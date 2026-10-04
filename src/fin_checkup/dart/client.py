@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import re
 import xml.etree.ElementTree as ET
 import zipfile
 from collections.abc import Callable
@@ -45,8 +46,46 @@ class DartError(RuntimeError):
         super().__init__(f"[{status}] {message}" + (f" ({context})" if context else ""))
 
 
+class RateLimitExceeded(DartError):
+    """일별 호출 허용량(status=020)을 넘었다. 재시도해도 오늘은 풀리지 않는다."""
+
+    def __init__(self, message: str = "일별 호출 허용량 초과", context: str = "") -> None:
+        super().__init__("020", message, context)
+
+
 #: DART status 코드 중 "데이터 없음"에 해당하는 것. 오류가 아니라 빈 결과로 다룬다.
 NO_DATA_STATUSES = frozenset({"013"})
+#: 일별 호출 허용량 초과.
+QUOTA_STATUS = "020"
+
+_KEY_IN_URL = re.compile(r"(crtfc_key=)[^&\s'\"]+")
+
+
+class _MaskApiKey(logging.Filter):
+    """로그 한 줄에 crtfc_key 가 섞여 있으면 가린다.
+
+    httpx 는 INFO 레벨로 요청 URL 전체를 남긴다. 디버깅하려고 로깅 레벨을 올리는
+    순간 모든 호출마다 인증키가 로그에 찍힌다(약관 제19조). httpx·httpcore 로거에
+    달아 두면 어떤 핸들러로 가든 가려진 채 나간다.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        masked = _KEY_IN_URL.sub(r"\1***", message)
+        if masked != message:
+            record.msg = masked
+            record.args = ()
+        return True
+
+
+def _install_key_mask() -> None:
+    for name in ("httpx", "httpcore"):
+        target = logging.getLogger(name)
+        if not any(isinstance(f, _MaskApiKey) for f in target.filters):
+            target.addFilter(_MaskApiKey())
+
+
+_install_key_mask()
 
 
 def _amount(value: str | None) -> float | None:
@@ -107,13 +146,21 @@ class DartClient:
     async def _get_once(self, path: str, params: dict[str, str]) -> httpx.Response:
         async with self._throttle:
             url = f"{self.settings.dart_base_url}/{path}"
-            resp = await self._client.get(
-                url, params={"crtfc_key": self.settings.dart_api_key, **params}
-            )
+            # 응답을 받기 전에 센다. 타임아웃된 호출도 DART 쪽에서는 한 건이다.
             self.calls_made += 1
             if self._on_call is not None:
                 self._on_call(path)
-            resp.raise_for_status()
+            resp = await self._client.get(
+                url, params={"crtfc_key": self.settings.dart_api_key, **params}
+            )
+            if resp.is_error:
+                # raise_for_status() 의 메시지는 crtfc_key 가 든 URL 전체를 담는다.
+                # 같은 예외 타입으로, 키 없는 메시지만 바꿔 올린다(재시도 판정은 그대로).
+                raise httpx.HTTPStatusError(
+                    f"DART {path} 가 HTTP {resp.status_code} 를 돌려줬다",
+                    request=resp.request,
+                    response=resp,
+                )
             if self.settings.dart_min_delay > 0:
                 await asyncio.sleep(self.settings.dart_min_delay)
             return resp
@@ -129,8 +176,9 @@ class DartClient:
     async def _get_json(self, path: str, params: dict[str, str], context: str) -> dict | None:
         """정상이면 payload, '데이터 없음'이면 None, 그 외 오류면 DartError.
 
-        상태 판정을 재시도 안쪽에 둬야 status=020(요청제한)도 재시도 대상이 된다.
-        바깥에 두면 HTTP 200이라 재시도 없이 그냥 실패한다.
+        상태 판정을 재시도 안쪽에 둬야 status=800(시스템 점검)도 재시도 대상이 된다.
+        바깥에 두면 HTTP 200이라 재시도 없이 그냥 실패한다. 020(일별 한도)은 반대로
+        RateLimitExceeded 로 즉시 올려 더 때리지 않는다.
         """
 
         async def attempt() -> dict | None:
@@ -142,6 +190,8 @@ class DartClient:
             if status in NO_DATA_STATUSES:
                 logger.info("[dart] no data — %s (status=%s)", context, status)
                 return None
+            if status == QUOTA_STATUS:
+                raise RateLimitExceeded(data.get("message", "요청 제한 초과"), context)
             raise DartError(status, data.get("message", "unknown error"), context)
 
         return await with_retry(attempt, policy=self.retry_policy, context=context)
