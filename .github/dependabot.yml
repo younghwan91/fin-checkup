@@ -1,0 +1,30 @@
+# 의존성 갱신 PR을 자동으로 연다.
+#
+# commit-identity.yml 이 dependabot 신원을 이미 허용하고 있었는데 정작 dependabot 설정이
+# 없었다. 2026-08 lock 이후 streamlit·fastapi·starlette 가 여러 마이너 버전 뒤처졌다.
+# 한 주에 한 번, 묶음 PR 하나로 받는다 — 패키지마다 PR 이 오면 공개 레포에서 소음이 된다.
+
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    groups:
+      python-deps:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    groups:
+      actions:
+        patterns: ["*"]

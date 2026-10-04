@@ -1,0 +1,46 @@
+name: CI
+
+# 테스트와 린트를 푸시·PR마다 돌린다.
+#
+# 이 레포는 419개 테스트가 있지만 지금까지 CI에서는 커밋 신원만 검사했다.
+# 로컬에서 안 돌리고 밀어도 아무도 모른다 — 공개 레포에서 그건 위험하다.
+#
+# .env 없이 돌아가야 한다. 테스트는 conftest의 Settings 픽스처로 키를 주입하므로
+# 실제 DART·텔레그램 키가 필요 없다(로컬에서 .env 를 치우고 검증함).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # requires-python >=3.11 이라 하한과 개발 환경(3.13) 둘 다 본다.
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: 의존성 설치 (lock 고정)
+        run: uv sync --all-extras --frozen
+
+      - name: ruff check
+        run: uv run ruff check src tests scripts
+
+      - name: pytest
+        run: uv run pytest -q
