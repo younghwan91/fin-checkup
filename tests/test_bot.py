@@ -256,7 +256,73 @@ async def test_get_updates_survives_network_failure():
         side_effect=httpx.ConnectError("끊김")
     )
     async with TelegramNotifier("TOKEN") as n:
-        assert await n.get_updates() == []
+        assert await n.get_updates() is None, "실패는 '조용한 하루'([])와 구분돼야 한다"
+
+
+@respx.mock
+async def test_get_updates_rejection_is_a_failure_not_an_empty_day():
+    # 401 토큰 오류 · 409 두 곳에서 띄움. 둘 다 즉시 돌아오므로 쉬지 않으면 폭주한다.
+    respx.get("https://api.telegram.org/botTOKEN/getUpdates").mock(
+        return_value=httpx.Response(409, json={"ok": False, "description": "Conflict"})
+    )
+    async with TelegramNotifier("TOKEN") as n:
+        assert await n.get_updates() is None
+
+
+async def test_polling_backs_off_while_failing_and_resets_on_success(cache, service):
+    class Failing:
+        def __init__(self):
+            self.results = [None, None, None, []]
+            self.sent = []
+
+        async def get_updates(self, offset=0, timeout=25):
+            return self.results.pop(0)
+
+        async def send(self, chat_id, text):
+            self.sent.append((chat_id, text))
+            return True
+
+    slept: list[float] = []
+
+    async def record(seconds: float) -> None:
+        slept.append(seconds)
+
+    bot = TelegramBot(cache, Failing(), service, sleep=record)
+    for _ in range(4):
+        await bot.process_once()
+    assert slept == [5.0, 10.0, 20.0], "실패가 이어질수록 더 오래 쉰다"
+    assert bot.consecutive_failures == 0, "성공하면 초기화된다"
+
+
+async def test_backoff_is_capped():
+    from fin_checkup.alerts.bot import POLL_BACKOFF_MAX
+
+    bot = TelegramBot.__new__(TelegramBot)
+    bot.consecutive_failures = 20
+    assert bot.backoff_seconds() == POLL_BACKOFF_MAX
+
+
+# ── HTML 이스케이프 ───────────────────────────────────────────────
+
+
+def test_user_input_is_escaped_in_replies(service):
+    """답장은 HTML parse_mode 다. '<b' 가 그대로 들어가면 텔레그램이 400 으로 거절해
+    사용자는 아무 답도 못 받는다."""
+    text = reply_of(service, "u1", "/watch <b>없는회사</b>").text
+    assert "<b>없는회사</b>" not in text
+    assert "&lt;b&gt;없는회사&lt;/b&gt;" in text
+
+    text = reply_of(service, "u1", "/<script>").text
+    assert "<script>" not in text
+
+
+def test_company_names_with_ampersand_are_escaped(service, cache):
+    fnf = CorpCode(corp_code="00000001", corp_name="F&F", stock_code="383220")
+    cache.save_corp_codes([SAMSUNG, fnf])
+    added = reply_of(service, "u1", "/watch 383220").text
+    assert "F&amp;F" in added and "F&F</b>" not in added
+    listed = reply_of(service, "u1", "/list").text
+    assert "F&amp;F" in listed
 
 
 # ── 채널 브로드캐스트 ─────────────────────────────────────────────

@@ -10,7 +10,9 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from fin_checkup.service import CheckupService
@@ -19,6 +21,8 @@ from fin_checkup.storage import Cache
 logger = logging.getLogger(__name__)
 
 OFFSET_KEY = "alerts.bot_offset"
+POLL_BACKOFF_BASE = 5.0
+POLL_BACKOFF_MAX = 60.0
 
 WELCOME = """👋 <b>재무 위험 공시 알림</b>
 
@@ -59,6 +63,13 @@ def _argument(text: str) -> str:
     return parts[1].strip() if len(parts) > 1 else ""
 
 
+def _esc(text: str) -> str:
+    """답장은 HTML parse_mode 로 나간다. 사용자 입력과 회사명을 그대로 끼우면 '/watch <b'
+    같은 입력이나 'F&F'·'삼성E&A' 같은 회사명에서 텔레그램이 400 으로 거절한다 — 사용자는
+    답장을 못 받고 봇이 죽은 줄 안다."""
+    return html.escape(text, quote=False)
+
+
 def handle_command(
     service: CheckupService, chat_id: str, text: str
 ) -> Reply | None:
@@ -76,6 +87,7 @@ def handle_command(
     # 그룹에서는 /watch@봇이름 형태로 온다.
     command = text.split()[0].split("@")[0].lower()
     argument = _argument(text)
+    shown = _esc(argument)
     cache = service.cache
 
     if command in ("/start", "/help"):
@@ -86,7 +98,7 @@ def handle_command(
         if not watched:
             return Reply("등록한 관심종목이 없습니다. <code>/watch 005930</code>")
         lines = [f"📋 <b>관심종목 {len(watched)}개</b>", ""]
-        lines += [f"  • {c.corp_name} <code>{c.stock_code}</code>" for c in watched]
+        lines += [f"  • {_esc(c.corp_name)} <code>{c.stock_code}</code>" for c in watched]
         return Reply("\n".join(lines))
 
     if command == "/watch":
@@ -95,20 +107,20 @@ def handle_command(
 
         matches = service.search(argument, limit=5)
         if not matches:
-            return Reply(f"'{argument}'에 해당하는 상장기업을 찾지 못했습니다.")
+            return Reply(f"'{shown}'에 해당하는 상장기업을 찾지 못했습니다.")
         if len(matches) > 1 and not argument.isdigit():
-            lines = [f"'{argument}'로 여러 곳이 검색됐습니다. 종목코드로 지정해주세요.", ""]
-            lines += [f"  • {c.corp_name} <code>{c.stock_code}</code>" for c in matches]
+            lines = [f"'{shown}'로 여러 곳이 검색됐습니다. 종목코드로 지정해주세요.", ""]
+            lines += [f"  • {_esc(c.corp_name)} <code>{c.stock_code}</code>" for c in matches]
             return Reply("\n".join(lines))
 
         corp = matches[0]
         if cache.is_watching(chat_id, corp.corp_code):
-            return Reply(f"{corp.corp_name}은(는) 이미 등록돼 있습니다.")
+            return Reply(f"{_esc(corp.corp_name)}은(는) 이미 등록돼 있습니다.")
 
         cache.add_watch(chat_id, corp)
         count = cache.count_watch(chat_id)
         return Reply(
-            f"✅ <b>{corp.corp_name}</b> <code>{corp.stock_code}</code> 등록했습니다. "
+            f"✅ <b>{_esc(corp.corp_name)}</b> <code>{corp.stock_code}</code> 등록했습니다. "
             f"(총 {count}개)\n\n"
             f"이제 이 종목에 위험 공시가 뜨면 알려드립니다.",
             changed=True,
@@ -119,14 +131,14 @@ def handle_command(
             return Reply("해제할 종목코드를 함께 보내주세요. <code>/unwatch 005930</code>")
         matches = service.search(argument, limit=1)
         if not matches:
-            return Reply(f"'{argument}'에 해당하는 상장기업을 찾지 못했습니다.")
+            return Reply(f"'{shown}'에 해당하는 상장기업을 찾지 못했습니다.")
         corp = matches[0]
         removed = cache.remove_watch(chat_id, corp.corp_code)
         if not removed:
-            return Reply(f"{corp.corp_name}은(는) 등록돼 있지 않습니다.")
-        return Reply(f"🗑 <b>{corp.corp_name}</b> 등록을 해제했습니다.", changed=True)
+            return Reply(f"{_esc(corp.corp_name)}은(는) 등록돼 있지 않습니다.")
+        return Reply(f"🗑 <b>{_esc(corp.corp_name)}</b> 등록을 해제했습니다.", changed=True)
 
-    return Reply(f"모르는 명령입니다: {command}\n/help 로 사용법을 볼 수 있습니다.")
+    return Reply(f"모르는 명령입니다: {_esc(command)}\n/help 로 사용법을 볼 수 있습니다.")
 
 
 def extract_message(update: dict) -> tuple[str, str] | None:
@@ -148,10 +160,19 @@ def extract_message(update: dict) -> tuple[str, str] | None:
 class TelegramBot:
     """롱폴링으로 명령을 받아 처리한다."""
 
-    def __init__(self, cache: Cache, notifier, service: CheckupService | None = None) -> None:
+    def __init__(
+        self,
+        cache: Cache,
+        notifier,
+        service: CheckupService | None = None,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ) -> None:
         self.cache = cache
         self.notifier = notifier
         self.service = service or CheckupService(cache)
+        self._sleep = sleep
+        #: 연속 실패 횟수. 실패가 이어질수록 더 오래 쉰다.
+        self.consecutive_failures = 0
 
     @property
     def offset(self) -> int:
@@ -165,9 +186,27 @@ class TelegramBot:
         # 텔레그램은 offset 이전 update를 지운다. 처리한 다음 것부터 달라고 한다.
         self.cache.set_meta(OFFSET_KEY, str(update_id + 1))
 
+    def backoff_seconds(self) -> float:
+        """실패가 이어질 때 쉬는 시간. 5초에서 시작해 두 배씩, 최대 60초."""
+        return min(POLL_BACKOFF_BASE * (2 ** max(self.consecutive_failures - 1, 0)), POLL_BACKOFF_MAX)
+
     async def process_once(self, timeout: int = 25) -> int:
-        """들어온 명령을 한 묶음 처리하고 처리 건수를 반환."""
+        """들어온 명령을 한 묶음 처리하고 처리 건수를 반환.
+
+        getUpdates 가 실패하면(None) 잠시 쉰다. 성공 경로의 롱폴링은 텔레그램이 최대
+        timeout 초 붙잡아 주지만 실패는 즉시 돌아오므로, 쉬지 않으면 토큰이 틀렸거나
+        망이 끊긴 동안 초당 수백 번 때린다.
+        """
         updates = await self.notifier.get_updates(offset=self.offset, timeout=timeout)
+        if updates is None:
+            self.consecutive_failures += 1
+            delay = self.backoff_seconds()
+            logger.warning(
+                "[bot] getUpdates 실패 (연속 %d회) — %.0f초 쉼", self.consecutive_failures, delay
+            )
+            await self._sleep(delay)
+            return 0
+        self.consecutive_failures = 0
         handled = 0
         for update in updates:
             update_id = update.get("update_id")

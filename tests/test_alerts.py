@@ -144,6 +144,73 @@ async def test_telegram_network_error_returns_false():
         assert await notifier.send("chat1", "hi") is False
 
 
+@respx.mock
+async def test_telegram_waits_out_a_429_and_retries_once():
+    """같은 방에 분당 20건을 넘기면 429 가 온다. 일반 실패로 치면 30분 뒤에나 다시
+    시도하고, 그 사이 계속 때리면 텔레그램이 차단 시간을 늘린다."""
+    route = respx.post("https://api.telegram.org/botTOKEN/sendMessage").mock(
+        side_effect=[
+            httpx.Response(429, json={"ok": False, "parameters": {"retry_after": 3}}),
+            httpx.Response(200, json={"ok": True}),
+        ]
+    )
+    slept: list[float] = []
+
+    async def record(seconds: float) -> None:
+        slept.append(seconds)
+
+    async with TelegramNotifier("TOKEN", sleep=record) as notifier:
+        assert await notifier.send("chat1", "hi") is True
+    assert slept == [3.0]
+    assert route.call_count == 2
+
+
+@respx.mock
+async def test_telegram_gives_up_when_retry_after_is_too_long():
+    respx.post("https://api.telegram.org/botTOKEN/sendMessage").mock(
+        return_value=httpx.Response(429, json={"ok": False, "parameters": {"retry_after": 600}})
+    )
+    slept: list[float] = []
+
+    async def record(seconds: float) -> None:
+        slept.append(seconds)
+
+    async with TelegramNotifier("TOKEN", sleep=record) as notifier:
+        assert await notifier.send("chat1", "hi") is False
+    assert slept == [], "10분을 워커 안에서 기다리면 나머지 알림이 전부 밀린다"
+
+
+@respx.mock
+async def test_long_messages_are_split_instead_of_rejected():
+    """관심종목 상한이 없어 /list 가 4096자를 넘을 수 있다. 통째로 보내면 400 이다."""
+    from fin_checkup.alerts.telegram import MAX_MESSAGE_LENGTH, split_message
+
+    route = respx.post("https://api.telegram.org/botTOKEN/sendMessage").mock(
+        return_value=httpx.Response(200, json={"ok": True})
+    )
+    text = "\n".join(f"  • 회사{i:04d} <code>{i:06d}</code>" for i in range(400))
+    assert len(text) > MAX_MESSAGE_LENGTH
+    async with TelegramNotifier("TOKEN") as notifier:
+        assert await notifier.send("chat1", text) is True
+    assert route.call_count == len(split_message(text)) > 1
+    import json
+
+    for call in route.calls:
+        sent = json.loads(call.request.content)["text"]
+        assert len(sent) <= MAX_MESSAGE_LENGTH
+
+
+def test_split_message_keeps_lines_whole_and_covers_everything():
+    from fin_checkup.alerts.telegram import split_message
+
+    lines = [f"line {i}" for i in range(100)]
+    chunks = split_message("\n".join(lines), limit=50)
+    assert all(len(c) <= 50 for c in chunks)
+    assert "\n".join(chunks).split("\n") == lines
+    assert split_message("x" * 120, limit=50) == ["x" * 50, "x" * 50, "x" * 20]
+    assert split_message("short") == ["short"]
+
+
 # ── 워커 ──────────────────────────────────────────────────────────
 
 
