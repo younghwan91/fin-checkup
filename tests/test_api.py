@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import httpx
 import pytest
+import respx
 from fastapi.testclient import TestClient
 
 from fin_checkup.api import create_app
@@ -69,6 +71,36 @@ def test_health(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
     assert body["corp_codes"] == 2
+
+
+def test_health_reports_the_worker_is_off_when_not_started(client):
+    assert client.get("/health").json()["alerts_worker"] == "off"
+
+
+def test_worker_is_not_started_without_a_telegram_token(cache, tmp_path):
+    # 서버 안에서 콘솔로 찍는 알림은 아무에게도 가지 않는다. 띄우지 않는다.
+    settings = Settings(dart_api_key="k", telegram_bot_token="", fin_checkup_db_path=tmp_path / "x")
+    app = create_app(settings=settings, cache=cache, run_worker=True)
+    with TestClient(app) as c:
+        assert c.get("/health").json()["alerts_worker"] == "off"
+
+
+def test_worker_runs_inside_the_server_and_stops_with_it(cache, tmp_path):
+    settings = Settings(
+        dart_api_key="k", telegram_bot_token="TOKEN", dart_min_delay=0.0,
+        fin_checkup_db_path=tmp_path / "x",
+    )
+    app = create_app(settings=settings, cache=cache, run_worker=True)
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get("https://opendart.fss.or.kr/api/list.json").mock(
+            return_value=httpx.Response(
+                200, json={"status": "000", "total_page": 1, "page_no": 1, "list": []}
+            )
+        )
+        with TestClient(app) as c:
+            assert c.get("/health").json()["alerts_worker"] == "running"
+            task = app.state.ctx.worker_task
+    assert task.cancelled() or task.done(), "서버가 내려가면 워커도 같이 끝나야 한다"
 
 
 def test_account_creation_returns_the_key_once(client):

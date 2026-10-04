@@ -159,3 +159,5 @@ class HealthOut(BaseModel):
     dart_calls_today: int
     dart_daily_quota: int
     alerts_last_poll: str | None = None
+    #: off · running · stopped. stopped 면 띄웠던 워커가 죽은 것이다 — 로그를 봐야 한다.
+    alerts_worker: str = "off"

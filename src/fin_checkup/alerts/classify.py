@@ -135,6 +135,10 @@ _COMPILED: tuple[tuple[RiskKind, re.Pattern[str], str], ...] = tuple(
 
 _CORRECTION = re.compile(r"\[(기재정정|첨부정정|첨부추가|정정)\]")
 
+#: 상장 지위 패턴은 '해제·해소' 공시에도 걸린다 — '주권매매거래정지해제'는
+#: '매매거래정지'를 포함한다. 그건 위험이 풀렸다는 소식이지 위험 공시가 아니다.
+_RELEASE = re.compile(r"해제|해소")
+
 
 def _squash(text: str) -> str:
     """공백을 없애 '유상증자 결정' 같은 표기 흔들림을 흡수한다."""
@@ -149,6 +153,8 @@ def classify(disclosure: Disclosure) -> RiskDisclosure | None:
     for kind, pattern, source in _COMPILED:
         match = pattern.search(title)
         if match:
+            if kind is RiskKind.LISTING_STATUS and _RELEASE.search(title):
+                return None
             return RiskDisclosure(
                 disclosure=disclosure,
                 kind=kind,

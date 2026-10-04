@@ -150,3 +150,27 @@ def test_meta_roundtrip(cache: Cache):
     assert cache.get_meta("k") == "v1"
     cache.set_meta("k", "v2")
     assert cache.get_meta("k") == "v2"
+
+
+@respx.mock
+async def test_run_forever_survives_errors_outside_the_poll(
+    scheduler: AlertScheduler, cache: Cache, monkeypatch
+):
+    """run_once 는 worker.poll 만 try 로 감싼다. 폴링 앞뒤의 캐시 접근(get_meta·set_meta)이
+    터지면 run_forever 가 빠져나가고, API 안에서 create_task 로 띄운 워커는 아무도 await 하지
+    않으므로 서버는 멀쩡히 돌면서 알림만 영구 중단된다."""
+    respx.get(f"{BASE}/list.json").mock(return_value=empty_response())
+    cache.add_watch("chat1", SAMSUNG)
+
+    calls = {"n": 0}
+    real_get_meta = cache.get_meta
+
+    def flaky_get_meta(key):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("디스크 오류")
+        return real_get_meta(key)
+
+    monkeypatch.setattr(cache, "get_meta", flaky_get_meta)
+    assert await scheduler.run_forever(max_cycles=2) == 2
+    assert scheduler.consecutive_failures == 0, "두 번째 주기는 성공했으니 초기화돼야 한다"

@@ -14,6 +14,7 @@ import logging
 from datetime import date, datetime
 
 from fin_checkup.alerts.worker import AlertWorker, PollReport
+from fin_checkup.clock import kst_now, kst_today
 from fin_checkup.storage import Cache
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ class AlertScheduler:
         기록이 없으면 하루치만 본다. 처음 켠 워커가 한 달치 공시를 한꺼번에
         쏟아내면 그건 알림이 아니라 스팸이다.
         """
-        today = now or date.today()
+        today = now or kst_today()
         last = self.cache.get_meta(LAST_POLL_KEY)
         if not last:
             return 1
@@ -62,7 +63,8 @@ class AlertScheduler:
         return max(1, min(gap, MAX_LOOKBACK_DAYS))
 
     def mark_polled(self, when: datetime | None = None) -> None:
-        self.cache.set_meta(LAST_POLL_KEY, (when or datetime.now()).isoformat())
+        # naive 로 저장한다 — 읽는 쪽(lookback_days)이 날짜만 보고, 기존 기록과 섞여도 비교가 돼야 한다.
+        self.cache.set_meta(LAST_POLL_KEY, (when or kst_now().replace(tzinfo=None)).isoformat())
 
     # ------------------------------------------------------------------
     # 한 번 실행
@@ -96,7 +98,13 @@ class AlertScheduler:
         """주기적으로 실행한다. max_cycles를 주면 그만큼만 돌고 멈춘다(테스트용)."""
         cycles = 0
         while max_cycles is None or cycles < max_cycles:
-            await self.run_once()
+            try:
+                await self.run_once()
+            except Exception:  # noqa: BLE001
+                # run_once 는 폴링만 감싼다. 그 앞뒤(캐시 읽기·쓰기)에서 터지면 여기서
+                # 받는다. 이 루프가 죽으면 서버는 멀쩡해 보이면서 알림만 영구히 멈춘다.
+                self.consecutive_failures += 1
+                logger.exception("[scheduler] 주기 실행 실패 (연속 %d회)", self.consecutive_failures)
             cycles += 1
             if max_cycles is not None and cycles >= max_cycles:
                 break

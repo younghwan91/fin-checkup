@@ -245,7 +245,11 @@ async def cmd_poll(args: argparse.Namespace) -> int:
     min_severity = Severity(args.min_severity) if args.min_severity else None
 
     with Cache(settings.fin_checkup_db_path) as cache:
-        worker = AlertWorker(cache, notifier, min_severity=min_severity)
+        # 콘솔 출력은 발송이 아니다. 기록을 남기면 토큰을 넣은 뒤 그 공시가 영영 안 나간다.
+        worker = AlertWorker(
+            cache, notifier, min_severity=min_severity,
+            record=isinstance(notifier, TelegramNotifier),
+        )
 
         if args.daemon:
             scheduler = AlertScheduler(cache, worker, interval_seconds=args.interval)

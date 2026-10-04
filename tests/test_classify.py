@@ -55,6 +55,21 @@ def test_routine_disclosures_are_not_flagged(report_nm):
     assert classify(disc(report_nm)) is None
 
 
+@pytest.mark.parametrize(
+    "report_nm",
+    [
+        "주권매매거래정지해제",
+        "관리종목지정해제",
+        "투자주의환기종목해제",
+        "상장폐지사유해소",
+    ],
+)
+def test_release_disclosures_are_not_flagged(report_nm):
+    """'매매거래정지해제'는 '매매거래정지'를 포함한다. 그대로 두면 거래가 재개됐다는
+    좋은 소식이 채널에 🚨 상장 지위 공시로 나간다 — 사실상 오보다."""
+    assert classify(disc(report_nm)) is None
+
+
 def test_distress_is_the_highest_severity():
     assert classify(disc("주요사항보고서(부도발생)")).severity is Severity.CRITICAL
     assert classify(disc("상장폐지사유발생")).severity is Severity.CRITICAL

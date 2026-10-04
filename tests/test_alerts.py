@@ -284,6 +284,25 @@ async def test_failed_send_is_retried_next_poll(cache, worker_settings):
     assert second.sent == 1, "실패한 알림은 다음 폴링에서 다시 시도돼야 한다"
 
 
+@respx.mock
+async def test_dry_run_does_not_consume_the_dedup_record(cache, worker_settings):
+    """콘솔 출력도 True 를 돌려주므로 notified 에 남는다. 토큰 없이 돌려본 뒤 토큰을 넣으면
+    그 사이 공시는 '이미 보냄'으로 남아 영영 안 나간다. 미리보기는 상태를 바꾸면 안 된다."""
+    cache.add_watch("chat1", SAMSUNG)
+    respx.get(f"{BASE}/list.json").mock(
+        return_value=_list_response([_item("주요사항보고서(부도발생)", "R1")])
+    )
+    preview = AlertWorker(cache, ConsoleNotifier(), settings=worker_settings, record=False)
+    first = await preview.poll()
+    assert first.sent == 1
+    assert cache.was_notified("chat1", "R1") is False
+
+    real = AlertWorker(cache, ConsoleNotifier(), settings=worker_settings)
+    second = await real.poll()
+    assert second.sent == 1, "미리보기에서 본 공시가 실제 발송에서 빠지면 안 된다"
+    assert cache.was_notified("chat1", "R1") is True
+
+
 async def test_worker_without_api_key_is_a_noop(cache, tmp_path):
     cache.add_watch("chat1", SAMSUNG)
     notifier = ConsoleNotifier()

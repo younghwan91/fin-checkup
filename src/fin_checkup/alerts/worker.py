@@ -15,6 +15,7 @@ from datetime import date, timedelta
 from fin_checkup.alerts.classify import RiskDisclosure, Severity, classify_all
 from fin_checkup.alerts.message import format_alert, format_channel_alert
 from fin_checkup.alerts.telegram import Notifier
+from fin_checkup.clock import kst_today
 from fin_checkup.config import Settings
 from fin_checkup.config import settings as default_settings
 from fin_checkup.dart.client import DartClient
@@ -85,12 +86,20 @@ class AlertWorker:
         notifier: Notifier,
         settings: Settings | None = None,
         min_severity: Severity | None = None,
+        record: bool = True,
     ) -> None:
         self.cache = cache
         self.notifier = notifier
         self.settings = settings or default_settings
         #: 관심종목 알림의 하한. 기본은 걸지 않는다 — 등록한 종목이면 다 보낸다.
         self.min_severity = min_severity or Severity.MEDIUM
+        #: False 면 발송 기록(notified)을 남기지 않는다. 미리보기·콘솔 출력용이다 —
+        #: 거기서 기록을 남기면 나중에 진짜로 보낼 때 "이미 보냄"으로 빠진다.
+        self.record = record
+
+    def _mark(self, chat_id: str, rcept_no: str) -> None:
+        if self.record:
+            self.cache.mark_notified(chat_id, rcept_no)
 
     async def collect(
         self,
@@ -108,7 +117,7 @@ class AlertWorker:
             logger.warning("[worker] DART 인증키가 없어 공시를 조회할 수 없다")
             return None
 
-        end = today or date.today()
+        end = today or kst_today()
         begin = end - timedelta(days=max(days - 1, 0))
         bgn_de, end_de = begin.strftime("%Y%m%d"), end.strftime("%Y%m%d")
 
@@ -179,10 +188,10 @@ class AlertWorker:
             )
             if ok:
                 rcept_no = risk.disclosure.rcept_no
-                self.cache.mark_notified(channel_id, rcept_no)
+                self._mark(channel_id, rcept_no)
                 # 같은 사건으로 묶여 빠진 것들도 발송된 것으로 친다.
                 for absorbed_no in absorbed.get(rcept_no, []):
-                    self.cache.mark_notified(channel_id, absorbed_no)
+                    self._mark(channel_id, absorbed_no)
                 report.sent += 1
                 report.by_chat[channel_id] = report.by_chat.get(channel_id, 0) + 1
             else:
@@ -221,7 +230,7 @@ class AlertWorker:
                         continue
                     ok = await self.notifier.send(chat_id, format_alert(risk))
                     if ok:
-                        self.cache.mark_notified(chat_id, rcept_no)
+                        self._mark(chat_id, rcept_no)
                         report.sent += 1
                         report.by_chat[chat_id] = report.by_chat.get(chat_id, 0) + 1
                     else:

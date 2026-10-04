@@ -9,6 +9,7 @@ from types import TracebackType
 
 import duckdb
 
+from fin_checkup.clock import kst_today
 from fin_checkup.models import (
     AccountLine,
     Company,
@@ -23,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 def today_key(when: date | None = None) -> str:
-    """날짜로 나뉜 테이블(dart_call_log 등)의 키."""
-    return (when or date.today()).isoformat()
+    """날짜로 나뉜 테이블(dart_call_log 등)의 키. DART 일별 한도는 한국 날짜로 돈다."""
+    return (when or kst_today()).isoformat()
 
 
 SCHEMA = """

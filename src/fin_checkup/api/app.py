@@ -16,7 +16,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
 from fin_checkup.alerts.scheduler import LAST_POLL_KEY, AlertScheduler
-from fin_checkup.alerts.telegram import ConsoleNotifier, TelegramNotifier
+from fin_checkup.alerts.telegram import TelegramNotifier
 from fin_checkup.alerts.worker import AlertWorker
 from fin_checkup.api.schemas import (
     AccountCreate,
@@ -46,6 +46,26 @@ class AppState:
     worker_task: asyncio.Task | None = None
 
 
+def _report_worker_exit(task: asyncio.Task) -> None:
+    """워커 태스크가 끝나면 로그에 남긴다.
+
+    create_task 로 띄운 태스크는 아무도 await 하지 않는다. 예외로 죽어도 서버는 멀쩡히
+    돌고 알림만 조용히 멈춘다. 최소한 왜 멈췄는지는 로그에 남아야 한다.
+    """
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.error("[api] 알림 워커가 예외로 멈췄다: %r", exc, exc_info=exc)
+
+
+def worker_status(state: AppState) -> str:
+    """off: 안 띄움 · running: 돌고 있음 · stopped: 띄웠는데 끝남(죽었음)."""
+    if state.worker_task is None:
+        return "off"
+    return "stopped" if state.worker_task.done() else "running"
+
+
 def create_app(
     settings: Settings | None = None,
     cache: Cache | None = None,
@@ -60,17 +80,19 @@ def create_app(
         service = CheckupService(active, settings=settings)
         state = AppState(cache=active, service=service, settings=settings)
 
+        notifier: TelegramNotifier | None = None
         if run_worker and settings.has_api_key:
-            notifier = (
-                TelegramNotifier(settings.telegram_bot_token)
-                if settings.has_telegram
-                else ConsoleNotifier()
-            )
-            state.scheduler = AlertScheduler(
-                active, AlertWorker(active, notifier, settings=settings)
-            )
-            state.worker_task = asyncio.create_task(state.scheduler.run_forever())
-            logger.info("[api] 알림 워커를 백그라운드로 시작했다")
+            if not settings.has_telegram:
+                # 서버 안에서 콘솔로 찍는 알림은 아무에게도 가지 않는다. 띄우지 않는다.
+                logger.warning("[api] TELEGRAM_BOT_TOKEN 이 없어 알림 워커를 띄우지 않는다")
+            else:
+                notifier = TelegramNotifier(settings.telegram_bot_token)
+                state.scheduler = AlertScheduler(
+                    active, AlertWorker(active, notifier, settings=settings)
+                )
+                state.worker_task = asyncio.create_task(state.scheduler.run_forever())
+                state.worker_task.add_done_callback(_report_worker_exit)
+                logger.info("[api] 알림 워커를 백그라운드로 시작했다")
 
         app.state.ctx = state
         try:
@@ -80,6 +102,8 @@ def create_app(
                 state.worker_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await state.worker_task
+            if notifier is not None:
+                await notifier.aclose()
             if owned:
                 active.close()
 
@@ -134,6 +158,7 @@ def create_app(
             dart_calls_today=used,
             dart_daily_quota=quota,
             alerts_last_poll=state.cache.get_meta(LAST_POLL_KEY),
+            alerts_worker=worker_status(state),
         )
 
     def _issue_key(state: AppState, user_id: str) -> IssuedKeyOut:
