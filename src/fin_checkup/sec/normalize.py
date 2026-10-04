@@ -103,8 +103,24 @@ def _parse_date(value: Any) -> date | None:
         return None
 
 
+#: "수익(비용) 순액" 태그. 양수면 순수익, 음수면 순비용이다. 비용 자리에 쓸 때는
+#: 음수일 때만 절대값으로 채택한다 — 양수를 abs() 하면 이자수익이 이자비용으로 둔갑한다.
+NET_SIGNED_TAGS = frozenset({"InterestIncomeExpenseNet"})
+
+
 def _is_annual_form(entry: dict) -> bool:
     return str(entry.get("form", "")).startswith("10-K")
+
+
+#: 결산일이 이 날짜 이전의 1월이면 전년도 회계연도로 본다. 52/53주 결산 기업은 토요일에
+#: 마감해 12월 31일을 며칠 넘기기도 한다(FY2021 이 2022-01-01 에 끝나는 식).
+EARLY_JANUARY_CUTOFF_DAY = 7
+
+
+def _fiscal_year_of(end: date) -> int:
+    if end.month == 1 and end.day <= EARLY_JANUARY_CUTOFF_DAY:
+        return end.year - 1
+    return end.year
 
 
 def _pick(units: list[dict], fiscal_year: int, is_flow: bool) -> float | None:
@@ -114,7 +130,7 @@ def _pick(units: list[dict], fiscal_year: int, is_flow: bool) -> float | None:
         if not _is_annual_form(entry):
             continue
         end = _parse_date(entry.get("end"))
-        if end is None or end.year != fiscal_year:
+        if end is None or _fiscal_year_of(end) != fiscal_year:
             continue
         if is_flow:
             start = _parse_date(entry.get("start"))
@@ -153,6 +169,9 @@ def normalize_company_facts(
             if not units:
                 continue
             picked = _pick(units, fiscal_year, spec.is_flow)
+            if tag in NET_SIGNED_TAGS and picked is not None and picked > 0:
+                # 순액 태그는 양수면 수익이다. 비용으로 바꿔 쓰면 뜻이 뒤집힌다.
+                picked = None
             if picked is not None:
                 break
         values[spec.field] = abs(picked) if (picked is not None and spec.absolute) else picked

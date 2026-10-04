@@ -7,6 +7,7 @@ DART는 기업마다 계정 표기가 제각각이다. 표준 XBRL 태그(accoun
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
@@ -166,6 +167,13 @@ def _find(lines: Iterable[AccountLine], spec: FieldSpec) -> float | None:
     return None
 
 
+def _currency_of(lines: Iterable[AccountLine]) -> str:
+    """계정 줄의 통화 최빈값. DART 에 USD·JPY·CNY 로 공시하는 기업이 24곳 있다 —
+    KRW 로 두면 두산밥캣 자산 82억달러가 '82억원'으로 찍힌다."""
+    counts = Counter(ln.currency for ln in lines if ln.thstrm_amount is not None and ln.currency)
+    return counts.most_common(1)[0][0] if counts else "KRW"
+
+
 def normalize_statements(raw: RawStatements) -> Financials:
     """원본 계정 줄 → 지표 계산용 Financials."""
     values = {spec.name: _find(raw.lines, spec) for spec in FIELD_SPECS}
@@ -174,5 +182,6 @@ def normalize_statements(raw: RawStatements) -> Financials:
         bsns_year=raw.bsns_year,
         reprt_code=raw.reprt_code,
         fs_div=raw.fs_div,
+        currency=_currency_of(raw.lines),
         **values,
     )

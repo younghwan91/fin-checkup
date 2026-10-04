@@ -64,6 +64,9 @@ def test_debt_ratio_is_red_on_capital_impairment():
     m = get(checkup(fin(total_liabilities=500, total_equity=-100)), "debt_ratio")
     assert m.signal is Signal.RED
     assert "자본잠식" in m.note
+    # 값은 남기지 않는다. -500% 가 대조군에 들어가면 자본잠식 기업이 '최상위'로 정렬되고
+    # 업종 중앙값과 경계값 근거(분위수)를 끌어내린다.
+    assert m.value is None
 
 
 @pytest.mark.parametrize(

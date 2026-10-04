@@ -74,7 +74,10 @@ def main() -> int:
             if prior is not None:
                 prior_available += 1
             company = cache.get_company(code)
-            sector = sector_for(company.industry_code if company else None)
+            sector = sector_for(
+                company.industry_code if company else None,
+                company.corp_name if company else None,
+            )
             by_sector[sector.value] += 1
 
             if args.sector != "all" and sector.value != args.sector:

@@ -15,7 +15,7 @@ from fin_checkup.config import Settings
 from fin_checkup.config import settings as default_settings
 from fin_checkup.dart.client import DartClient
 from fin_checkup.dart.normalize import normalize_statements
-from fin_checkup.metrics.engine import CheckupResult, checkup
+from fin_checkup.metrics.engine import MONEY, CheckupResult, checkup
 from fin_checkup.metrics.peers import (
     MIN_PEERS,
     PeerScope,
@@ -187,7 +187,10 @@ class CheckupService:
         prior = next((f for f in history if f.bsns_year == latest.bsns_year - 1), None)
 
         company = await self.ensure_company(corp.corp_code, allow_fetch=allow_fetch)
-        sector = sector_for(company.industry_code if company else None)
+        sector = sector_for(
+            company.industry_code if company else None,
+            company.corp_name if company else None,
+        )
 
         result = checkup(latest, prior, sector=sector)
         return Checkup(
@@ -244,16 +247,19 @@ class CheckupService:
         if company is None:
             return {}
 
-        sector = sector_for(company.industry_code)
+        sector = sector_for(company.industry_code, company.corp_name)
         stats: dict[str, PeerStat] = {}
 
         group = peer_group_for(company.industry_code)
         industry_codes = [
             code for code in self.cache.list_by_industry(group) if code != company.corp_code
         ]
+        # 대조군 금액은 원화다. 달러로 공시하는 기업의 FCF 를 거기 견주면 자릿수가 다르다.
+        comparable = [m for m in result.metrics if _comparable(m, result.currency)]
+
         if len(industry_codes) >= MIN_PEERS:
             values = self._collect_peer_values(industry_codes, bsns_year, sector)
-            for metric in result.metrics:
+            for metric in comparable:
                 stat = peer_stats(
                     metric, values.get(metric.key, []), currency=result.currency,
                     scope=PeerScope.INDUSTRY,
@@ -261,7 +267,7 @@ class CheckupService:
                 if stat is not None:
                     stats[metric.key] = stat
 
-        missing = [m for m in result.metrics if m.key not in stats]
+        missing = [m for m in comparable if m.key not in stats]
         if not missing:
             return stats
 
@@ -307,8 +313,9 @@ class CheckupService:
         for code, raw in self.cache.get_statements_bulk(corp_codes, bsns_year).items():
             if code == exclude:
                 continue
-            for metric in checkup(normalize_statements(raw), sector=sector).metrics:
-                if metric.value is not None:
+            fin = normalize_statements(raw)
+            for metric in checkup(fin, sector=sector).metrics:
+                if metric.value is not None and _comparable(metric, fin.currency):
                     values.setdefault(metric.key, []).append(metric.value)
         return values
 
@@ -326,15 +333,28 @@ class CheckupService:
             prior_statements = self.cache.get_statements_bulk(chunk, bsns_year - 1)
             for code, raw in statements.items():
                 company = self.cache.get_company(code)
-                sector = sector_for(company.industry_code if company else None)
+                sector = sector_for(
+                    company.industry_code if company else None,
+                    company.corp_name if company else None,
+                )
                 prior_raw = prior_statements.get(code)
                 prior = normalize_statements(prior_raw) if prior_raw is not None else None
-                result = checkup(normalize_statements(raw), prior, sector=sector)
-                values = {m.key: m.value for m in result.metrics if m.value is not None}
+                fin = normalize_statements(raw)
+                result = checkup(fin, prior, sector=sector)
+                values = {
+                    m.key: m.value
+                    for m in result.metrics
+                    if m.value is not None and _comparable(m, fin.currency)
+                }
                 if values:
                     self.cache.save_metric_values(code, bsns_year, values)
                     done += 1
         return done
+
+
+def _comparable(metric, currency: str) -> bool:
+    """비율은 통화와 무관하다. 금액 지표는 대조군(원화)과 같은 통화일 때만 견준다."""
+    return metric.unit != MONEY or currency == "KRW"
 
 
 # ── Streamlit 등 동기 호출자를 위한 얇은 래퍼 ─────────────────────────

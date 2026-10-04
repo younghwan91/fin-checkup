@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from fin_checkup.format import format_money
 from fin_checkup.metrics.sector import Sector
 from fin_checkup.models import Financials
 
@@ -39,13 +40,17 @@ def detect_red_flags(
     latest = ordered[-1]
     flags: list[RedFlag] = []
 
+    def money(value: float | None) -> str:
+        # 공시 통화로 적는다. '원'을 박아두면 미국 기업에도 원이 붙는다.
+        return format_money(value, latest.currency, compact=False)
+
     # 자본잠식
     if latest.total_equity is not None and latest.total_equity <= 0:
         flags.append(
             RedFlag(
                 "full_capital_impairment",
                 "완전자본잠식",
-                f"{latest.bsns_year}년 자기자본이 {latest.total_equity:,.0f}원으로 0 이하다.",
+                f"{latest.bsns_year}년 자기자본이 {money(latest.total_equity)}으로 0 이하다.",
                 "완전자본잠식은 상장폐지 사유에 해당한다.",
             )
         )
@@ -82,8 +87,8 @@ def detect_red_flags(
             RedFlag(
                 "profit_without_cash",
                 "흑자인데 영업현금 유출",
-                f"{latest.bsns_year}년 당기순이익은 {latest.net_income:,.0f}원이지만 "
-                f"영업활동현금흐름은 {latest.operating_cash_flow:,.0f}원이다.",
+                f"{latest.bsns_year}년 당기순이익은 {money(latest.net_income)}이지만 "
+                f"영업활동현금흐름은 {money(latest.operating_cash_flow)}이다.",
             )
         )
 

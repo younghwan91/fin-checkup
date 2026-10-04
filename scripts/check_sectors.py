@@ -86,7 +86,7 @@ def main() -> int:
                 continue
 
             result = checkup(
-                normalize_statements(raw), sector=sector_for(company.industry_code)
+                normalize_statements(raw), sector=sector_for(company.industry_code, company.corp_name)
             )
             market_total += 1
             for m in result.metrics:

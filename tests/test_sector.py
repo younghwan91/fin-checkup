@@ -37,9 +37,31 @@ BANK = dict(
 
 
 @pytest.mark.parametrize(
+    ("corp_name", "expected"),
+    [
+        ("KB금융", Sector.FINANCIAL),
+        ("신한지주", Sector.FINANCIAL),
+        ("하나금융지주", Sector.FINANCIAL),
+        ("우리금융지주", Sector.FINANCIAL),
+        ("한국금융지주", Sector.FINANCIAL),
+        ("(주)LG", Sector.GENERAL),
+        ("GS", Sector.GENERAL),
+        ("한진칼", Sector.GENERAL),
+        ("에코프로", Sector.GENERAL),
+        ("삼양홀딩스", Sector.GENERAL),
+        (None, Sector.GENERAL),
+    ],
+)
+def test_holding_company_code_is_split_by_name(corp_name, expected):
+    """KSIC 64992 '지주회사'는 KB금융도 (주)LG 도 같은 코드다. 전부 금융업으로 치면
+    비금융 지주사의 부채비율·이자보상배율이 ⊘가 돼 진짜 위험이 가려진다."""
+    assert sector_for("64992", corp_name) is expected
+
+
+@pytest.mark.parametrize(
     ("code", "expected"),
     [
-        ("64992", Sector.FINANCIAL),   # KB금융 (실제 코드)
+        ("64110", Sector.FINANCIAL),   # 은행
         ("64", Sector.FINANCIAL),
         ("65110", Sector.FINANCIAL),   # 보험
         ("66199", Sector.FINANCIAL),   # 금융 지원 서비스

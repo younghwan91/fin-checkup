@@ -106,6 +106,39 @@ def test_tag_priority_order():
     assert fin is not None and fin.revenue == 999.0
 
 
+def test_net_interest_income_is_not_treated_as_interest_expense():
+    """InterestIncomeExpenseNet 은 양수면 순이자수익이다. abs() 로 비용 취급하면 현금이 많아
+    이자수익이 큰 기업일수록 이자보상배율이 낮아져 좀비로 찍힌다."""
+    income = facts(
+        Assets=units(entry("2023-09-30", 1)),
+        InterestIncomeExpenseNet=units(entry("2023-09-30", 2_000_000_000, start="2022-10-01")),
+    )
+    fin = normalize_company_facts(income, 2023)
+    assert fin is not None
+    assert fin.interest_expense is None
+
+    expense = facts(
+        Assets=units(entry("2023-09-30", 1)),
+        InterestIncomeExpenseNet=units(entry("2023-09-30", -500_000_000, start="2022-10-01")),
+    )
+    fin = normalize_company_facts(expense, 2023)
+    assert fin is not None
+    assert fin.interest_expense == 500_000_000
+
+
+def test_fiscal_years_ending_in_early_january_belong_to_the_prior_year():
+    """52/53주 결산 기업은 토요일에 마감해 FY2021 이 2022-01-01 에 끝나기도 한다.
+    end.year 로 고르면 그 해가 통째로 사라져 다음 해의 전년 비교(성장성 3개)가 ⚫가 된다."""
+    data = facts(
+        Assets=units(
+            entry("2022-01-01", 100, fy=2021, filed="2022-02-20"),
+            entry("2022-12-31", 120, fy=2022, filed="2023-02-20"),
+        )
+    )
+    assert normalize_company_facts(data, 2021).total_assets == 100
+    assert normalize_company_facts(data, 2022).total_assets == 120
+
+
 def test_capex_is_positive():
     data = facts(
         PaymentsToAcquirePropertyPlantAndEquipment=units(

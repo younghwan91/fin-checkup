@@ -98,3 +98,18 @@ def test_flags_state_facts_without_recommendation():
         text = flag.label + flag.detail + flag.reference
         for word in ("매수", "매도", "추천", "사세요", "파세요"):
             assert word not in text
+
+
+def test_detail_uses_the_filing_currency():
+    """US 경로도 같은 함수를 쓴다. '원'을 박아두면 애플의 순이익이 '96,995,000,000원'으로 나온다."""
+    history = [
+        fin(2024, currency="USD", total_equity=1000, capital_stock=500, net_income=96_995_000_000,
+            operating_cash_flow=-1_000_000),
+    ]
+    flag = next(f for f in detect_red_flags(history) if f.key == "profit_without_cash")
+    assert "원" not in flag.detail
+    assert "$" in flag.detail
+
+    krw = [fin(2024, total_equity=-100, capital_stock=500)]
+    flag = next(f for f in detect_red_flags(krw) if f.key == "full_capital_impairment")
+    assert "원" in flag.detail

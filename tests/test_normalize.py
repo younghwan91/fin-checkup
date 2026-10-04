@@ -134,3 +134,23 @@ def test_cis_section_is_accepted_for_income_accounts():
     # 일부 기업은 손익을 CIS(포괄손익계산서)에만 담는다.
     fin = normalize_statements(raw(line("CIS", "ifrs-full_ProfitLoss", "당기순이익", 77.0)))
     assert fin.net_income == 77.0
+
+
+def test_currency_follows_the_statement_lines():
+    """DART 에 USD·JPY·CNY 로 공시하는 기업이 있다(두산밥캣 2024 는 전 라인 USD).
+    통화를 KRW 로 두면 자산 82억달러가 '82억원'으로 찍히고, 업종 중앙값에 달러 금액이
+    원화와 섞여 들어간다."""
+    usd = AccountLine(
+        sj_div="BS", account_id="ifrs-full_Assets", account_nm="자산총계",
+        thstrm_amount=8_169_804_000.0, currency="USD",
+    )
+    assert normalize_statements(raw(usd)).currency == "USD"
+    assert normalize_statements(raw(line("BS", "ifrs-full_Assets", "자산총계", 1.0))).currency == "KRW"
+
+
+def test_currency_is_the_majority_when_lines_disagree():
+    lines = [
+        AccountLine(sj_div="BS", account_id=f"x{i}", account_nm=f"n{i}", thstrm_amount=1.0, currency="USD")
+        for i in range(3)
+    ] + [AccountLine(sj_div="BS", account_id="k", account_nm="k", thstrm_amount=1.0, currency="KRW")]
+    assert normalize_statements(raw(*lines)).currency == "USD"

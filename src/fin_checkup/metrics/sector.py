@@ -47,11 +47,33 @@ def peer_group_for(industry_code: str | None) -> str:
     return code[:PEER_GROUP_DIGITS] if len(code) >= PEER_GROUP_DIGITS else ""
 
 
-def sector_for(industry_code: str | None) -> Sector:
-    """DART 업종코드로 업종을 가른다. 코드가 없으면 일반으로 본다."""
+#: KSIC 64992 "지주회사". 금융지주(KB·신한·하나…)도, (주)LG·(주)GS·(주)한진칼 같은
+#: 비금융 지주도 전부 이 코드다 — 캐시 기준 92개사 중 금융지주는 열 곳이 안 된다.
+#: 접두 64 로 전부 금융업 처리하면 비금융 지주사의 부채비율·이자보상배율이 ⊘가 돼
+#: 진짜 위험이 "해당 없음"으로 가려진다. 이름으로 금융지주만 골라 올린다.
+HOLDING_COMPANY_CODE = "64992"
+_FINANCIAL_NAME_HINTS = ("금융", "은행", "증권", "보험", "캐피탈", "카드")
+#: 이름에 '금융'이 없는 금융지주.
+_FINANCIAL_HOLDINGS = frozenset({"신한지주", "신한금융지주"})
+
+
+def _is_financial_holding(corp_name: str | None) -> bool:
+    name = "".join((corp_name or "").split()).replace("(주)", "").replace("주식회사", "")
+    if not name:
+        return False
+    return name in _FINANCIAL_HOLDINGS or any(hint in name for hint in _FINANCIAL_NAME_HINTS)
+
+
+def sector_for(industry_code: str | None, corp_name: str | None = None) -> Sector:
+    """DART 업종코드로 업종을 가른다. 코드가 없으면 일반으로 본다.
+
+    64992(지주회사)만은 코드로 가를 수 없어 회사명을 함께 본다.
+    """
     code = (industry_code or "").strip()
     if len(code) < 2:
         return Sector.GENERAL
+    if code == HOLDING_COMPANY_CODE:
+        return Sector.FINANCIAL if _is_financial_holding(corp_name) else Sector.GENERAL
     prefix = code[:2]
     if prefix in FINANCIAL_PREFIXES:
         return Sector.FINANCIAL

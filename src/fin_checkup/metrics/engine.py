@@ -184,6 +184,13 @@ def _roe_override(cur: Financials, _p: Financials | None, _v: float | None) -> t
     return None
 
 
+def _debt_ratio(cur: Financials, _prior: Financials | None) -> tuple[float | None, str]:
+    # 자기자본이 0 이하면 비율이 음수가 된다. 그 값을 남기면 대조군에서 '최상위'로 정렬된다.
+    if cur.total_equity is not None and cur.total_equity <= 0:
+        return None, ""
+    return _pct(cur.total_liabilities, cur.total_equity), ""
+
+
 def _debt_ratio_override(
     cur: Financials, _p: Financials | None, _v: float | None
 ) -> tuple[Signal, str] | None:
@@ -305,7 +312,7 @@ METRIC_DEFS: tuple[MetricDef, ...] = (
         "당기순이익 ÷ 총자산 × 100",
         lambda c, p: (_pct(c.net_income, c.total_assets), ""),
         Band(good=5, warn=0),  # p75=5.2
-        # 은행은 자산 규모가 커서 ROA 1%면 우량하다. 일반 기업 기준(7%)을 들이대면
+        # 은행은 자산 규모가 커서 ROA 1%면 우량하다. 일반 기업 기준(5%)을 들이대면
         # 모든 은행이 🔴가 된다. 감독당국·업계가 쓰는 통상 기준으로 갈아 끼운다.
         sector_bands={Sector.FINANCIAL: Band(good=1.0, warn=0.5)},
     ),
@@ -314,7 +321,7 @@ METRIC_DEFS: tuple[MetricDef, ...] = (
         "debt_ratio", "부채비율", Category.STABILITY, "%",
         "자기 돈 대비 빌린 돈의 크기. 높을수록 외부 충격에 약하다.",
         "부채총계 ÷ 자기자본 × 100",
-        lambda c, p: (_pct(c.total_liabilities, c.total_equity), ""),
+        _debt_ratio,
         Band(good=100, warn=200, higher_is_better=False),
         _debt_ratio_override,
     ),
