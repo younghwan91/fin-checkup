@@ -335,3 +335,9 @@ def test_zero_inventory_is_not_applicable_rather_than_missing():
 def test_missing_inventory_is_still_unknown():
     m = get(checkup(fin(revenue=1000)), "inventory_turnover")
     assert m.signal is Signal.UNKNOWN
+
+
+def test_missing_revenue_with_zero_inventory_is_unknown_not_applicable():
+    # 매출액 계정을 못 찾은 게 진짜 문제다. 재고 0 을 탓하면 정규화 결함이 가려진다.
+    m = get(checkup(fin(inventories=0)), "inventory_turnover")
+    assert m.signal is Signal.UNKNOWN

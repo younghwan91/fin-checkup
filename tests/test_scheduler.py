@@ -174,3 +174,14 @@ async def test_run_forever_survives_errors_outside_the_poll(
     monkeypatch.setattr(cache, "get_meta", flaky_get_meta)
     assert await scheduler.run_forever(max_cycles=2) == 2
     assert scheduler.consecutive_failures == 0, "두 번째 주기는 성공했으니 초기화돼야 한다"
+
+
+@respx.mock
+async def test_preview_runs_do_not_advance_the_last_poll(cache: Cache, worker_settings):
+    """dry-run 이 last_poll 을 전진시키면 다음 실제 폴링의 조회 구간이 줄어, 미리보기에서
+    본 공시는 notified 에도 없고 조회 범위에도 없어 영영 안 나간다."""
+    respx.get(f"{BASE}/list.json").mock(return_value=empty_response())
+    cache.add_watch("chat1", SAMSUNG)
+    preview = AlertWorker(cache, ConsoleNotifier(), settings=worker_settings, record=False)
+    assert await AlertScheduler(cache, preview).run_once() is not None
+    assert cache.get_meta(LAST_POLL_KEY) is None

@@ -261,3 +261,37 @@ def test_cache_is_safe_to_share_across_threads(cache: Cache):
 
     assert not errors, errors[:3]
     assert not mismatches, f"{len(mismatches)}건이 다른 사용자로 풀렸다: {mismatches[:3]}"
+
+
+
+# ── 마이그레이션 ──────────────────────────────────────────────────
+
+
+def test_reopening_purges_foreign_currency_money_metrics(tmp_path):
+    """이미 백필된 캐시에는 달러 FCF 가 원화 대조군에 섞여 있다. 코드만 고쳐서는 효과가
+    없고, 다시 열 때 그 행을 지워야 한다. 비율 지표는 통화와 무관하니 남긴다."""
+    from fin_checkup.storage.db import _MIGRATION_FOREIGN_MONEY
+
+    path = tmp_path / "m.duckdb"
+    with Cache(path) as c:
+        c.conn.execute("DELETE FROM meta WHERE key = ?", [_MIGRATION_FOREIGN_MONEY])
+        usd = RawStatements(
+            corp_code="USD1", bsns_year=2024, reprt_code=ReportCode.ANNUAL, fs_div=FsDiv.CFS,
+            lines=[AccountLine(sj_div="BS", account_id="ifrs-full_Assets", account_nm="자산총계",
+                               thstrm_amount=1.0, currency="USD")],
+        )
+        krw = RawStatements(
+            corp_code="KRW1", bsns_year=2024, reprt_code=ReportCode.ANNUAL, fs_div=FsDiv.CFS,
+            lines=[AccountLine(sj_div="BS", account_id="ifrs-full_Assets", account_nm="자산총계",
+                               thstrm_amount=1.0)],
+        )
+        c.save_statements(usd)
+        c.save_statements(krw)
+        c.save_metric_values("USD1", 2024, {"fcf": 5.0, "roe": 10.0})
+        c.save_metric_values("KRW1", 2024, {"fcf": 7.0, "roe": 12.0})
+
+    with Cache(path) as c:
+        values = c.peer_metric_values(["USD1", "KRW1"], 2024)
+        assert values["fcf"] == [7.0]
+        assert sorted(values["roe"]) == [10.0, 12.0]
+        assert c.get_meta(_MIGRATION_FOREIGN_MONEY) == "done"

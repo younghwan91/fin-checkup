@@ -130,11 +130,21 @@ class TelegramNotifier:
         """보냈으면 True. 실패해도 예외를 올리지 않는다 — 알림 하나 때문에
         워커 전체가 멈추면 나머지 종목의 공시를 놓친다.
 
-        4096자를 넘으면 줄 단위로 나눠 여러 건으로 보낸다. 한 조각이라도 실패하면 False.
+        4096자를 넘으면 줄 단위로 나눠 여러 건으로 보낸다. 첫 조각이 나갔으면 True 다 —
+        뒤 조각이 실패했다고 False 를 돌려주면 호출한 쪽이 '안 보냄'으로 알고 다음 회차에
+        첫 조각을 또 보낸다. 잘린 꼬리는 로그에 남긴다.
         """
-        for chunk in split_message(text):
-            if not await self._send_one(chat_id, chunk):
+        chunks = split_message(text)
+        for index, chunk in enumerate(chunks):
+            if await self._send_one(chat_id, chunk):
+                continue
+            if index == 0:
                 return False
+            logger.error(
+                "[telegram] chat_id=%s 분할 전송 %d/%d 조각부터 실패 — 앞 조각은 이미 전달됐다",
+                chat_id, index + 1, len(chunks),
+            )
+            return True
         return True
 
     async def _send_one(self, chat_id: str, text: str, retried: bool = False) -> bool:

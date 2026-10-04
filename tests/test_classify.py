@@ -70,6 +70,12 @@ def test_release_disclosures_are_not_flagged(report_nm):
     assert classify(disc(report_nm)) is None
 
 
+def test_release_combined_with_a_new_designation_is_still_flagged():
+    # 거래정지는 풀렸지만 관리종목으로 새로 지정됐다. 해제 글자만 보고 버리면 놓친다.
+    result = classify(disc("주권매매거래정지해제및관리종목지정"))
+    assert result is not None and result.kind is RiskKind.LISTING_STATUS
+
+
 def test_distress_is_the_highest_severity():
     assert classify(disc("주요사항보고서(부도발생)")).severity is Severity.CRITICAL
     assert classify(disc("상장폐지사유발생")).severity is Severity.CRITICAL

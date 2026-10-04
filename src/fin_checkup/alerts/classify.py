@@ -137,7 +137,9 @@ _CORRECTION = re.compile(r"\[(기재정정|첨부정정|첨부추가|정정)\]")
 
 #: 상장 지위 패턴은 '해제·해소' 공시에도 걸린다 — '주권매매거래정지해제'는
 #: '매매거래정지'를 포함한다. 그건 위험이 풀렸다는 소식이지 위험 공시가 아니다.
-_RELEASE = re.compile(r"해제|해소")
+#: 걸린 표현 바로 뒤에 붙을 때만 해제로 본다. 제목 어딘가에 '해제'가 있다고 통째로 버리면
+#: '매매거래정지해제및관리종목지정'처럼 해제와 신규 지정이 함께 온 공시를 놓친다.
+_RELEASE_SUFFIX = re.compile(r"(지정|사유)?(해제|해소)")
 
 
 def _squash(text: str) -> str:
@@ -153,8 +155,8 @@ def classify(disclosure: Disclosure) -> RiskDisclosure | None:
     for kind, pattern, source in _COMPILED:
         match = pattern.search(title)
         if match:
-            if kind is RiskKind.LISTING_STATUS and _RELEASE.search(title):
-                return None
+            if kind is RiskKind.LISTING_STATUS and _RELEASE_SUFFIX.match(title, match.end()):
+                continue
             return RiskDisclosure(
                 disclosure=disclosure,
                 kind=kind,

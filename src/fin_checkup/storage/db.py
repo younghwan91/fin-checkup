@@ -160,6 +160,11 @@ CREATE TABLE IF NOT EXISTS fetch_misses (
 #: 한 INSERT 문에 담을 행 수. corp_code는 11만 행이라 한 줄씩 넣으면 5분이 넘는다.
 BULK_CHUNK = 2000
 
+#: 금액 단위 지표. 대조군은 원화라 외화 공시 기업의 이 값들은 섞지 않는다.
+#: (metrics.engine 의 MONEY 지표와 같아야 한다. storage 가 metrics 를 import 하지 않으려고 적어둔다.)
+_MONEY_METRIC_KEYS = ("operating_cash_flow", "fcf")
+_MIGRATION_FOREIGN_MONEY = "migrations.metric_values_foreign_money"
+
 
 class CacheLocked(RuntimeError):
     """다른 프로세스가 캐시를 쓰고 있다.
@@ -217,6 +222,7 @@ class Cache:
         self._cursors_lock = threading.Lock()
         if not read_only:
             self._root.execute(SCHEMA)
+            self._migrate()
 
     @property
     def conn(self) -> duckdb.DuckDBPyConnection:
@@ -237,6 +243,21 @@ class Cache:
             with self._cursors_lock:
                 self._cursors.append(cursor)
         return cursor
+
+    def _migrate(self) -> None:
+        """스키마 밖의 데이터 정정. 한 번 적용하면 meta 에 표시해 다시 돌지 않는다."""
+        if self.get_meta(_MIGRATION_FOREIGN_MONEY) is None:
+            # 외화로 공시하는 기업의 금액 지표가 원화 대조군에 섞여 있었다. 백필이 이제는
+            # 이런 행을 만들지 않지만, 이미 채워진 캐시에는 남아 있어 지워야 효과가 난다.
+            # 지운 기업은 다음 backfill 에서 비율 지표만 다시 채워진다.
+            placeholders = ", ".join("?" for _ in _MONEY_METRIC_KEYS)
+            self.conn.execute(
+                f"DELETE FROM metric_values WHERE metric_key IN ({placeholders}) AND corp_code IN ("
+                "  SELECT DISTINCT corp_code FROM statement_lines"
+                "  WHERE currency IS NOT NULL AND currency <> 'KRW')",
+                list(_MONEY_METRIC_KEYS),
+            )
+            self.set_meta(_MIGRATION_FOREIGN_MONEY, "done")
 
     def __enter__(self) -> Cache:
         return self
@@ -278,7 +299,7 @@ class Cache:
         }
         self.conn.execute("DELETE FROM corp_codes")
         self._bulk_insert("corp_codes", list(deduped.values()), columns=5)
-        return self.conn.execute("SELECT count(*) FROM corp_codes").fetchone()[0]
+        return self.count_corp_codes()
 
     def count_corp_codes(self) -> int:
         return int(self.conn.execute("SELECT count(*) FROM corp_codes").fetchone()[0])

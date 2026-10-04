@@ -128,6 +128,8 @@ uv run python scripts/collect_universe.py --year 2024 --limit 1000 --skip 1000
   누구나 남의 이메일로 그 사람의 `user_id`에 묶인 키를 받는다. 추가 키(기기별)는 기존 키로
   인증한 `POST /me/keys`에서 받는다
 - 이메일은 JSON 본문으로만 받는다. 쿼리스트링은 접근 로그에 남는다
+- 키를 잃은 사용자는 API 로는 복구할 수 없다. 운영자가 발급한다:
+  `uv run python -m fin_checkup.cli account issue-key user@example.com`
 - `user_id`는 이메일의 SHA-256 앞 32자 — 로그·URL에 개인정보가 남지 않는다
 - 키 폐기는 `revoked_at`을 채운다. 삭제하지 않아 감사 추적이 남는다
 

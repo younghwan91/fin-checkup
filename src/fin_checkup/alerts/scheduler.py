@@ -85,7 +85,10 @@ class AlertScheduler:
             return None
 
         # 성공했을 때만 갱신한다. 실패한 구간을 성공으로 표시하면 그 사이 공시가 영영 사라진다.
-        self.mark_polled()
+        # 미리보기(record=False)도 갱신하지 않는다 — 다음 실제 폴링의 조회 구간이 줄어들어
+        # 미리보기에서 본 공시가 영영 안 나간다.
+        if self.worker.record:
+            self.mark_polled()
         self.consecutive_failures = 0
         logger.info("[scheduler] %d일치 확인 — %s", days, report.summary())
         return report

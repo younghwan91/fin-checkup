@@ -200,6 +200,27 @@ async def test_long_messages_are_split_instead_of_rejected():
         assert len(sent) <= MAX_MESSAGE_LENGTH
 
 
+@respx.mock
+async def test_a_failed_tail_chunk_still_counts_as_sent():
+    """첫 조각은 이미 사용자에게 갔다. False 를 돌려주면 다음 회차에 첫 조각이 또 간다."""
+    respx.post("https://api.telegram.org/botTOKEN/sendMessage").mock(
+        side_effect=[httpx.Response(200, json={"ok": True}), httpx.Response(400, text="bad")]
+    )
+    text = "\n".join("x" * 100 for _ in range(60))
+    async with TelegramNotifier("TOKEN") as notifier:
+        assert await notifier.send("chat1", text) is True
+
+
+@respx.mock
+async def test_a_failed_first_chunk_is_not_sent():
+    respx.post("https://api.telegram.org/botTOKEN/sendMessage").mock(
+        return_value=httpx.Response(400, text="bad")
+    )
+    text = "\n".join("x" * 100 for _ in range(60))
+    async with TelegramNotifier("TOKEN") as notifier:
+        assert await notifier.send("chat1", text) is False
+
+
 def test_split_message_keeps_lines_whole_and_covers_everything():
     from fin_checkup.alerts.telegram import split_message
 

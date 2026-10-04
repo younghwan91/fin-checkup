@@ -291,7 +291,8 @@ def _zero_denominator_is_not_applicable(field: str, what: str):
     """
 
     def override(cur: Financials, _p: Financials | None, value: float | None) -> tuple[Signal, str] | None:
-        if value is None and getattr(cur, field) == 0:
+        # 분자(매출액)가 없으면 그건 계정 누락(⚫)이다. 분모 0 을 탓하면 정규화 결함이 가려진다.
+        if value is None and cur.revenue is not None and getattr(cur, field) == 0:
             return Signal.NOT_APPLICABLE, f"{what}이(가) 0 으로 공시돼 회전율을 계산하지 않는다."
         return _turnover_note(cur, _p, value)
 

@@ -20,6 +20,7 @@ from fin_checkup.alerts.classify import Severity
 from fin_checkup.alerts.scheduler import AlertScheduler
 from fin_checkup.alerts.telegram import ConsoleNotifier, Notifier, TelegramNotifier
 from fin_checkup.alerts.worker import AlertWorker
+from fin_checkup.auth import generate_key, normalize_email, user_id_for
 from fin_checkup.config import settings
 from fin_checkup.dart.client import DartError, RateLimitExceeded
 from fin_checkup.fiscal import default_fiscal_year
@@ -229,6 +230,27 @@ async def cmd_watch(args: argparse.Namespace) -> int:
     return 0
 
 
+async def cmd_account(args: argparse.Namespace) -> int:
+    """운영자가 API 키를 발급한다.
+
+    /accounts 는 이메일을 검증하지 않아 같은 이메일로 두 번 만들 수 없다(409). 키를 잃은
+    사용자는 API 로는 복구할 길이 없다 — DB 에 손이 닿는 운영자가 여기서 새 키를 준다.
+    """
+    try:
+        email = normalize_email(args.email)
+    except ValueError as exc:
+        print(str(exc))
+        return 1
+    user_id = user_id_for(email)
+    with Cache(settings.fin_checkup_db_path) as cache:
+        created = cache.create_account(user_id, email)
+        issued = generate_key(user_id)
+        cache.save_api_key(issued.key_hash, user_id, issued.prefix)
+    print(f"{'새 계정' if created else '기존 계정'} {user_id}")
+    print(f"API 키 (지금 한 번만 표시): {issued.plaintext}")
+    return 0
+
+
 async def cmd_poll(args: argparse.Namespace) -> int:
     """관심종목의 최근 위험 공시를 훑어 알림을 보낸다."""
     if not settings.has_api_key:
@@ -266,7 +288,8 @@ async def cmd_poll(args: argparse.Namespace) -> int:
             scheduler = AlertScheduler(cache, worker)
             days = args.days if args.days else scheduler.lookback_days()
             report = await worker.poll(days=days)
-            scheduler.mark_polled()
+            if worker.record:
+                scheduler.mark_polled()
             print(f"{days}일치 확인 — {report.summary()}")
 
     if isinstance(notifier, TelegramNotifier):
@@ -447,6 +470,12 @@ def main(argv: list[str] | None = None) -> int:
     p_backfill.add_argument("--year", type=int, default=default_fiscal_year(), help="기준 사업연도")
     p_backfill.add_argument("--years", type=int, default=2, help="거슬러 올라갈 연수")
     p_backfill.set_defaults(func=cmd_backfill)
+
+    p_account = sub.add_parser("account", help="운영자용 계정 관리")
+    account_sub = p_account.add_subparsers(dest="account_action", required=True)
+    p_issue = account_sub.add_parser("issue-key", help="이메일로 API 키 발급 (키를 잃었을 때)")
+    p_issue.add_argument("email")
+    p_issue.set_defaults(func=cmd_account)
 
     p_budget = sub.add_parser("budget", help="오늘 DART 호출량 확인")
     p_budget.set_defaults(func=cmd_budget)

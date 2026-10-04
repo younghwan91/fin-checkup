@@ -48,3 +48,24 @@ def test_watch_list_and_remove(db, capsys):
     assert "회사0" in capsys.readouterr().out
     main(["watch", "remove", "000000"])
     assert "해제" in capsys.readouterr().out
+
+
+def test_operator_can_issue_a_key_for_a_locked_out_user(db, capsys):
+    """키는 발급 때 한 번만 보이고, 같은 이메일로 /accounts 를 다시 칠 수 없다(409).
+    키를 잃으면 API 로는 복구가 안 되므로 운영자 CLI 가 유일한 길이다."""
+    from fin_checkup.auth import hash_key
+
+    assert main(["account", "issue-key", "Young@Example.com"]) == 0
+    out = capsys.readouterr().out
+    key = next(tok for tok in out.split() if tok.startswith("fck_"))
+    assert "새 계정" in out
+
+    assert main(["account", "issue-key", "young@example.com"]) == 0
+    out = capsys.readouterr().out
+    second = next(tok for tok in out.split() if tok.startswith("fck_"))
+    assert "기존 계정" in out and second != key
+
+    with Cache(db) as cache:
+        assert cache.resolve_api_key(hash_key(key)) == cache.resolve_api_key(hash_key(second))
+
+    assert main(["account", "issue-key", "not-an-email"]) == 1
