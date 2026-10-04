@@ -134,6 +134,12 @@ class WatchItem(BaseModel):
     stock_code: str
 
 
+class AccountCreate(BaseModel):
+    """이메일은 본문으로만 받는다. 쿼리스트링은 접근 로그에 그대로 남는다."""
+
+    email: str = Field(..., min_length=3, max_length=254)
+
+
 class AccountOut(BaseModel):
     user_id: str
     watchlist_count: int

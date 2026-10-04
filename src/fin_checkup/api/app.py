@@ -19,6 +19,7 @@ from fin_checkup.alerts.scheduler import LAST_POLL_KEY, AlertScheduler
 from fin_checkup.alerts.telegram import ConsoleNotifier, TelegramNotifier
 from fin_checkup.alerts.worker import AlertWorker
 from fin_checkup.api.schemas import (
+    AccountCreate,
     AccountOut,
     CheckupOut,
     HealthOut,
@@ -135,19 +136,31 @@ def create_app(
             alerts_last_poll=state.cache.get_meta(LAST_POLL_KEY),
         )
 
+    def _issue_key(state: AppState, user_id: str) -> IssuedKeyOut:
+        issued = generate_key(user_id)
+        state.cache.save_api_key(issued.key_hash, user_id, issued.prefix)
+        return IssuedKeyOut(user_id=user_id, api_key=issued.plaintext)
+
     @app.post("/accounts", response_model=IssuedKeyOut, tags=["계정"], status_code=201)
-    def create_account(email: str = Query(...), state: AppState = Depends(get_state)):
-        """계정을 만들고 API 키를 발급한다. 키는 이 응답에만 나온다."""
+    def create_account(body: AccountCreate, state: AppState = Depends(get_state)):
+        """계정을 만들고 API 키를 발급한다. 키는 이 응답에만 나온다.
+
+        이메일 소유를 검증하지 않는다. 그래서 이미 있는 이메일로는 키를 다시 주지
+        않는다 — 주면 누구나 남의 user_id 에 묶인 키를 받아 관심종목을 읽고 지울 수 있다.
+        추가 키는 기존 키로 인증한 뒤 /me/keys 에서 받는다.
+        """
         try:
-            normalized = normalize_email(email)
+            normalized = normalize_email(body.email)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
         user_id = user_id_for(normalized)
-        state.cache.create_account(user_id, normalized)
-        issued = generate_key(user_id)
-        state.cache.save_api_key(issued.key_hash, user_id, issued.prefix)
-        return IssuedKeyOut(user_id=user_id, api_key=issued.plaintext)
+        if not state.cache.create_account(user_id, normalized):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="이미 계정이 있습니다. 추가 키는 기존 키로 인증해 POST /me/keys 로 받으세요.",
+            )
+        return _issue_key(state, user_id)
 
     # ------------------------------------------------------------------
     # 인증 필요
@@ -159,6 +172,13 @@ def create_app(
             user_id=user_id,
             watchlist_count=state.cache.count_watch(user_id),
         )
+
+    @app.post("/me/keys", response_model=IssuedKeyOut, tags=["계정"], status_code=201)
+    def issue_additional_key(
+        user_id: str = Depends(get_user_id), state: AppState = Depends(get_state)
+    ):
+        """같은 계정의 키를 하나 더 발급한다(기기별 키). 기존 키는 그대로 유효하다."""
+        return _issue_key(state, user_id)
 
     @app.get("/search", response_model=list[SearchHit], tags=["조회"])
     def search(

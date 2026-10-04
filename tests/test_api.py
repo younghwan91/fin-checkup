@@ -53,7 +53,7 @@ def client(cache, tmp_path):
 
 @pytest.fixture
 def api_key(client) -> str:
-    resp = client.post("/accounts", params={"email": "young@example.com"})
+    resp = client.post("/accounts", json={"email": "young@example.com"})
     assert resp.status_code == 201
     return resp.json()["api_key"]
 
@@ -72,23 +72,42 @@ def test_health(client):
 
 
 def test_account_creation_returns_the_key_once(client):
-    body = client.post("/accounts", params={"email": "a@b.com"}).json()
+    body = client.post("/accounts", json={"email": "a@b.com"}).json()
     assert body["api_key"].startswith("fck_")
     assert "한 번만" in body["warning"]
 
 
 def test_invalid_email_is_rejected(client):
-    assert client.post("/accounts", params={"email": "없음"}).status_code == 422
+    assert client.post("/accounts", json={"email": "없음"}).status_code == 422
 
 
-def test_creating_the_same_account_twice_issues_a_new_key(client):
-    first = client.post("/accounts", params={"email": "a@b.com"}).json()
-    second = client.post("/accounts", params={"email": "a@b.com"}).json()
-    assert first["user_id"] == second["user_id"]
-    assert first["api_key"] != second["api_key"]
-    # 둘 다 유효해야 한다 (기기별 키 발급)
-    for key in (first["api_key"], second["api_key"]):
-        assert client.get("/me", headers=auth(key)).status_code == 200
+def test_creating_the_same_account_twice_is_rejected(client):
+    """이메일을 검증하지 않으므로 같은 이메일로 다시 만들게 두면 누구나 남의 user_id 에
+    묶인 유효한 키를 받아 그 사람의 관심종목을 읽고 지울 수 있었다."""
+    first = client.post("/accounts", json={"email": "a@b.com"})
+    assert first.status_code == 201
+    second = client.post("/accounts", json={"email": "A@B.COM"})
+    assert second.status_code == 409
+    assert "api_key" not in second.json()
+    assert "/me/keys" in second.json()["detail"]
+
+
+def test_email_is_not_accepted_in_the_query_string(client):
+    # 쿼리스트링은 접근 로그에 그대로 남는다. 이메일은 본문으로만 받는다.
+    assert client.post("/accounts", params={"email": "a@b.com"}).status_code == 422
+
+
+def test_additional_keys_require_an_existing_key(client, api_key):
+    anonymous = client.post("/me/keys")
+    assert anonymous.status_code == 401
+
+    issued = client.post("/me/keys", headers=auth(api_key))
+    assert issued.status_code == 201
+    new_key = issued.json()["api_key"]
+    assert new_key != api_key
+    me_old = client.get("/me", headers=auth(api_key)).json()
+    me_new = client.get("/me", headers=auth(new_key)).json()
+    assert me_old["user_id"] == me_new["user_id"]
 
 
 # ── 인증 ──────────────────────────────────────────────────────────
@@ -205,7 +224,7 @@ def test_watchlist_has_no_limit(client, cache, api_key):
 
 
 def test_watchlists_are_isolated_between_users(client, api_key):
-    other = client.post("/accounts", params={"email": "other@b.com"}).json()["api_key"]
+    other = client.post("/accounts", json={"email": "other@b.com"}).json()["api_key"]
     client.post("/watchlist/005930", headers=auth(api_key))
     assert client.get("/watchlist", headers=auth(other)).json() == []
 
