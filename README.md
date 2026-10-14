@@ -155,3 +155,16 @@ uv run ruff check src tests scripts
 ## 면책
 
 본 서비스는 소프트웨어 도구이며 투자권유·투자자문을 제공하지 않는다. 표시되는 정보는 공시 수치를 공개된 재무비율 공식으로 계산한 객관적 측정 결과다. 데이터 정확성 및 이용에 따른 손익에 운영자는 책임지지 않는다.
+
+## 만든 사람
+
+**채영환 (Younghwan Chae)** · [GitHub @younghwan91](https://github.com/younghwan91) · [LinkedIn](https://www.linkedin.com/in/younghwan-chae/)
+
+전체 오픈소스 퀀트 스택은 [프로필](https://github.com/younghwan91)에서 한눈에 볼 수 있습니다.
+
+## ⭐ 도움이 되셨다면 (Star)
+
+이 도구가 유용했다면 우측 상단 **[⭐ Star](https://github.com/younghwan91/fin-checkup)** 를 눌러주세요. 검색·추천 노출이 올라가 더 많은 분들이 찾을 수 있습니다.
+
+- 🐛 버그·질문 → [Issues](https://github.com/younghwan91/fin-checkup/issues)
+- 📈 업데이트 소식 → [팔로우 @younghwan91](https://github.com/younghwan91)
