@@ -3,8 +3,6 @@
 [![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
-[![GitHub stars](https://img.shields.io/github/stars/younghwan91/fin-checkup?style=social)](https://github.com/younghwan91/fin-checkup)
-[![GitHub forks](https://img.shields.io/github/forks/younghwan91/fin-checkup?style=social)](https://github.com/younghwan91/fin-checkup)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/)
 
 들고 있는 종목에 **유상증자 공시가 떴는데 나만 며칠 뒤에 알았다.** 감사의견 거절도, 최대주주 변동도 마찬가지다.
@@ -169,11 +167,8 @@ uv run ruff check src tests scripts
 
 전체 오픈소스 퀀트 스택은 [프로필](https://github.com/younghwan91)에서 한눈에 볼 수 있습니다.
 
-## ⭐ 도움이 되셨다면 (Star & 기여)
+## 기여 및 이슈 제보
 
-[![Star History Chart](https://api.star-history.com/svg?repos=younghwan91/fin-checkup&type=Date)](https://star-history.com/#younghwan91/fin-checkup&Date)
-
-`fin-checkup`이 공시 모니터링이나 재무 분석에 유용하셨다면 우측 상단의 **[⭐ Star](https://github.com/younghwan91/fin-checkup)** 를 눌러주세요!
-- 유상증자·CB발행·감사의견 거절 등 치명적인 재무 위험을 개인 투자자가 놓치지 않도록 돕는 오픈소스 도구에 큰 힘이 됩니다.
-- 🐛 버그 제보 & 질문: [GitHub Issues](https://github.com/younghwan91/fin-checkup/issues)
+- 🐛 버그 제보, 질문, 기능 제안: [GitHub Issues](https://github.com/younghwan91/fin-checkup/issues)
 - 📈 업데이트 소식: [팔로우 @younghwan91](https://github.com/younghwan91)
+
