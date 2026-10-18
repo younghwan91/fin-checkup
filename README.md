@@ -5,12 +5,12 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/)
 
+<img alt="재무 건강검진 화면 — 삼성전자 신호등 요약" src="docs/images/hero.png" width="100%">
+
 들고 있는 종목에 **유상증자 공시가 떴는데 나만 며칠 뒤에 알았다.** 감사의견 거절도, 최대주주 변동도 마찬가지다.
 DART에는 당일 다 올라와 있는데 아무도 알려주지 않는다.
 
 관심종목에 **위험 공시가 뜨면 텔레그램으로 알리고**, 재무제표는 **건강검진 결과지처럼 신호등으로** 보여주는 도구다.
-
-![재무 건강검진 화면](docs/images/checkup.png)
 
 숫자 하나에 맥락 세 겹이 붙는다 — **작년 대비**, **동종업계 안의 위치**, **업종 중앙값**.
 "영업이익률 10.88%"만으로는 좋은지 알 수 없지만, "작년 2.54%에서 개선 · 동종업계 308개사 중
