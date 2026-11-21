@@ -24,6 +24,15 @@ def test_usd_uses_western_units():
     assert format_money(-500_000, "USD") == "-$500.0K"
 
 
+def test_unit_boundary_rounds_up_to_the_next_unit():
+    """반올림한 뒤의 값으로 단위를 고른다 — 10,000억→1.0조, 10,000만→1억."""
+    assert format_money(999_950_000_000, "KRW") == "1.0조원"
+    assert format_money(-999_950_000_000, "KRW") == "-1.0조원"
+    assert format_money(99_999_000, "KRW") == "1억원"
+    assert format_money(999_950, "USD") == "$1.0M"
+    assert format_money(999_950_000, "USD") == "$1.0B"
+
+
 def test_missing_money_is_a_dash():
     assert format_money(None) == "—"
 
