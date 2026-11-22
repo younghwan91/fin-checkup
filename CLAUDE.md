@@ -28,7 +28,8 @@ uv run streamlit run src/fin_checkup/app.py
 
 ## 환경 함정
 
-- 설정은 pydantic-settings 가 **현재 디렉터리의 `.env`** 를 읽는다(`config.py`). 캐시 DB 도 상대경로
+- 설정은 pydantic-settings 가 **현재 디렉터리의 `.env`** 를 읽고, 없는 값은 사용자 설정 파일
+  (`~/.config/fin-checkup/.env`, `FIN_CHECKUP_CONFIG_DIR` 로 바꿈 — `cli setup` 이 키를 넣는 곳)에서 읽는다(`config.py`). 캐시 DB 도 상대경로
   `data/fin_checkup.duckdb`. 실데이터로 돌릴 땐 `~/git/fin-checkup` 에서 — 워크트리에는 `.env`·`data/` 가 없어
   키 없음·빈 캐시로 돈다.
 - **이 레포의 `.env` 는 셸로 source 하면 안 된다** — `SEC_USER_AGENT` 값에 따옴표 없는 공백이 있어

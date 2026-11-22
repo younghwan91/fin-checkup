@@ -1,5 +1,6 @@
 """터미널에서 쓰는 최소 진입점.
 
+    python -m fin_checkup.cli setup           # 설치 점검 + OpenDART 인증키 넣기 (--check 는 점검만)
     python -m fin_checkup.cli sync            # corp_code 매핑 갱신 (최초 1회 필수)
     python -m fin_checkup.cli checkup 005930  # 국내 건강검진
     python -m fin_checkup.cli us AAPL         # 미국 건강검진 (SEC EDGAR)
@@ -42,6 +43,19 @@ from fin_checkup.storage.db import CacheLocked
 
 def _format(metric, currency: str = "KRW") -> str:
     return format_metric(metric, currency)
+
+
+async def cmd_setup(args: argparse.Namespace) -> int:
+    from fin_checkup.onboarding import run_setup
+
+    return await run_setup(
+        check=args.check,
+        key_stdin=args.key_stdin,
+        from_clipboard=args.from_clipboard,
+        env_file=args.env_file,
+        sec_user_agent=args.sec_user_agent,
+        verify=not args.no_verify,
+    )
 
 
 async def cmd_sync(args: argparse.Namespace) -> int:
@@ -648,6 +662,32 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(prog="fin-checkup", description="DART 재무 건강검진")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p_setup = sub.add_parser(
+        "setup", help="설치 점검 + OpenDART 인증키 넣기 (키는 화면·로그에 나오지 않는다)"
+    )
+    how = p_setup.add_mutually_exclusive_group()
+    how.add_argument(
+        "--check", action="store_true", help="점검만: Python·uv·공개 사이트·키 설정/유효 여부·캐시"
+    )
+    how.add_argument(
+        "--key-stdin", action="store_true",
+        help="키를 표준입력 한 줄로 받는다 (사용자가 직접 연 파이프용 — 명령줄 인자로 키를 넘기지 말 것)",
+    )
+    how.add_argument(
+        "--from-clipboard", action="store_true", help="클립보드의 키를 곧장 파일로 (화면에 안 나온다)"
+    )
+    p_setup.add_argument(
+        "--env-file", default=None,
+        help="쓸 파일 (기본: 작업 폴더에 .env 가 있으면 그것, 없으면 사용자 설정 파일)",
+    )
+    p_setup.add_argument(
+        "--sec-user-agent", default="", help="SEC EDGAR User-Agent ('이름 이메일')도 함께 저장"
+    )
+    p_setup.add_argument(
+        "--no-verify", action="store_true", help="DART 로 확인하지 않고 저장 (오프라인일 때)"
+    )
+    p_setup.set_defaults(func=cmd_setup)
 
     p_sync = sub.add_parser("sync", help="corp_code 매핑 갱신")
     p_sync.add_argument("--force", action="store_true", help="TTL을 무시하고 강제 갱신")
