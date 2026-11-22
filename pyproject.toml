@@ -25,6 +25,8 @@ dependencies = [
 [project.scripts]
 # MCP 서버 — `uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp`
 fin-checkup-mcp = "fin_checkup.mcp.server:main"
+# CLI — 저장소 없이 `uvx --from "fin-checkup @ git+https://github.com/younghwan91/fin-checkup" fin-checkup setup`
+fin-checkup = "fin_checkup.cli:main"
 
 [project.optional-dependencies]
 api = [
@@ -74,3 +76,5 @@ ignore = ["UP042"]
 "src/fin_checkup/explain/*.py" = ["E501"]
 # MCP 도구 설명·안내문도 문장이 데이터다 (모델이 그대로 읽는다).
 "src/fin_checkup/mcp/*.py" = ["E501"]
+# 설치 도우미 안내문도 같다 (사용자·에이전트가 그대로 읽는다).
+"src/fin_checkup/onboarding.py" = ["E501"]

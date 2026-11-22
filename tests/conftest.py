@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-import pytest
+import os
 
-from fin_checkup.config import Settings
+# 사용자 설정 파일(`~/.config/fin-checkup/.env`)에 개발자 본인 키가 있어도 테스트에 섞이지 않게 —
+# `fin_checkup.config` 를 처음 불러오기 전에 정한다(전역 `settings` 가 import 때 만들어진다).
+os.environ["FIN_CHECKUP_CONFIG_DIR"] = os.path.join(os.path.dirname(__file__), ".no-user-config")
+
+import pytest  # noqa: E402
+
+from fin_checkup.config import Settings  # noqa: E402
 
 
 @pytest.fixture

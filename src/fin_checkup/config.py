@@ -1,14 +1,30 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """환경변수 > 작업 폴더 `.env` > 사용자 설정 파일(`onboarding.user_env_file()`) 순으로 읽는다.
+
+    사용자 설정 파일은 `cli setup` 이 인증키를 넣는 곳이다 — 저장소 없이 `uvx` 로 띄운 MCP 서버처럼
+    작업 폴더가 정해지지 않은 프로세스도 같은 키를 읽게. 파일 목록은 만들 때마다 다시 계산한다
+    (테스트가 위치를 바꿀 수 있게).
+    `Settings(_env_file=None, ...)` 처럼 직접 주면 그것을 쓴다.
+    """
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
+
+    def __init__(self, **values: Any) -> None:
+        if "_env_file" not in values:
+            from fin_checkup.onboarding import env_files
+
+            values["_env_file"] = env_files()
+        super().__init__(**values)
 
     dart_api_key: str = ""
     dart_base_url: str = "https://opendart.fss.or.kr/api"
