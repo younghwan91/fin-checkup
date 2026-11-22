@@ -25,6 +25,7 @@ from fin_checkup.metrics.peers import PeerStat, SelfDelta
 from fin_checkup.metrics.sector import peer_group_for
 from fin_checkup.metrics.signals import Signal
 from fin_checkup.presentation import band_text
+from fin_checkup.site.charts import trend_series
 from fin_checkup.site.context import CompanyEntry, Site
 from fin_checkup.site.registry import Output, page
 
@@ -93,6 +94,16 @@ def _metric(
     }
 
 
+def restated_values(data) -> dict[str, dict[str, float]]:
+    """추이 키(revenue·operating_margin …) → {"연도": 다음 해 보고서 기준 값}. 재작성 칸이 없으면 뺀다."""
+    out: dict[str, dict[str, float]] = {}
+    for series in trend_series(data):
+        found = {str(p.year): _number(p.restated) for p in series.points if p.restated is not None}
+        if found:
+            out[series.key] = found
+    return out
+
+
 def company_json(entry: CompanyEntry, site: Site) -> dict[str, Any]:
     data = entry.checkup
     latest = data.history[-1]
@@ -129,6 +140,9 @@ def company_json(entry: CompanyEntry, site: Site) -> dict[str, Any]:
             _metric(m, data.peers.get(m.key), data.deltas.get(m.key), result.currency)
             for m in result.metrics
         ],
+        # 추이 칸 중 다음 해 보고서가 같은 해를 1% 넘게 다르게 적은 값(재작성). 추이 키 → {연도: 값}.
+        # 2026-11 에 더한 필드 — 판(schema_version)은 그대로, 없던 키가 생길 뿐이다.
+        "restated": restated_values(data),
         "red_flags": [
             {"key": f.key, "label": f.label, "detail": f.detail, "reference": f.reference}
             for f in data.red_flags

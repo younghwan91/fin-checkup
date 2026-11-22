@@ -29,6 +29,7 @@ AI 에이전트용 안내는 [`/llms.txt`](https://younghwan91.github.io/fin-che
 | `report` | `reprt_code`(`11011`=사업보고서) · `label` · `fs_div`(`CFS` 연결 / `OFS` 개별) |
 | `currency` · `years` | 금액 통화 · 계산에 쓴 사업연도들 |
 | `metrics[]` | 지표 17개, 엔진 정의 순서 (아래) |
+| `restated` | 재작성된 추이 칸 — 추이 키(`revenue`·`operating_income`·`net_income`·`operating_cash_flow`·`operating_margin`·`debt_ratio`·`current_ratio`) → `{"연도": 다음 해 보고서의 같은 해 값}`. 그해 보고서 값과 1% 넘게 다른 칸만(분할·합병 재분류 등). 회사 페이지 추이는 그해 보고서 값을 그리고 "재작성" 을 표시한다. 없으면 `{}` (2026-11 추가) |
 | `red_flags[]` | 재무제표로 확인된 위험 신호 `key` · `label` · `detail` · `reference`. 없으면 빈 배열 |
 | `sources[]` | 출처. OpenDART 요청은 `url` + `params` 로 적는다 — 인증키(`crtfc_key`)는 싣지 않는다 |
 
