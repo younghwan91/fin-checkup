@@ -65,7 +65,7 @@
   <div class="fc-wrap">
     <p class="fc-disclaimer">{{ DISCLAIMER }}</p>
     <p>데이터 출처: 금융감독원 전자공시시스템(DART) · 미국 SEC EDGAR. 계산식과 경계값은 각 지표 옆에 그대로 적었습니다.</p>
-    <p>데이터 기준: {{ site.year }} 사업연도{% if site.snapshot %} (스냅샷 {{ site.snapshot.built_on }}){% endif %} · 빌드 {{ site.built_on.isoformat() }} · <a href="{{ url('build.json') }}">빌드 정보</a> · <a href="https://github.com/younghwan91/fin-checkup">소스 코드(MIT)</a></p>
+    <p>데이터 기준: {{ site.year }} 사업연도{% if site.snapshot %} (스냅샷 {{ site.snapshot.built_on }}){% endif %} · 빌드 {{ site.built_on.isoformat() }} · <a href="{{ url('build.json') }}">빌드 정보</a> · <a href="{{ url('llms.txt') }}">AI 에이전트용 안내(llms.txt)</a> · <a href="https://github.com/younghwan91/fin-checkup">소스 코드(MIT)</a></p>
   </div>
 </footer>
 {% block scripts %}{% endblock %}

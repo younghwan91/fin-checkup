@@ -124,4 +124,14 @@
 | X5 | 첫 화면 — 검색 아래 결과 예시 하나(고정 규칙 예시 회사의 한눈에 보기 첫 묶음), 데이터 기준일은 한 줄로 접고 자세히는 한 번 눌러 (`index.html`·`_season.html`) | ☑ |
 | X6 | 신호 표시는 CSS 모양 + 글자 — ⚪ 가 흑백 "○" 로 나와 빈 값처럼 보이던 것. 정상 ●·주의 ▲·위험 ■·측정값 ▬·해당 없음 ⊘·데이터 없음 ◌ (`_signal.html`·`render.signal_marks`·compare/watch.js). 피드·JSON·meta 는 이모지 그대로 | ☑ |
 
+### A. 에이전트가 쓰는 길
+웹 에이전트(ChatGPT·Claude·Perplexity·Codex …)에게 "삼성전자 재무 진단해줘" 라고 하면 이 사이트를 찾아 측정값·계산식·면책으로
+답하게 — 사고팔라는 말은 하지 않게.
+
+| # | PR | 상태 |
+|---|---|---|
+| A1 | `/llms.txt` · `/llms-full.txt` — 에이전트가 지킬 선·GET 두세 번 진단법·비교·신호 읽기, full 은 지표 해설 17개 펼침 (`pages/llms.py`). robots.txt 주석·꼬리 링크, 가드·링크 검사가 에이전트용 글(`guard.is_agent_text`)도 본다 | ☑ |
+| A2 | 회사별 마크다운 `/c/<코드>/index.md` · HTML 에 `rel="alternate" type="text/markdown"` · JSON 에 `summary_ko`·`agent_guidance` | ☐ |
+| A3 | `/openapi.json` (정적 GET 엔드포인트, 실제 JSON 으로 검증) · `/agents/` 에이전트에서 쓰기 안내 | ☐ |
+
 마케팅 문안 초안은 `_workspace/marketing/` (gitignore).
