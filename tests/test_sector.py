@@ -280,3 +280,30 @@ def test_banking_keeps_every_financial_rule():
     assert "zombie_streak" not in {f.key for f in detect_red_flags(history, sector=Sector.BANKING)}
     assert Sector.BANKING.is_financial and Sector.FINANCIAL.is_financial
     assert not Sector.GENERAL.is_financial
+
+
+# ── 지주회사(64992): 규칙을 바꾸지 않는다 (Q13) ─────────────────────
+
+
+@pytest.mark.parametrize(
+    "corp_name", ["주식회사 엘엑스홀딩스", "에스케이스퀘어 주식회사", "(주)LG", "(주)한진칼"]
+)
+def test_non_financial_holding_company_stays_on_general_rules(corp_name):
+    """비금융 지주는 연결재무제표가 그룹의 제조·유통 사업을 담는다(2024·2025 비금융 64992 전부 연결).
+    부채비율·이자보상배율은 실제로 갚아야 할 빚이라 금융업 ⊘ 로 가리지 않는다."""
+    assert sector_for("64992", corp_name) is Sector.GENERAL
+
+
+@pytest.mark.parametrize("corp_name", ["(주)KB금융지주", "(주)신한금융지주회사", "(주)메리츠금융지주"])
+def test_financial_holding_company_stays_financial(corp_name):
+    sector = sector_for("64992", corp_name)
+    assert sector.is_financial and sector is Sector.BANKING
+
+
+def test_holding_company_margin_above_100_percent_is_still_judged():
+    """지분법이익을 영업수익에 넣는 지주는 영업이익률이 100% 를 넘는다(엘엑스홀딩스 2024 연결 384%).
+    공시 그대로의 치우친 값이지 뜻이 없는 값이 아니라 ⊘ 로 빼지 않는다(⊘ 기준)."""
+    holding = fin(revenue=100, operating_income=384, net_income=300, total_assets=5000,
+                  total_liabilities=1000, total_equity=4000)
+    margin = checkup(holding, sector=sector_for("64992", "주식회사 엘엑스홀딩스")).by_key("operating_margin")
+    assert margin.signal is Signal.GREEN and margin.value == pytest.approx(384)
