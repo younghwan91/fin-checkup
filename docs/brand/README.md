@@ -14,6 +14,12 @@
 | 마크 PNG 512 · 256 · 128 | [512](logo-mark-512.png) · [256](logo-mark-256.png) · [128](logo-mark-128.png) | [512](logo-mark-dark-512.png) · [256](logo-mark-dark-256.png) · [128](logo-mark-dark-128.png) |
 | 워드마크 (마크 + 이름 + 재무제표 신호등) | [logo-wordmark.svg](logo-wordmark.svg) | [logo-wordmark-dark.svg](logo-wordmark-dark.svg) |
 
+README 그림(`docs/images/`): 배너 `banner*.png`·소셜 미리보기 `social-preview.png` 는 `uv run python scripts/brand_images.py`,
+데모 `demo.gif` 는 라이브 사이트를 눌러 찍는 `uv run python scripts/record_demo.py` 로 다시 만듭니다.
+
+**오너가 할 일:** [`docs/images/social-preview.png`](../images/social-preview.png)(1280×640)를 저장소 **Settings → General → Social preview** 에
+올립니다 — GitHub API 로는 올릴 수 없습니다.
+
 모양은 [`src/fin_checkup/brand.py`](../../src/fin_checkup/brand.py) 한 곳에서 정의합니다. 사이트 파비콘·머리글 마크도
 여기서 나옵니다. 모양을 바꿨으면 `uv run --with fonttools python scripts/brand_assets.py` 로 이 폴더를 다시 뽑습니다
 (안 뽑으면 `tests/test_brand.py` 가 실패합니다).

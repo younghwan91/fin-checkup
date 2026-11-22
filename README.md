@@ -1,3 +1,5 @@
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/banner-dark.png"><img src="docs/images/banner.png" width="100%" alt="fin-checkup — 재무제표 신호등. 상장사 재무제표를 신호등으로, 색마다 계산식과 경계값. 신호: 정상 ● 주의 ▲ 위험 ■ 측정값 ▬ 해당 없음 ⊘ 데이터 없음 ◌"></picture>
+
 # fin-checkup
 
 [English](README.en.md) | **한국어**
@@ -9,7 +11,7 @@
 
 예시 **[삼성전자](https://younghwan91.github.io/fin-checkup/c/005930/)** · [KB금융](https://younghwan91.github.io/fin-checkup/c/105560/) · [처음이라면: 읽는 법](https://younghwan91.github.io/fin-checkup/learn/) · [지표 17개 해설](https://younghwan91.github.io/fin-checkup/m/)
 
-[![삼성전자 회사 페이지 — 지표 17개 신호등, 계산식·경계값·작년 대비·동종업계 분포](docs/images/hero.png)](https://younghwan91.github.io/fin-checkup/c/005930/)
+[![사이트 데모 — 첫 화면에서 초성 ㅅㅅㅈㅈ 로 삼성전자를 찾고, 한눈에 보기에서 지표 17개 신호를 본 뒤, 영업이익률 카드의 계산식·경계값·동종업계 분포와 지표 해설을 연다](docs/images/demo.gif)](https://younghwan91.github.io/fin-checkup/c/005930/)
 
 > 공시 수치로 계산한 측정값입니다. 종목 추천이나 투자 판단은 하지 않습니다.
 

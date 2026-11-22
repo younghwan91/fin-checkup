@@ -1,3 +1,5 @@
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/banner-en-dark.png"><img src="docs/images/banner-en.png" width="100%" alt="fin-checkup — Korean listed companies' financial statements as a traffic light, with the formula and thresholds behind every color. Signals: Normal ● Caution ▲ Risk ■ Measured ▬ N/A ⊘ No data ◌"></picture>
+
 # fin-checkup
 
 **English** | [한국어](README.md)
@@ -10,7 +12,7 @@ Example: **[Samsung Electronics (005930)](https://younghwan91.github.io/fin-chec
 
 > **The site is in Korean only.** Numbers, colors and formulas read fine without Korean; a browser's translate feature handles the explanations. US companies are not on the site — they are available through the command-line tool (SEC EDGAR), see below.
 
-[![Samsung Electronics company page — 17 ratios as traffic lights with formula, thresholds, year-over-year change and industry distribution](docs/images/hero.png)](https://younghwan91.github.io/fin-checkup/c/005930/)
+[![Site demo — search the initial consonants ㅅㅅㅈㅈ to find Samsung Electronics, scan all 17 signals at a glance, then open the operating-margin card's formula, thresholds, industry distribution and the metric explainer](docs/images/demo.gif)](https://younghwan91.github.io/fin-checkup/c/005930/)
 
 > Measurements computed from filed figures. Not investment advice, and no stock recommendations.
 
