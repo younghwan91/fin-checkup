@@ -87,6 +87,7 @@
 | D8 | 증분 수집 `collect --budget N [--years ...]` (`src/fin_checkup/collect.py`, 상장사 중 빈 (회사, 연도)만 · 예산/020/시간에서 멈추고 0 · `collect-summary` JSON · 빈 응답 TTL 시즌 3일/평소 30일 `fiscal.miss_ttl_days`) | ☑ |
 | D9 | `collect.yml` — 매일 04:00 KST 스냅샷 받아 증분 수집 → 새 `data-*` 릴리스 → 옛 릴리스 정리(7개) → `pages.yml` 디스패치 (`scripts/fetch_snapshot.sh` 공유) | ☑ |
 | D10 | OPERATIONS 자동 갱신 절 (일정·예산·수동 실행·지난 연도 채우기·한도 초과 대응) | ☐ |
+| D11 | 스냅샷 "가장 최근"·정리 순서를 `publishedAt` 으로 (gh `createdAt` 은 태그가 가리키는 커밋 시각 — 같은 main 커밋 위 스냅샷끼리 순서가 없었다) | ☑ |
 
 ### M. 알리기·기여
 | # | PR | 상태 |

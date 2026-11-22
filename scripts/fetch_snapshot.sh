@@ -22,11 +22,12 @@ output() {
 }
 
 if [ -z "$tag" ]; then
-  # 초안은 빼고, 이름이 아니라 만든 시각으로 가장 최근 것 (data-20261121-2 > data-20261121).
+  # 초안은 빼고, 이름이 아니라 올린 시각(publishedAt)으로 가장 최근 것. createdAt 은 태그가 가리키는
+  # 커밋 시각이라 같은 main 커밋 위의 스냅샷끼리 순서가 없다.
   tag="$(gh release list "${repo_args[@]}" --limit 100 \
-    --json tagName,isDraft,createdAt \
+    --json tagName,isDraft,publishedAt \
     --jq '[.[] | select(.isDraft | not) | select(.tagName | startswith("data-"))]
-          | sort_by(.createdAt) | reverse | .[0].tagName // ""')"
+          | sort_by(.publishedAt) | reverse | .[0].tagName // ""')"
 fi
 if [ -z "$tag" ]; then
   echo "::warning::data-* 스냅샷 릴리스가 없다. scripts/publish_snapshot.sh 로 먼저 올릴 것."
