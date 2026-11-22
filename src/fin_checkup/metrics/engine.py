@@ -356,13 +356,44 @@ def _growth_override(field: str) -> Override:
     return override
 
 
+#: 분모가 하루 매출보다 작으면(회전율 365회 초과) 회전율이 수천~수십만 회로 나온다 — 계산은 맞다.
+#: 상한을 두거나 ⊘ 로 빼지 않는다(⚪ 측정값이라 판정도 없다). 큰 숫자의 이유만 사실로 적는다.
+#: 2024 상장사 재고자산 74곳(엔비티 18만 회)·매출채권 7곳, 2025 75곳·6곳.
+DAYS_PER_YEAR = 365
+TINY_INVENTORY_NOTE = (
+    "재고자산이 하루 매출보다 적어 회전율이 크게 나온다 — 재고를 거의 두지 않는 사업일 수 있다."
+)
+TINY_RECEIVABLE_NOTE = (
+    "매출채권이 하루 매출보다 적어 회전율이 크게 나온다 — 외상 없이 바로 대금을 받는 사업일 수 있다."
+)
+#: 이익(손실)이 매출의 10배를 넘으면(이익률 ±1,000% 밖) 매출이 아주 작은 해다 — 매출 1억 원 미만 바이오의
+#: 영업이익률 −20만 % 등 2024 상장사 영업이익률 22곳·순이익률 21곳. 값·판정(적자 🔴)은 그대로 둔다.
+TINY_REVENUE_MARGIN = 1000.0
+TINY_REVENUE_NOTE = (
+    "매출액이 이익(손실)의 10분의 1보다 작아 이익률이 ±1,000% 밖으로 나온다 — 매출이 아주 작은 해의 값이다."
+)
+
+
+def _with(note: str, extra: str) -> str:
+    return f"{note} {extra}" if note else extra
+
+
+def _margin(field: str) -> Compute:
+    def compute(cur: Financials, _p: Financials | None) -> tuple[float | None, str]:
+        value = _pct(getattr(cur, field), cur.revenue)
+        tiny = value is not None and abs(value) >= TINY_REVENUE_MARGIN
+        return value, TINY_REVENUE_NOTE if tiny else ""
+
+    return compute
+
+
 def _turnover_note(_cur: Financials, _p: Financials | None, value: float | None) -> tuple[Signal, str] | None:
     if value is None:
         return None
     return Signal.NEUTRAL, "업종별 편차가 커서 절대 기준을 두지 않는다. 업종 평균·과거 추이로 비교할 것."
 
 
-def _zero_denominator_is_not_applicable(field: str, what: str):
+def _zero_denominator_is_not_applicable(field: str, what: str, tiny_note: str = ""):
     """분모가 0 으로 공시된 회전율은 ⚫(계정 없음)가 아니라 ⊘(해당 없음)다.
 
     재고 없는 서비스업은 재고자산을 0 으로 공시한다. 계정은 있었는데 "찾지 못했다"고
@@ -373,7 +404,10 @@ def _zero_denominator_is_not_applicable(field: str, what: str):
         # 분자(매출액)가 없으면 그건 계정 누락(⚫)이다. 분모 0 을 탓하면 정규화 결함이 가려진다.
         if value is None and cur.revenue is not None and getattr(cur, field) == 0:
             return Signal.NOT_APPLICABLE, f"{what}이(가) 0 으로 공시돼 회전율을 계산하지 않는다."
-        return _turnover_note(cur, _p, value)
+        forced = _turnover_note(cur, _p, value)
+        if forced is not None and tiny_note and value is not None and value > DAYS_PER_YEAR:
+            return forced[0], _with(forced[1], tiny_note)
+        return forced
 
     return override
 
@@ -390,7 +424,9 @@ RECEIVABLE_AGGREGATE_NOTE = (
 def _receivable_turnover_override(
     cur: Financials, p: Financials | None, value: float | None
 ) -> tuple[Signal, str] | None:
-    forced = _zero_denominator_is_not_applicable("trade_receivables", "매출채권")(cur, p, value)
+    forced = _zero_denominator_is_not_applicable(
+        "trade_receivables", "매출채권", TINY_RECEIVABLE_NOTE
+    )(cur, p, value)
     if (
         forced is not None
         and forced[0] is Signal.NEUTRAL
@@ -424,6 +460,7 @@ def _fcf(cur: Financials, _p: Financials | None) -> tuple[float | None, str]:
 #: '왜 이 색' 문장에 그대로 덧붙는다(explain.why).
 BASIS_NOTES: tuple[str, ...] = (
     INTEREST_PAID_NOTE, RECEIVABLE_AGGREGATE_NOTE, CAPEX_ITEMIZED_NOTE, CAPEX_WITH_INTANGIBLES_NOTE,
+    TINY_INVENTORY_NOTE, TINY_RECEIVABLE_NOTE, TINY_REVENUE_NOTE,
 )
 
 
@@ -433,7 +470,7 @@ METRIC_DEFS: tuple[MetricDef, ...] = (
         "operating_margin", "영업이익률", Category.PROFITABILITY, "%",
         "본업으로 100원을 팔아 얼마가 이익으로 남는지. 장사 자체의 힘.",
         "영업이익 ÷ 매출액 × 100",
-        lambda c, p: (_pct(c.operating_income, c.revenue), ""),
+        _margin("operating_income"),
         # 시장 상위 25% 기준(p75=7.0). 경계 0은 흑자/적자를 가른다.
         Band(good=7, warn=0),
     ),
@@ -441,7 +478,7 @@ METRIC_DEFS: tuple[MetricDef, ...] = (
         "net_margin", "순이익률", Category.PROFITABILITY, "%",
         "이자·세금까지 다 떼고 최종으로 남는 몫.",
         "당기순이익 ÷ 매출액 × 100",
-        lambda c, p: (_pct(c.net_income, c.revenue), ""),
+        _margin("net_income"),
         Band(good=8, warn=0),  # p75=7.7
     ),
     MetricDef(
@@ -550,7 +587,7 @@ METRIC_DEFS: tuple[MetricDef, ...] = (
         "재고가 얼마나 빨리 팔려나가는지. 낮아지면 재고가 쌓이고 있다는 뜻.",
         "매출액 ÷ 재고자산",
         lambda c, p: (_ratio(c.revenue, c.inventories), ""),
-        None, _zero_denominator_is_not_applicable("inventories", "재고자산"),
+        None, _zero_denominator_is_not_applicable("inventories", "재고자산", TINY_INVENTORY_NOTE),
     ),
     MetricDef(
         "receivable_turnover", "매출채권회전율", Category.EFFICIENCY, "회",

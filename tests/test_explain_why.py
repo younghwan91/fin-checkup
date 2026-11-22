@@ -379,3 +379,24 @@ def test_ro_particle_follows_the_last_sound(word, expected):
     from fin_checkup.explain._korean import ro
 
     assert ro(word) == expected
+
+
+def test_tiny_denominator_notes_are_appended_as_facts():
+    """Q14: 하루 매출보다 작은 재고·채권, 아주 작은 매출 — 값과 색은 그대로, 왜 큰 숫자인지를 덧붙인다."""
+    from fin_checkup.metrics.engine import (
+        RECEIVABLE_AGGREGATE_NOTE,
+        TINY_RECEIVABLE_NOTE,
+        TINY_REVENUE_NOTE,
+        checkup,
+    )
+    from fin_checkup.models import Financials, FsDiv, ReceivableSource, ReportCode
+
+    base = dict(corp_code="1", bsns_year=2024, reprt_code=ReportCode.ANNUAL, fs_div=FsDiv.CFS)
+    result = checkup(Financials(
+        **base, revenue=1_000_000, trade_receivables=100, operating_income=-20_000_000,
+        trade_receivables_source=ReceivableSource.TRADE_AND_OTHER,
+    ))
+    turnover = why_color(result.by_key("receivable_turnover"))
+    assert "⚪" in turnover and TINY_RECEIVABLE_NOTE in turnover and RECEIVABLE_AGGREGATE_NOTE in turnover
+    margin = why_color(result.by_key("operating_margin"))
+    assert "🔴" in margin and TINY_REVENUE_NOTE in margin
