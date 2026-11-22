@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-WORKFLOW = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "pages.yml"
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW = ROOT / ".github" / "workflows" / "pages.yml"
 
 
 def _position(text: str, needle: str) -> int:
@@ -20,7 +21,10 @@ def _position(text: str, needle: str) -> int:
 
 def test_backfill_runs_between_snapshot_import_and_site_build() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
-    imported = _position(text, "fin_checkup.cli snapshot import")
+    # 스냅샷 import 는 collect.yml 과 같이 쓰는 스크립트 안에 있다.
+    script = (ROOT / "scripts" / "fetch_snapshot.sh").read_text(encoding="utf-8")
+    assert "fin_checkup.cli snapshot import" in script
+    imported = _position(text, "scripts/fetch_snapshot.sh")
     backfill = _position(text, "fin_checkup.cli backfill")
     build = _position(text, "fin_checkup.cli site build")
     assert imported < backfill < build
