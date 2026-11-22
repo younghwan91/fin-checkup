@@ -474,6 +474,7 @@ api = [
 ]
 dev = [
     { name = "httpx" },
+    { name = "jsonschema" },
     { name = "playwright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -496,6 +497,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.21" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2.3.0" },
     { name = "pandas", marker = "extra == 'ui'", specifier = ">=2.2.0" },
     { name = "pillow", specifier = ">=11.0" },
