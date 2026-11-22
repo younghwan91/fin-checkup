@@ -53,15 +53,18 @@ uv run python -m fin_checkup.cli budget
 
 1. **캐시** — 재무데이터는 분기에 한 번 갱신된다. 같은 조합을 두 번 받지 않는다.
 2. **빈 응답 기억** — 조회했는데 데이터가 없던 조합은 `fetch_misses`에 남겨 30일간
-   다시 묻지 않는다. 상장폐지 기업을 매번 다시 조회하는 걸 막는다.
+   다시 묻지 않는다. 사업보고서 시즌(3/20~4/30)에는 3일 — 3월 말에 없던 회사가 4월 내내 ⚫ 로 남지 않게
+   (`fiscal.miss_ttl_days`, 설정 `MISS_TTL_DAYS`·`MISS_TTL_SEASON_DAYS`).
 3. **선별적 재시도** — 인증키 오류처럼 다시 해도 같은 실패는 재시도하지 않는다.
    재시도가 예산을 태우는 가장 흔한 경로다.
 
-전 상장사를 채울 때는 나눠서 받는다:
+전 상장사 재무는 증분으로 받는다 — 상장사 중 재무가 없는 (회사, 연도)만, 정한 호출 수 안에서
+(`src/fin_checkup/collect.py`). 예산·`020`·`--max-minutes` 에 닿으면 받은 데까지 남기고 0 으로 끝나고,
+다음 실행이 이어받는다. 평소엔 GitHub Actions 가 매일 돌린다(§7 "자동 수집").
 
 ```bash
-uv run python scripts/collect_universe.py --year 2024 --limit 1000
-uv run python scripts/collect_universe.py --year 2024 --limit 1000 --skip 1000
+uv run python -m fin_checkup.cli collect --budget 5000                    # 기본 연도: 새 보고서가 들어올 해 + 그 전 해
+uv run python -m fin_checkup.cli collect --budget 12000 --years 2021 2022 # 지난 연도 채우기
 ```
 
 사이트의 "최근 위험 공시" 재료는 따로 받는다. 공시유형 5개 × 페이지 수만큼 호출하고(7일치 수십 건 — 지분공시가 가장 많다),
@@ -232,24 +235,71 @@ uv run python -m fin_checkup.cli budget
 ## 7. 정적 사이트 (GitHub Pages)
 
 `https://younghwan91.github.io/fin-checkup/` 은 캐시만 읽어 만든 정적 파일이다. 사이트 빌드는 DART 를 부르지 않는다.
-데이터는 로컬에서 수집하고, 공개해도 되는 테이블만 릴리스로 올린다.
+데이터는 GitHub Actions 가 매일 증분 수집하고, 공개해도 되는 테이블만 릴리스로 올린다.
 
 ```
-로컬 수집 (scripts/collect_universe.py)
-  → scripts/publish_snapshot.sh            # 허용목록 테이블 → data-YYYYMMDD 릴리스 (snapshot-*.zip + manifest.json)
-  → .github/workflows/pages.yml            # 릴리스 → 캐시 재구성 → (최근 위험 공시) → site build → site check → site links → 배포
+.github/workflows/collect.yml   # 매일 04:00 KST: 최근 data-* → cli collect (DART) → 새 data-YYYYMMDD[-N] 릴리스 → pages.yml 디스패치
+  → .github/workflows/pages.yml # 릴리스 → 캐시 재구성 → (최근 위험 공시) → site build → site check → site links → 배포
 ```
 
-### 스냅샷 올리기
+스냅샷 받기·올리기는 두 워크플로와 로컬이 같은 스크립트를 쓴다: `scripts/fetch_snapshot.sh`(최근 `data-*` → 새 캐시),
+`scripts/publish_snapshot.sh`(캐시 → 릴리스).
 
-메인 체크아웃(`.env`·`data/` 가 있는 곳)에서, 캐시를 쓰는 프로세스(수집·`serve`·Streamlit)를 모두 내린 뒤
-`scripts/publish_snapshot.sh` (태그 날짜를 바꾸려면 `scripts/publish_snapshot.sh 20261122`). 스냅샷에는
+### 자동 수집 (collect.yml)
+
+- **언제**: 매일 19:00 UTC(04:00 KST, Pages 07:00 KST 빌드 전) · 수동 실행. 둘이 겹치지 않는다(`concurrency: collect`).
+- **무엇을**: 가장 최근 `data-*` 를 들여온 캐시에서 `cli collect --budget 12000 --max-minutes 270`. 기본 연도는
+  `fiscal.collect_years` — 3/20 부터 직전 연도와 그 전 해(지각 제출). 새 상장사는 기업개황부터 받아 상장 여부를 본다.
+  이미 있는 재무는 다시 받지 않는다 — 정정공시로 숫자가 바뀐 회사는 자동으로 갱신되지 않는다.
+- **예산**: 일별 20,000건을 로컬·Pages 공시 수집(최대 150건)과 나눠 쓴다. 호출량 기록(`dart_call_log`)은 스냅샷에
+  없어서 Actions 는 그날 로컬에서 쓴 호출을 모른다 — 12,000건이 그 몫이다. 평소엔 수백 건, 시즌(4월)에 상장사 ~2,800곳 ×
+  CFS·OFS 로 최대 ~6,000건/일. 러너에서 건당 ~0.7초(2026-11-22 첫 실행: 300건 3분 20초)라 12,000건이면 2시간 20분 남짓 —
+  `--max-minutes 270`·작업 제한 330분 안이다. 쓴 호출 수는 실행 요약(Summary 의 "증분 수집" 표)과 로그 끝 `collect-summary {...}` 에 있다.
+- **바뀐 게 있으면** (새 재무·기업개황·빈 응답 기록) backfill → 새 `data-*` 릴리스 → 최근 7개만 남기고 정리(방금 것은 안 지운다).
+  빈 응답만 늘어도 올린다 — 안 올리면 다음 날 같은 회사를 또 묻는다. **새 재무·개황이 있으면** `gh workflow run pages.yml`.
+  GITHUB_TOKEN 으로 만든 릴리스는 다른 워크플로의 `release` 트리거를 깨우지 않아서(GitHub 의 재귀 방지) 직접 디스패치한다.
+  아무것도 없으면 notice 만 남기고 릴리스를 만들지 않는다.
+- **키**: secret `DART_API_KEY` 는 "증분 수집"·"새 스냅샷 릴리스"(export 의 키 섞임 검사용, DART 호출 없음) 단계의 env 에만.
+
+수동 실행 (Actions → Collect → Run workflow, 또는):
+
+```bash
+gh workflow run collect.yml                                # 기본 (예산 12,000)
+gh workflow run collect.yml -f budget=300                  # 시험 삼아 적게
+gh workflow run collect.yml -f years="2021 2022" -f budget=15000   # 지난 연도 채우기 (그날 로컬 사용이 없을 때)
+gh run watch "$(gh run list --workflow collect.yml --limit 1 --json databaseId -q '.[0].databaseId')"
+```
+
+지난 연도 하나를 처음부터 채우면 상장사 ~2,800곳 × 1~2건이라 하루 예산을 넘을 수 있다. 같은 입력으로 다음 날 다시
+돌리면 멈춘 데서 이어받는다(이미 받은 재무·빈 응답은 건너뛴다).
+
+멈춘 이유(요약의 `stopped`)별 대응:
+
+| stopped | 뜻 | 할 일 |
+|---|---|---|
+| (없음) | 빈 곳을 다 봤다 | 없음 |
+| `budget` | 예산에 닿았다 | 없음 — 다음 날 이어받는다. 급하면 예산을 올려 수동 실행 |
+| `quota` | DART `020` — 오늘 허용량이 끝났다(로컬·다른 사용과 합쳐서) | 받은 것은 올렸다. 그날은 다시 돌리지 않는다(재시도해도 안 풀린다). KST 자정 뒤 이어받는다 |
+| `time` | `--max-minutes 270` 에 닿았다 | 없음 — 이어받는다 |
+| `errors` | 인증키 오류(010·011·012·101) 또는 연속 5회 실패 | 받은 것은 올리고 작업은 실패로 표시된다. 키(secret)·DART 장애 공지를 확인 |
+
+**로컬에서 수집·업로드할 때**: 공개 데이터의 원본은 이제 가장 최근 `data-*` 릴리스다. 로컬 캐시(`data/`)로
+`publish_snapshot.sh` 를 하면 Actions 가 받은 것이 빠진 스냅샷이 최신이 된다. 먼저 받아서 시작한다:
+`FIN_CHECKUP_DB_PATH=/tmp/latest.duckdb scripts/fetch_snapshot.sh /tmp/latest` → 그 캐시로 `cli collect` →
+`FIN_CHECKUP_DB_PATH=/tmp/latest.duckdb scripts/publish_snapshot.sh`. 로컬 수집 중에는 같은 날 Actions 예산과 합쳐 20,000건을 넘지 않게.
+
+### 스냅샷 올리기 (손으로)
+
+평소엔 collect.yml 이 올린다. 손으로 올릴 땐 캐시를 쓰는 프로세스(수집·`serve`·Streamlit)를 모두 내린 뒤
+`scripts/publish_snapshot.sh` — 같은 날 태그가 있으면 `data-YYYYMMDD-2`, `-3` … 으로 붙는다(날짜를 정하려면
+`scripts/publish_snapshot.sh 20261122`, 이미 있으면 멈춘다). 스냅샷에는
 `snapshot.py` 의 허용목록 테이블만 들어가고, 계정·키·관심종목·알림 기록 같은 개인정보·운영 테이블은 아예 빠진다.
 인증키처럼 생긴 값이 섞여 있으면 export 가 멈춘다.
 
 ### Pages 워크플로가 도는 때와 하는 일
 
-- 언제: `data-*` 릴리스가 publish 될 때 · 매일 07:00 KST · 수동 실행(사업연도 지정 가능). 코드 릴리스(`data-` 가 아닌 태그)는 무시한다.
+- 언제: `data-*` 릴리스가 publish 될 때(손으로 올린 것만 — collect.yml 이 올린 것은 디스패치로) · collect.yml 의 디스패치 ·
+  매일 07:00 KST · 수동 실행(사업연도 지정 가능). 코드 릴리스(`data-` 가 아닌 태그)는 무시한다.
 - 가장 최근 `data-*` 릴리스를 받는다. **없으면 경고만 남기고 배포하지 않는다** — 지난 사이트가 그대로 남는다.
 - `snapshot import` 로 새 캐시를 만들고 `site build --base-url $SITE_URL` 로 빌드한다.
 - **`site check site-out`** 이 면책·계산식·CSP·외부 스크립트·인증키 패턴을 산출물에서 확인한다(규칙은 `site/guard.py`).
@@ -271,7 +321,7 @@ uv run python -m fin_checkup.cli budget
 | secret | 동작 |
 |---|---|
 | 없음 | 그 단계를 건너뛰고(notice) 공시 없이 배포한다 |
-| 있음 | `disclosures fetch --days 7 --max-pages 30` — 최대 150회 호출. 로컬 수집과 같은 키면 일별 허용량을 나눠 쓴다 |
+| 있음 | `disclosures fetch --days 7 --max-pages 30` — 최대 150회 호출. collect.yml·로컬 수집과 일별 허용량을 나눠 쓴다 |
 | 있는데 실패 (장애·`020`) | `continue-on-error` — 이번 빌드엔 공시가 빠지고 배포는 계속된다 |
 
 키는 그 단계의 `env` 로만 넘긴다. 빌드 로그·산출물에 찍히지 않게 하는 것이 DART 약관 제19조의 요구이고,
@@ -287,10 +337,9 @@ uv run python -m http.server -d site-out 8080                            # http:
 ```
 
 - 기본 캐시는 현재 디렉터리의 `data/fin_checkup.duckdb` 다. 다른 캐시는 `FIN_CHECKUP_DB_PATH=<경로>` 로.
-- 배포본과 같은 데이터로 보려면 릴리스를 받아 캐시를 새로 만든다(`--db` 는 없는 파일이어야 한다):
-  `gh release download data-YYYYMMDD --pattern 'snapshot-*.zip'` → 압축 풀기 →
-  `uv run python -m fin_checkup.cli snapshot import <푼 폴더> --db /tmp/snap.duckdb` →
-  `FIN_CHECKUP_DB_PATH=/tmp/snap.duckdb uv run python -m fin_checkup.cli site build ...`
+- 배포본과 같은 데이터로 보려면 최근 릴리스를 받아 캐시를 새로 만든다(캐시 파일은 없는 경로여야 한다):
+  `FIN_CHECKUP_DB_PATH=/tmp/snap.duckdb scripts/fetch_snapshot.sh /tmp/snap [data-YYYYMMDD]` →
+  `FIN_CHECKUP_DB_PATH=/tmp/snap.duckdb uv run python -m fin_checkup.cli site build --snapshot /tmp/snap/files ...`
 - 출력 폴더는 빌드마다 통째로 비운다. 비어 있지 않은 폴더는 빌드 표식(`.fin-checkup-site`)이 있을 때만 비우고,
   없으면 멈춘다 — 엉뚱한 폴더를 지우지 않게.
 - canonical·sitemap 같은 절대주소는 `--base-url https://…` 를 줄 때만 나온다. 페이지 사이 링크는 상대경로라 무관하다.
