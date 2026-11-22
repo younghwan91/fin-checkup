@@ -42,7 +42,7 @@ uv run streamlit run src/fin_checkup/app.py
   따로 띄우면 `CacheLocked`. read-only 연결도 writer 가 있으면 거부된다.
 - DART 일별 호출 한도: `cli budget` 으로 확인. status `020` 은 재시도하지 않는다(`RateLimitExceeded`).
   인증키는 오류 메시지·로그에 찍히지 않게 한다(dc8ed56) — DART 약관 제19조. 전 상장사 수집은
-  `scripts/collect_universe.py --limit 1000 [--skip N]` 로 나눠서.
+  `cli collect --budget N` (증분, 멈춘 데서 이어받음) — 매일 `collect.yml` 이 같은 키로 12,000건까지 쓴다.
 - 날짜는 전부 KST(`clock.kst_today`). `date.today()` 를 쓰면 UTC 서버에서 KST 00~09시 공시가 빠진다(76d1b7d).
 - `poll --dry-run`·토큰 없는 콘솔 출력은 `notified` 에 기록하지 않는다 — 미리보기가 기록하면 그 공시는 영영 안 나간다.
 
