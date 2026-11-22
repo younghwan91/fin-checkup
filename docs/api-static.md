@@ -3,6 +3,11 @@
 사이트 빌드가 회사 페이지와 같은 값을 JSON 으로도 낸다. 서버가 없는 정적 파일이라 키·호출 제한이 없다.
 경로는 사이트 루트 기준이다(GitHub Pages 프로젝트 사이트면 `/fin-checkup/` 아래).
 
+기계가 읽는 명세는 [`/openapi.json`](https://younghwan91.github.io/fin-checkup/openapi.json) (OpenAPI 3.1, 아래 파일
+전부의 스키마 — `src/fin_checkup/site/pages/openapi.py`, 빌드한 JSON 을 그 스키마로 검증하는 테스트가 있다).
+AI 에이전트용 안내는 [`/llms.txt`](https://younghwan91.github.io/fin-checkup/llms.txt), 사람용 안내는
+[`/agents/`](https://younghwan91.github.io/fin-checkup/agents/).
+
 **측정값이다.** 투자권유·자문이 아니며, 모든 파일에 `disclaimer` 가 들어 있다 — 다시 보여 줄 땐 함께 보여 준다.
 
 ## `api/index.json`

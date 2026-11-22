@@ -57,7 +57,7 @@ SIGNAL_GUIDANCE: dict[Signal, str] = {
 }
 
 
-def _examples(site: Site) -> list[CompanyEntry]:
+def example_entries(site: Site) -> list[CompanyEntry]:
     by_code = {e.stock_code: e for e in site.companies}
     chosen = [by_code[c] for c in PREFERRED_EXAMPLES if c in by_code]
     for entry in sorted(site.companies, key=lambda e: e.stock_code):
@@ -243,7 +243,10 @@ def _files(doc: _Doc, examples: list[CompanyEntry]) -> list[str]:
         f"- [Build info]({doc.url('build.json')}): build time, data years, counts, git sha.",
         f"- [Risk disclosure feed]({doc.url(MARKET_FEED)}): Atom feed of recent risk-related DART filings;"
         f" per company [`feeds/c/<code>.xml`]({doc.url(company_feed_path(code))}).",
+        f"- [OpenAPI 3.1]({doc.url('openapi.json')}): every static GET endpoint with JSON schemas.",
         f"- [JSON field reference]({API_DOC}): every field of the JSON files.",
+        f"- [Using fin-checkup from agents]({doc.url('agents/')}): page for people — prompts, curl,"
+        " MCP server and plugin.",
     ]
 
 
@@ -328,7 +331,7 @@ def _red_flags_full() -> list[str]:
 
 def llms_txt(site: Site, full: bool = False) -> str:
     doc = _Doc(site)
-    examples = _examples(site)
+    examples = example_entries(site)
     sections = [
         _header(site, doc),
         _rules(site, doc),

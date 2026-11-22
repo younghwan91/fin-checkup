@@ -1,0 +1,72 @@
+{#
+  에이전트에서 쓰기 `/agents/` (pages/agents.py). 넘길 값: prompts(Prompt 목록), public_base(절대주소), code(예시 종목코드),
+  has_example, llms·llms_full·openapi(파일 경로), mcp_doc·skill_doc(GitHub 문서 주소).
+  프롬프트는 측정값·계산식·경계값·면책을 함께 달라고 한다 — 사고팔 때를 묻는 글을 넣지 않는다.
+#}
+{% extends "base.html" %}
+{% from "_signal.html" import badge %}
+{% block title %}AI 에이전트에서 쓰기 — ChatGPT·Claude·Perplexity · fin-checkup{% endblock %}
+{% block description %}ChatGPT·Claude·Perplexity 같은 AI 에이전트가 fin-checkup 의 재무 측정값을 계산식·경계값·면책 문구와 함께 전하게 하는 법 — 붙여 넣는 프롬프트, llms.txt, OpenAPI, MCP 서버.{% endblock %}
+{% block main %}
+<article class="fc-learn">
+  <h1>AI 에이전트에서 쓰기</h1>
+  <p class="fc-lead">AI 에이전트에게 "삼성전자 재무 진단해줘" 라고 해도 이 사이트의 측정값을 그대로 쓰게 할 수 있어요. 설치는 필요 없어요 — 에이전트가 읽을 안내(<a href="{{ url(llms) }}">llms.txt</a>)와 정적 파일이 사이트에 있어요.</p>
+
+  <section class="fc-section" id="prompts" aria-labelledby="prompts-title">
+    <h2 id="prompts-title">이렇게 말해 보세요</h2>
+    <p>아래 글을 복사해 붙여 넣으세요. 회사 이름만 바꾸면 돼요.</p>
+    {% for p in prompts %}
+    <h3>{{ p.service }}</h3>
+    <p class="fc-hint">{{ p.how }}</p>
+    <pre class="fc-code-block fc-prompt"><code>{{ p.text }}</code></pre>
+    {% endfor %}
+  </section>
+
+  <section class="fc-section" id="rules" aria-labelledby="rules-title">
+    <h2 id="rules-title">에이전트가 지키게 한 것</h2>
+    <ul>
+      <li>측정값만 전해요. 지표마다 값과 신호에 계산식·경계값을 붙여요.</li>
+      <li>{{ badge("unknown", "데이터 없음") }} 은 0 이 아니에요. {{ badge("not_applicable", "해당 없음") }} 은 그 업종에 맞지 않는 지표이고, 대신 볼 것을 함께 적어요.</li>
+      <li>사고팔 때를 말하지 않고, 회사를 순위로 줄 세우지 않아요. 종목 추천이나 투자 판단은 하지 않습니다.</li>
+      <li>답 끝에 면책 문구와 회사 페이지 링크를 붙여요.</li>
+    </ul>
+    <p class="fc-hint">그래도 에이전트는 틀릴 수 있어요. 숫자는 회사 페이지에서 한 번 더 확인해 주세요.</p>
+  </section>
+
+  <section class="fc-section" id="files" aria-labelledby="files-title">
+    <h2 id="files-title">에이전트가 읽는 파일</h2>
+    <ul>
+      <li><a href="{{ url(llms) }}">llms.txt</a> — 지킬 선, 회사 하나를 GET 두세 번으로 진단하는 법, 비교하는 법, 신호 읽는 법 (<a href="{{ url(llms_full) }}">llms-full.txt</a> 는 지표 해설 17개까지)</li>
+      <li><a href="{{ url(openapi) }}">openapi.json</a> — 정적 GET 엔드포인트와 JSON 스키마 (OpenAPI 3.1)</li>
+      <li><a href="{{ url('api/index.json') }}">api/index.json</a> · <a href="{{ url('search-index.json') }}">search-index.json</a> — 회사 찾기 (이름·종목코드·초성)</li>
+      {% if has_example %}
+      <li><a href="{{ url('api/c/' ~ code ~ '.json') }}">api/c/{{ code }}.json</a> · <a href="{{ url('c/' ~ code ~ '/index.md') }}">c/{{ code }}/index.md</a> — 회사 하나 (JSON · 마크다운)</li>
+      {% endif %}
+    </ul>
+  </section>
+
+  <section class="fc-section" id="curl" aria-labelledby="curl-title">
+    <h2 id="curl-title">직접 불러 보기 (curl)</h2>
+    <p>키도 로그인도 없어요. 정적 파일이라 호출 제한도 없어요.</p>
+    <pre class="fc-code-block"><code># 이름으로 종목코드 찾기
+curl -s {{ public_base }}api/index.json | jq '.companies[] | select(.name == "삼성전자")'
+
+# 회사 하나 — 사실 문단과 면책 문구
+curl -s {{ public_base }}api/c/{{ code }}.json | jq -r '.summary_ko, .disclaimer'
+
+# 같은 내용을 마크다운으로
+curl -s {{ public_base }}c/{{ code }}/index.md
+
+# 어떤 파일이 있는지
+curl -s {{ public_base }}openapi.json | jq '.paths | keys'</code></pre>
+  </section>
+
+  <section class="fc-section" id="tools" aria-labelledby="tools-title">
+    <h2 id="tools-title">MCP 서버 · 플러그인</h2>
+    <ul>
+      <li><a href="{{ mcp_doc }}">MCP 서버 fin-checkup-mcp</a> — Claude Desktop·Claude Code·Cursor 등에서 도구로 (docs/agents.md)</li>
+      <li><a href="{{ skill_doc }}">Claude Code 플러그인 · Agent Skills</a> — 진단·비교 스킬 (docs/agents-skill.md)</li>
+    </ul>
+  </section>
+</article>
+{% endblock %}
