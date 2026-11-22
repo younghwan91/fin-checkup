@@ -1,0 +1,84 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/schemas/mcpb-manifest-v0.4.schema.json",
+  "manifest_version": "0.4",
+  "name": "fin-checkup",
+  "display_name": "fin-checkup — 한국 상장사 재무 신호등",
+  "version": "0.1.0",
+  "description": "한국 상장사 DART 공시로 계산한 재무 지표 17개의 값·신호등·계산식·경계값. 키 없이 바로 쓴다. 측정값이며 투자권유·추천이 아닙니다.",
+  "long_description": "**fin-checkup** 은 한국 상장사(KOSPI·KOSDAQ·KONEX)의 DART 공시 재무제표를 공개된 재무비율 공식으로 계산해, 지표마다 신호(🟢정상 🟡주의 🔴위험 ⚪측정값 ⊘해당 없음 ⚫데이터 없음)·값·계산식·경계값·동종업계 중앙값을 돌려준다.\n\n- **키 없이** 공개 사이트(https://younghwan91.github.io/fin-checkup/)의 정적 JSON 을 읽는다.\n- **OpenDART 인증키(선택)** 를 넣으면 사이트에 없는 회사·연도만 개인 키로 DART 에서 받아 온다. 키는 응답·로그에 나오지 않는다.\n- 도구: 회사 찾기 · 재무 진단 · 지표 해설 · 회사 비교 · 최근 위험 공시(사실 + DART 원문 링크) · 데이터 상태 · 설치 상태 · 설치 안내.\n\n종합 점수·순위를 만들지 않고, 없는 값은 ⚫ 그대로 둔다.\n\n본 결과는 공시 수치를 공개된 재무비율 공식으로 계산한 측정값입니다. 투자권유·자문이 아니며, 데이터 정확성과 이용에 따른 손익에 책임지지 않습니다.",
+  "author": {
+    "name": "younghwan91",
+    "url": "https://github.com/younghwan91"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/younghwan91/fin-checkup"
+  },
+  "homepage": "https://younghwan91.github.io/fin-checkup/",
+  "documentation": "https://github.com/younghwan91/fin-checkup/blob/main/docs/agents.md",
+  "support": "https://github.com/younghwan91/fin-checkup/issues",
+  "icon": "icon.png",
+  "icons": [
+    { "src": "icon.png", "size": "512x512", "theme": "light" },
+    { "src": "icon-dark.png", "size": "512x512", "theme": "dark" }
+  ],
+  "server": {
+    "type": "uv",
+    "entry_point": "server/main.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "--frozen",
+        "--no-dev",
+        "--extra",
+        "mcp",
+        "server/main.py"
+      ],
+      "env": {
+        "DART_API_KEY": "${user_config.dart_api_key}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "search_companies", "description": "회사 이름·6자리 종목코드·초성으로 한국 상장사를 찾는다. 순서는 일치 정도 → 이름순이며 지표 순위가 아니다." },
+    { "name": "diagnose_company", "description": "회사 하나의 재무 신호등 진단 — 지표 17개의 신호·값·계산식·경계값·동종업계 중앙값, 위험 신호, 최근 위험 공시, 출처, 면책 문구." },
+    { "name": "explain_metric", "description": "재무 지표 하나의 정의·계산식·업종별 경계값과 근거·한계·해당 없음 업종." },
+    { "name": "compare_companies", "description": "회사 2~4곳의 지표를 정해진 순서로 나란히 놓는다. 우열을 매기지 않는다." },
+    { "name": "recent_risk_disclosures", "description": "최근 위험 공시(공시 제목 기준 분류)의 사실 목록과 DART 원문 링크." },
+    { "name": "data_status", "description": "데이터 기준일·사업연도·공시 수집 기간·회사 수·출처 모드." },
+    { "name": "setup_status", "description": "설치·설정 상태 — 출처 모드, 사이트 연결, 개인 DART 인증키 설정 여부(키 값은 돌려주지 않는다)." },
+    { "name": "setup_guide", "description": "MCP 클라이언트별 설치 단계와, 원하면 OpenDART 인증키를 채팅 없이 넣는 법." }
+  ],
+  "prompts": [
+    {
+      "name": "diagnose",
+      "description": "회사 하나를 진단하고 계산식·경계값·면책 문구와 함께 전한다.",
+      "arguments": ["company"],
+      "text": "${arguments.company} 의 재무를 diagnose_company 로 진단하고, 값마다 계산식·경계값을 함께, ⚫/⊘ 는 그대로, 끝에 면책 문구와 출처 링크를 붙여 전해 주세요."
+    }
+  ],
+  "keywords": ["finance", "korea", "dart", "financial-statements", "kospi", "kosdaq", "재무제표", "공시"],
+  "license": "MIT",
+  "privacy_policies": [
+    "https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement"
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "python": ">=3.11"
+    }
+  },
+  "user_config": {
+    "dart_api_key": {
+      "type": "string",
+      "title": "OpenDART 인증키 (선택)",
+      "description": "비워 두면 공개 사이트 데이터만 쓴다(키 불필요). 넣으면 사이트에 없는 회사·연도만 이 키로 DART 에서 받아 온다. 발급: https://opendart.fss.or.kr → 인증키 신청. 키는 응답·로그에 나오지 않는다.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    }
+  }
+}

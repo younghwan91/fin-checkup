@@ -65,4 +65,18 @@ gh release create "$tag" "$work/$asset" "$work/snapshot/manifest.json" \
   --latest=false \
   --notes "$notes"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then echo "tag=$tag" >> "$GITHUB_OUTPUT"; fi
+
+# 'Latest' 는 코드 릴리스(v*)의 자리다 — README 의 releases/latest/download/fin-checkup.mcpb 가 그걸 가리킨다.
+# --latest=false 로 올려도, Latest 로 지정된 릴리스가 없으면 GitHub 은 가장 최근 릴리스를 Latest 로 보여 준다
+# (2026-11-22 data-20261122 가 그렇게 Latest 가 됐다). data-* 가 Latest 면 가장 최근 v* 로 되돌린다.
+latest="$(gh release view --json tagName -q .tagName 2>/dev/null || true)"
+if [[ "$latest" == data-* ]]; then
+  code="$(gh release list --limit 100 --json tagName,isDraft,isPrerelease,publishedAt \
+    --jq '[.[] | select(.isDraft | not) | select(.isPrerelease | not) | select(.tagName | startswith("v"))]
+          | sort_by(.publishedAt) | reverse | .[0].tagName // ""')"
+  if [ -n "$code" ]; then
+    gh release edit "$code" --latest
+    echo "Latest 를 코드 릴리스 $code 로 되돌렸습니다 (data-* 는 Latest 가 되지 않는다)."
+  fi
+fi
 echo "올렸습니다: $tag ($asset)"

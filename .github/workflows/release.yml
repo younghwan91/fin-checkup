@@ -1,0 +1,126 @@
+name: Release
+
+# 코드 릴리스(v* 태그) → Claude Desktop 확장 번들 fin-checkup.mcpb 를 GitHub Release 에 올리고
+# 공식 MCP Registry(io.github.younghwan91/fin-checkup)에 server.json 을 올린다.
+#
+# 데이터 스냅샷 릴리스(data-*)와 섞이지 않는다: 이 워크플로는 v* 태그 push 에만 돌고, collect.yml·pages.yml·
+# scripts/fetch_snapshot.sh 는 data-* 만 고른다. 코드 릴리스를 'Latest' 로 둔다 — data-* 는 --latest=false 로
+# 올라가고, publish_snapshot.sh 가 data-* 가 Latest 를 가져가면 v* 로 되돌린다(README 의 latest/download 링크).
+#
+# 레지스트리 로그인은 GitHub OIDC(id-token: write) — io.github.younghwan91/* 이름공간은 이 저장소의 소유자로 확인된다.
+# 이미 올린 번들은 다시 만들지 않는다(재실행해도 해시가 바뀌지 않게, 올린 파일을 받아 해시를 잰다).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # 릴리스 만들기·파일 올리기
+  id-token: write # MCP Registry OIDC 로그인
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.ref_name }}
+  BUNDLE: fin-checkup.mcpb
+  # 둘 다 고정 버전 — 올릴 때 일부러 바꾼다 (latest 로 두면 깨진 새 판이 그대로 들어온다).
+  MCPB_VERSION: "2.1.2"
+  MCP_PUBLISHER_VERSION: v1.8.12
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: 의존성 설치 (lock 고정)
+        run: uv sync --frozen --extra mcp --extra dev
+
+      - name: 태그 = 버전 확인
+        run: uv run python scripts/release.py check-tag "$TAG"
+
+      - name: 릴리스 가드 테스트
+        run: uv run pytest -q tests/test_release.py
+
+      - name: 번들 만들기·검사 (이미 올렸으면 그 파일)
+        id: bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null | grep -qx "$BUNDLE"; then
+            echo "이미 올린 $BUNDLE 을 받는다 — 다시 만들지 않는다."
+            gh release download "$TAG" --pattern "$BUNDLE" --clobber
+            echo "uploaded=true" >> "$GITHUB_OUTPUT"
+          else
+            uv run python scripts/release.py stage _mcpb
+            npx -y "@anthropic-ai/mcpb@${MCPB_VERSION}" validate _mcpb/manifest.json
+            npx -y "@anthropic-ai/mcpb@${MCPB_VERSION}" pack _mcpb "$BUNDLE"
+            echo "uploaded=false" >> "$GITHUB_OUTPUT"
+          fi
+          npx -y "@anthropic-ai/mcpb@${MCPB_VERSION}" info "$BUNDLE" || true
+          sha="$(sha256sum "$BUNDLE" | cut -d' ' -f1)"
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+          echo "### $BUNDLE" >> "$GITHUB_STEP_SUMMARY"
+          echo "sha256 \`$sha\` · $(stat -c %s "$BUNDLE") bytes" >> "$GITHUB_STEP_SUMMARY"
+
+      # 호스트가 하듯 manifest 의 mcp_config 그대로(uv run --frozen) 띄워 MCP 로 도구 목록·설치 상태를 불러 본다.
+      - name: 번들 실행 확인 (stdio)
+        run: uv run python scripts/release.py smoke "$BUNDLE"
+
+      - name: 릴리스 만들기·번들 올리기 (Latest)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPLOADED: ${{ steps.bundle.outputs.uploaded }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            uv run python scripts/release.py notes "$TAG" > _notes.md
+            gh release create "$TAG" --verify-tag --latest --title "fin-checkup $TAG" --notes-file _notes.md
+          fi
+          if [ "$UPLOADED" != "true" ]; then
+            gh release upload "$TAG" "$BUNDLE"
+          fi
+          gh release edit "$TAG" --latest --draft=false
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${BUNDLE}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: server.json 에 해시 채우기
+        env:
+          SHA256: ${{ steps.bundle.outputs.sha256 }}
+        run: |
+          uv run python scripts/release.py server-json --sha256 "$SHA256"
+          cat server.json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: mcp-publisher 받기 (서명 확인)
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          archive="mcp-publisher_${os}_${arch}.tar.gz"
+          base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
+          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base_url/$archive.sigstore.json"
+          cosign verify-blob \
+            --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$archive"
+          tar xzf "$archive" mcp-publisher
+          rm -f "$archive" "$archive.sigstore.json"
+
+      - name: MCP Registry 로그인 (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: MCP Registry 에 올리기
+        run: ./mcp-publisher publish
