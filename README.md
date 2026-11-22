@@ -62,7 +62,7 @@ claude plugin install fin-checkup@fin-checkup
 claude mcp add fin-checkup -- uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp
 ```
 
-[uv](https://docs.astral.sh/uv/getting-started/installation/) 와 git 이 필요합니다. 프로그램마다 설정하는 법은 [`docs/agents.md`](docs/agents.md).
+[uv](https://docs.astral.sh/uv/getting-started/installation/) 와 git 이 필요합니다. 프로그램마다 설정하는 법은 [`docs/agents.md`](docs/agents.md), Codex·Cursor 에서 같은 진단 스킬을 쓰는 법은 [`docs/agents-skill.md`](docs/agents-skill.md).
 
 <details>
 <summary>실제 답은 이렇게 나와요 (에코프로, 2025 사업연도 일부)</summary>
