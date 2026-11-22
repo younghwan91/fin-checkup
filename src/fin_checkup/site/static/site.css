@@ -33,6 +33,11 @@
   --chart-grid: #ecece8;
   --chart-box: #d9d9d4;
 
+  /* 브랜드 마크 종이·귀퉁이·값 막대 (fin_checkup/brand.py LIGHT·DARK 와 같다 — tests/test_brand.py) */
+  --logo-sheet: #1b1b19;
+  --logo-fold: #55554f;
+  --logo-bar: #d9d9d4;
+
   color-scheme: light dark;
 }
 
@@ -64,6 +69,10 @@
     --chart-1: #3987e5;
     --chart-grid: #2a2a27;
     --chart-box: #4a4a45;
+
+    --logo-sheet: #3a3a36;
+    --logo-fold: #6e6e69;
+    --logo-bar: #a6a6a0;
   }
 }
 
@@ -117,7 +126,16 @@ h3 { font-size: .9rem; color: var(--ink-muted); margin: 1.2rem 0 .5rem; letter-s
   display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem;
   padding-top: .6rem; padding-bottom: .6rem;
 }
-.fc-brand { font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
+.fc-brand { font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -.01em;
+  display: inline-flex; align-items: center; gap: .4rem; }
+/* 머리글 마크 — fin_checkup/brand.py inline_mark_svg. 색은 여기서(CSP 가 SVG 안 style 을 막는다). */
+.fc-logo { width: 1.1rem; height: 1.33rem; flex: none; forced-color-adjust: none; }
+.fc-lm-sheet { fill: var(--logo-sheet); }
+.fc-lm-fold { fill: var(--logo-fold); }
+.fc-lm-bar { fill: var(--logo-bar); }
+.fc-lm-g { fill: var(--sig-green); }
+.fc-lm-y { fill: var(--sig-yellow); }
+.fc-lm-r { fill: var(--sig-red); }
 .fc-nav { display: flex; flex-wrap: wrap; gap: .2rem .9rem; font-size: .9rem; }
 .fc-nav a { color: var(--ink); text-decoration: none; }
 .fc-nav a:hover { text-decoration: underline; }

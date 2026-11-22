@@ -38,6 +38,7 @@ async def test_every_page_has_header_footer_disclaimer_and_sources(out):
     for path in pages:
         text = read(path)
         assert 'class="fc-brand"' in text and ">fin-checkup</a>" in text, path
+        assert '<svg class="fc-logo"' in text and 'aria-hidden="true"' in text, path
         assert DISCLAIMER in text, path
         assert "DART" in text and "SEC EDGAR" in text, path
         assert "데이터 기준: 2024 사업연도 · 빌드 2026-11-21" in text, path
