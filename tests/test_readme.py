@@ -62,3 +62,37 @@ def test_readmes_link_to_each_other_at_the_top():
     en = (ROOT / "README.en.md").read_text(encoding="utf-8").splitlines()[:5]
     assert any("(README.en.md)" in line for line in ko)
     assert any("(README.md)" in line for line in en)
+
+
+def _mcp_command() -> dict:
+    import json
+
+    server = json.loads((ROOT / "plugins/fin-checkup/.mcp.json").read_text(encoding="utf-8"))
+    return server["mcpServers"]["fin-checkup"]
+
+
+@pytest.mark.parametrize("readme", READMES, ids=lambda p: p.name)
+def test_one_click_install_badges_match_the_plugin_command(readme):
+    """Cursor·VS Code 원클릭 설치 링크가 플러그인 .mcp.json 과 같은 명령을 넣는다.
+
+    배지 링크는 설정 JSON 을 base64·URL 인코딩으로 품고 있어 눈으로 확인할 수 없다. 설치 명령을
+    바꾸면서 배지를 놓치면 버튼을 누른 사람만 옛 명령을 받는다.
+    """
+    import base64
+    import json
+    from urllib.parse import parse_qs, unquote, urlparse
+
+    text = readme.read_text(encoding="utf-8")
+    expected = _mcp_command()
+    cursor = re.search(r"\((https://cursor\.com/en/install-mcp\?[^)\s]+)\)", text)
+    vscode = re.search(r"\((https://insiders\.vscode\.dev/redirect\?url=[^)\s]+)\)", text)
+    assert cursor and vscode, "원클릭 설치 배지가 없다"
+    cfg = json.loads(base64.b64decode(parse_qs(urlparse(cursor.group(1)).query)["config"][0]))
+    assert cfg == expected
+    inner = unquote(parse_qs(urlparse(vscode.group(1)).query)["url"][0])
+    assert inner.startswith("vscode:mcp/install?")
+    vs = json.loads(inner.removeprefix("vscode:mcp/install?"))
+    assert vs.pop("name") == "fin-checkup"
+    assert vs == expected
+    flag, spec, script = expected["args"]
+    assert f'uvx {flag} "{spec}" {script}' in text
