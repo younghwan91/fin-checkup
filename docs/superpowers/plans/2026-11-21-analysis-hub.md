@@ -143,6 +143,7 @@
 | A9 | `cli setup` 설치 도우미(`onboarding.py`) — Python·uv·공개 사이트 점검, '키 없이 된다' 먼저, OpenDART 인증키 받는 법(2026-11-22 사이트 메뉴 그대로)·getpass/`--key-stdin`/`--from-clipboard` 로 받아 DART 한 번(company.json)으로 유효/무효/한도 확인 → `.env` 원자적 쓰기·권한 600. `--check` 는 비밀 없이 상태만. `Settings` 가 사용자 설정 파일(`~/.config/fin-checkup/.env`)도 읽고, 콘솔 스크립트 `fin-checkup`(uvx 로 저장소 없이). 가드 `tests/test_setup.py` | ☑ |
 | A10 | MCP 가 개인 키로 DART 에서 받아 오기 — 사이트에 없는 회사·연도는 `CheckupService(allow_fetch=True)` 로(`source: "dart-live"`, 호출 한도 지킴, 키는 응답에 없음) · 도구 `setup_status`·`setup_guide(client, want_key)` | ☑ |
 | A11 | 스킬 `setup`(플러그인 + `.agents/skills/` 사본) — 설치·MCP 연결·키 발급을 에이전트가 안내하되 키는 채팅에 받지 않는다 · `docs/agents.md` '설치·키 발급을 에이전트에게 맡기기' · `AGENTS.md` | ☑ |
+| A12 | Claude Desktop 확장 `.mcpb`(`mcpb/manifest.json`, server.type `uv` — 번들의 `pyproject.toml`·`uv.lock` 을 `uv run --frozen --extra mcp` 로, 선택·민감 `dart_api_key` → env `DART_API_KEY`, 빈 값·자리표시자는 없는 것으로 `drop_unset_key`) · 공식 MCP Registry `server.json`(`io.github.younghwan91/fin-checkup`, `mcpb` 패키지) · `release.yml`(v* 태그 → 태그=버전 확인·pack·validate·stdio 실행 확인·Release(Latest)·sha256 채워 OIDC publish) · CI `mcpb` 잡 · data-* 가 Latest 를 가져가면 v* 로 되돌림(`publish_snapshot.sh`). 도우미 `scripts/release.py`, 가드 `tests/test_release.py`(공개 스키마 사본 `tests/fixtures/schemas/`) | ☑ |
 
 ### B. 브랜드
 차분하고 정직한 측정 도구로 보이게 — 로켓·캔들·돈·위쪽 화살표 없이. 마크·색·말투는 `docs/brand/README.md`.

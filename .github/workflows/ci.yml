@@ -56,3 +56,31 @@ jobs:
 
       - name: pytest
         run: uv run pytest -q
+
+  # 태그를 밀기 전에 번들이 실제로 만들어지고 뜨는지 본다 — release.yml 과 같은 명령(올리기·레지스트리는 빼고).
+  mcpb:
+    runs-on: ubuntu-latest
+    env:
+      MCPB_VERSION: "2.1.2"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: 의존성 설치 (lock 고정)
+        run: uv sync --frozen --extra mcp --extra dev
+
+      - name: 버전 일치
+        run: uv run python scripts/release.py check-tag
+
+      - name: 번들 만들기·검사
+        run: |
+          uv run python scripts/release.py stage _mcpb
+          npx -y "@anthropic-ai/mcpb@${MCPB_VERSION}" validate _mcpb/manifest.json
+          npx -y "@anthropic-ai/mcpb@${MCPB_VERSION}" pack _mcpb fin-checkup.mcpb
+
+      - name: 번들 실행 확인 (stdio)
+        run: uv run python scripts/release.py smoke fin-checkup.mcpb

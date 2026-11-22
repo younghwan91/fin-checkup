@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.younghwan91/fin-checkup",
+  "title": "fin-checkup",
+  "description": "Korean listed-company financials from DART filings: 17 ratios with signal, formula, threshold",
+  "version": "0.1.0",
+  "websiteUrl": "https://younghwan91.github.io/fin-checkup/",
+  "repository": {
+    "url": "https://github.com/younghwan91/fin-checkup",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/younghwan91/fin-checkup/releases/download/v0.1.0/fin-checkup.mcpb",
+      "version": "0.1.0",
+      "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "DART_API_KEY",
+          "description": "Optional personal OpenDART key; without it the server reads the public site only",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

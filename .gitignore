@@ -30,3 +30,8 @@ _workspace/
 
 # 정적 사이트 빌드 산출물 (cli site build)
 site-out/
+
+# 릴리스 번들 (scripts/release.py stage · mcpb pack)
+_mcpb/
+*.mcpb
+_notes.md

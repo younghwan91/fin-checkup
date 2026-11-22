@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from importlib.metadata import PackageNotFoundError, version
 from typing import Annotated, Any
@@ -308,6 +309,18 @@ def build_server(source: Source) -> MCPServer:
     return server
 
 
+def drop_unset_key(environ: dict[str, str] | Any = os.environ) -> None:
+    """호스트가 '비워 둠' 을 빈 문자열이나 치환 안 된 자리표시자로 넘기면 없는 것으로 친다.
+
+    Claude Desktop 확장(.mcpb)은 선택 칸 `dart_api_key` 를 비워 두면 `DART_API_KEY=""` 로(기본값이 없으면
+    `${user_config.dart_api_key}` 글자 그대로) 넘긴다. 환경변수는 설정 파일보다 앞서서, 그대로 두면
+    `fin-checkup setup` 이 사용자 설정 파일에 넣어 둔 키까지 빈 값으로 덮인다.
+    """
+    value = environ.get("DART_API_KEY")
+    if value is not None and (not value.strip() or value.strip().startswith("${")):
+        del environ["DART_API_KEY"]
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="fin-checkup-mcp",
@@ -322,6 +335,7 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(
         level=logging.WARNING, stream=sys.stderr, format="%(levelname)s %(name)s: %(message)s"
     )
+    drop_unset_key()
     server = build_server(source_from_env())
     if args.transport == "streamable-http":
         server.run(transport="streamable-http", host=args.host, port=args.port)
