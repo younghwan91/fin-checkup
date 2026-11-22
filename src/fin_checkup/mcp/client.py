@@ -9,7 +9,8 @@ TTL(기본 600초, 사이트의 `Cache-Control: max-age=600` 과 같다)이 지�
 다시 묻고 304 면 그대로 쓴다. 네트워크가 끊겼는데 예전에 받은 사본이 있으면 그 사본을 쓰되 `stale` 로
 알린다 — 없는 값을 지어내지 않으려면 '오래된 사실' 과 '모름' 을 구분해야 한다.
 
-`FIN_CHECKUP_MCP_SOURCE=local` 이면 `LocalSource` 가 `CheckupService(allow_fetch=False)` 로 같은 모양의
+개인 DART 인증키가 설정돼 있으면(`fin-checkup setup`) 사이트에 없는 회사·연도만 `mcp.live.DartLiveSource` 가
+DART 에서 받는다. `FIN_CHECKUP_MCP_SOURCE=local` 이면 `LocalSource` 가 `CheckupService(allow_fetch=False)` 로 같은 모양의
 JSON 을 만든다 (`site.pages.api.company_json` 그대로 — 사이트와 다른 판정을 만들지 않게).
 """
 
@@ -355,14 +356,37 @@ class LocalSource:
             self._cache = None
 
 
-def source_from_env(env: dict[str, str] | None = None) -> Source:
-    """환경변수로 출처를 고른다. 아무것도 없으면 공개 사이트 + 디스크 캐시."""
+def _settings() -> Any:
+    from fin_checkup.config import Settings
+
+    return Settings()
+
+
+def source_from_env(env: dict[str, str] | None = None, settings: Any = None) -> Source:
+    """환경변수로 출처를 고른다.
+
+    - `FIN_CHECKUP_MCP_SOURCE=local` 로컬 DuckDB 캐시(DART 호출 0).
+    - `site` 공개 사이트만(키가 있어도 DART 를 부르지 않는다).
+    - `dart` 진단은 늘 개인 키로 DART 에서 받는다.
+    - 비우면: 공개 사이트. DART 인증키가 설정돼 있으면 사이트에 없는 회사·연도만 DART 에서 받는다(`site+dart`).
+    """
     env = dict(os.environ if env is None else env)
     base_url = env.get("FIN_CHECKUP_MCP_BASE_URL") or DEFAULT_BASE_URL
-    if (env.get("FIN_CHECKUP_MCP_SOURCE") or "site").strip().lower() == "local":
+    choice = (env.get("FIN_CHECKUP_MCP_SOURCE") or "").strip().lower()
+    if choice == "local":
         db_path = env.get("FIN_CHECKUP_DB_PATH") or "data/fin_checkup.duckdb"
         return LocalSource(db_path, base_url=base_url)
     ttl = float(env.get("FIN_CHECKUP_MCP_TTL") or DEFAULT_TTL_SECONDS)
     no_disk = (env.get("FIN_CHECKUP_MCP_CACHE_DIR") or "").strip().lower() in {"off", "none", "0"}
     cache_dir = None if no_disk else default_cache_dir(env)
-    return SiteSource(base_url, cache_dir=cache_dir, ttl=ttl)
+    site = SiteSource(base_url, cache_dir=cache_dir, ttl=ttl)
+    if choice == "site":
+        return site
+    settings = settings if settings is not None else _settings()
+    if choice == "dart" or settings.has_api_key:
+        from fin_checkup.mcp.live import DartLiveSource
+
+        live_dir = default_cache_dir({k: v for k, v in env.items() if k != "FIN_CHECKUP_MCP_CACHE_DIR"}) if no_disk else cache_dir
+        db_path = env.get("FIN_CHECKUP_DB_PATH") or str(Path(live_dir) / "dart.duckdb")
+        return DartLiveSource(site, settings, db_path, always_live=choice == "dart")
+    return site

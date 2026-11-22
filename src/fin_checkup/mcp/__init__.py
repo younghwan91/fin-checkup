@@ -4,7 +4,9 @@
 
 - `client.py`  데이터 출처. 기본은 공개 정적 사이트(JSON, 키 불필요, 메모리+디스크 캐시·ETag),
                `FIN_CHECKUP_MCP_SOURCE=local` 이면 로컬 DuckDB 캐시(`CheckupService`, DART 호출 0).
-- `core.py`    도구가 돌려줄 값 — 회사 찾기·진단·비교·지표 해설·위험 공시·데이터 상태. MCP 를 모른다.
+- `live.py`    개인 DART 인증키가 있으면 사이트에 없는 회사·연도만 DART 에서 받는다(`source: "dart-live"`).
+- `core.py`    도구가 돌려줄 값 — 회사 찾기·진단·비교·지표 해설·위험 공시·데이터 상태·설치 상태. MCP 를 모른다.
+- `guide.py`   `setup_guide` — 클라이언트별 설치 단계와 키 넣는 법(키는 채팅으로 받지 않는다).
 - `server.py`  MCP 배선(도구·프롬프트·리소스)과 `main()`.
 
 측정값만 돌려준다. 판정은 `metrics.engine`, '왜 이 색' 문장은 `explain.why_color` 그대로 — 여기서 새로

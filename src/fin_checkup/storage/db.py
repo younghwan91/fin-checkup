@@ -354,6 +354,22 @@ class Cache:
         ).fetchall()
         return [CorpCode(**dict(zip(_CORP_FIELDS, r, strict=True))) for r in rows]
 
+    def listed_corp_codes(self) -> list[CorpCode]:
+        """종목코드가 있는 회사 전부, 이름순.
+
+        corpCode.xml 은 상장폐지 회사의 옛 코드도 남긴다 — 상장 여부는 모른다.
+        """
+        rows = self.conn.execute(
+            "SELECT corp_code, corp_name, stock_code, modify_date FROM corp_codes "
+            "WHERE stock_code <> '' ORDER BY corp_name"
+        ).fetchall()
+        return [CorpCode(**dict(zip(_CORP_FIELDS, r, strict=True))) for r in rows]
+
+    def statement_years(self) -> list[int]:
+        """재무제표가 캐시에 있는 사업연도들, 오름차순."""
+        rows = self.conn.execute("SELECT DISTINCT bsns_year FROM statement_lines ORDER BY 1").fetchall()
+        return [int(r[0]) for r in rows]
+
     # ------------------------------------------------------------------
     # 기업개황
     # ------------------------------------------------------------------

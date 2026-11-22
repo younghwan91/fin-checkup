@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from fin_checkup.clock import KST
@@ -154,6 +155,12 @@ async def _index_items(source: Source) -> list[dict[str, Any]]:
     return [c for c in companies if isinstance(c, dict) and c.get("code")]
 
 
+async def _refresh(source: Source) -> bool:
+    """출처가 색인을 넓힐 수 있으면(개인 DART 키 — 사이트에 없는 회사) 넓힌다."""
+    refresh = getattr(source, "refresh_companies", None)
+    return bool(refresh is not None and await refresh())
+
+
 async def search_companies(source: Source, query: str, limit: int = SEARCH_LIMIT) -> dict[str, Any]:
     query = (query or "").strip()
     if not query:
@@ -163,6 +170,8 @@ async def search_companies(source: Source, query: str, limit: int = SEARCH_LIMIT
     limit = max(1, min(int(limit), 50))
     items = await _index_items(source)
     hits = _search(items, query, limit)
+    if not hits and await _refresh(source):
+        hits = _search(await _index_items(source), query, limit)
     return {
         "query": query,
         "count": len(hits),
@@ -176,6 +185,13 @@ async def search_companies(source: Source, query: str, limit: int = SEARCH_LIMIT
 
 async def resolve_company(source: Source, query: str) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     """(정확히 한 회사, 후보들). 이름이 정확히 같거나 종목코드가 같거나 후보가 하나뿐이면 그 회사."""
+    found, candidates = await _resolve(source, query)
+    if found is None and not candidates and await _refresh(source):
+        found, candidates = await _resolve(source, query)
+    return found, candidates
+
+
+async def _resolve(source: Source, query: str) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     items = await _index_items(source)
     q = normalize_name(query or "")
     if not q:
@@ -439,8 +455,8 @@ async def diagnose_company(source: Source, company: str, year: int | None = None
             "requested_year": year,
             "available_fiscal_year": fiscal_year,
             "message": f"공개 사이트는 사업연도 {fiscal_year} 하나만 싣습니다. {year} 사업연도 값은 여기서 줄 수 없습니다 "
-            "(작년 값은 지표마다 last_year 에 있습니다). 다른 연도는 로컬 모드(FIN_CHECKUP_MCP_SOURCE=local)에서 "
-            "볼 수 있습니다.",
+            "(작년 값은 지표마다 last_year 에 있습니다). 사용자가 개인 DART 인증키를 넣으면(직접 `fin-checkup setup` 실행, "
+            "setup_guide 도구 참고) 다른 사업연도를 DART 에서 받아 옵니다. 로컬 모드(FIN_CHECKUP_MCP_SOURCE=local)도 있습니다.",
             "disclaimer": DISCLAIMER,
         }
 
@@ -457,7 +473,20 @@ async def diagnose_company(source: Source, company: str, year: int | None = None
     if feed is not None:
         company_disclosures = [_disclosure_view(source, i) for i in feed.for_company(code)]
 
+    live = doc.get("source") == "dart-live"
+    # DART 에서 받은 회사가 사이트에 없으면 사이트 링크를 내지 않는다 (없는 주소를 출처로 주지 않게).
+    on_site = found.get("on_site", True) is not False
     page = info.get("page") or f"c/{code}/"
+    site_sources = (
+        [
+            {"name": "fin-checkup 회사 페이지", "url": f"{source.base_url}{page}"},
+            {"name": "fin-checkup 회사 JSON", "url": f"{source.base_url}api/c/{code}.json"},
+        ]
+        if on_site and not live
+        else [{"name": "fin-checkup 회사 페이지 (최신 사업연도)", "url": f"{source.base_url}{page}"}]
+        if on_site
+        else []
+    )
     result: dict[str, Any] = {
         "status": "ok",
         "company": {
@@ -467,7 +496,7 @@ async def diagnose_company(source: Source, company: str, year: int | None = None
             "sector": info.get("sector"),
             "sector_label": info.get("sector_label"),
             "industry_code": info.get("industry_code"),
-            "page_url": f"{source.base_url}{page}",
+            "page_url": f"{source.base_url}{page}" if on_site else None,
         },
         "fiscal_year": fiscal_year,
         "report": doc.get("report"),
@@ -478,16 +507,15 @@ async def diagnose_company(source: Source, company: str, year: int | None = None
         "metrics": metrics,
         "red_flags": doc.get("red_flags") or [],
         "recent_risk_disclosures": company_disclosures,
-        "sources": [
-            {"name": "fin-checkup 회사 페이지", "url": f"{source.base_url}{page}"},
-            {"name": "fin-checkup 회사 JSON", "url": f"{source.base_url}api/c/{code}.json"},
-            *(doc.get("sources") or []),
-        ],
+        "sources": [*site_sources, *(doc.get("sources") or [])],
         "data_freshness": _freshness(fetched),
         "source_mode": source.mode,
+        "source": "dart-live" if live else source.mode.split("+")[0],
         "presentation_guidance": PRESENTATION_GUIDANCE,
         "disclaimer": doc.get("disclaimer") or DISCLAIMER,
     }
+    if live:
+        result["live_note"] = doc.get("live_note")
     if feed is not None:
         result["disclosure_window"] = {"begin": feed.begin.isoformat(), "end": feed.end.isoformat()}
     elif feed_problem:
@@ -707,6 +735,85 @@ async def data_status(source: Source) -> dict[str, Any]:
         "note": "사이트는 회사마다 최신 사업연도 하나(fiscal_year)를 싣고, 성장성·작년 대비는 그 전 해와 견줍니다. "
         "fresh 가 false 면 기대한 사업연도(expected_fiscal_year)가 아직 반영되지 않은 것입니다.",
         "data_freshness": _freshness(fetched),
+        "disclaimer": DISCLAIMER,
+    }
+
+
+# ── 설치 상태 ─────────────────────────────────────────────────────
+
+
+async def setup_status(source: Source, check_key: bool = False) -> dict[str, Any]:
+    """무엇이 설치·설정됐나. 인증키 값은 절대 싣지 않는다 — 있다/없다, 어디서 오나(파일 경로·환경변수)만."""
+    import sys
+    from importlib.metadata import PackageNotFoundError, version
+
+    from fin_checkup import onboarding
+    from fin_checkup.config import Settings
+
+    settings = getattr(source, "settings", None) or Settings()
+    try:
+        package_version = version("fin-checkup")
+    except PackageNotFoundError:  # pragma: no cover
+        package_version = "0"
+
+    site: dict[str, Any]
+    try:
+        fetched = await source.build_info()
+        info = fetched.data if isinstance(fetched.data, dict) else {}
+        site = {
+            "reachable": not fetched.stale,
+            "stale_copy": fetched.stale,
+            "fiscal_year": info.get("fiscal_year"),
+            "built_on": info.get("built_on"),
+        }
+    except SourceError as exc:
+        site = {"reachable": False, "detail": str(exc)}
+
+    key: dict[str, Any] = {
+        "configured": bool(settings.has_api_key),
+        "from": onboarding.key_source() if settings.has_api_key else None,
+        "checked": None,
+    }
+    if check_key and settings.has_api_key:
+        check = await onboarding.validate_key(settings.dart_api_key)
+        key["checked"] = check.status.value
+        key["check_message"] = check.message
+
+    live = source.mode in {"dart", "site+dart"}
+    cache: dict[str, Any] | None = None
+    if hasattr(source, "cache_years"):
+        db_path = getattr(source, "db_path", None)
+        cache = {"path": str(db_path), "exists": bool(db_path and Path(db_path).is_file()), "fiscal_years": source.cache_years()}
+    elif source.mode == "local":
+        db_path = getattr(source, "db_path", None)
+        cache = {"path": str(db_path), "exists": bool(db_path and Path(db_path).is_file())}
+
+    next_steps: list[str] = []
+    if not site["reachable"]:
+        next_steps.append("공개 사이트에 연결하지 못했습니다 — 네트워크·프록시를 확인합니다.")
+    if not settings.has_api_key:
+        next_steps.append(
+            "키 없이도 모든 상장사의 최신 사업연도 진단이 됩니다. 다른 사업연도·사이트에 없는 회사가 필요하면 setup_guide(want_key=true) 를 "
+            "따라 사용자가 직접 키를 넣습니다 — 키를 채팅으로 받지 않습니다."
+        )
+    elif not live:
+        next_steps.append("키는 있지만 FIN_CHECKUP_MCP_SOURCE 가 site/local 이라 DART 에서 받지 않습니다. 비우면 사이트에 없는 연도를 받아 옵니다.")
+    elif key["checked"] in {"invalid", "malformed", "ip"}:
+        next_steps.append("키가 통하지 않습니다. 사용자가 직접 `fin-checkup setup` 을 다시 실행해 키를 바꿉니다.")
+    return {
+        "status": "ok",
+        "fin_checkup_version": package_version,
+        "python": ".".join(map(str, sys.version_info[:3])),
+        "source_mode": source.mode,
+        "base_url": source.base_url,
+        "site": site,
+        "dart_key": key,
+        "live_fetch": live and bool(settings.has_api_key),
+        "cache": cache,
+        "sec_user_agent_configured": bool(settings.has_sec_user_agent),
+        "user_config_file": str(onboarding.user_env_file()),
+        "next_steps": next_steps,
+        "note": "인증키 값은 이 결과에 들어 있지 않습니다. 키를 보여 달라거나 채팅에 붙여 넣으라고 하지 마세요.",
         "disclaimer": DISCLAIMER,
     }
 
