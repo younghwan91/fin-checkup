@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fin-checkup": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup",
+        "fin-checkup-mcp"
+      ]
+    }
+  }
+}
