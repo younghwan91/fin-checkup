@@ -4,7 +4,7 @@
   <p class="fc-hint">모든 지표에 계산식과 경계값을 함께 적습니다. 묶음 안에서는 위험한 것부터 보입니다.</p>
   {% for group in c.groups %}
   <h3>{{ group.category }}</h3>
-  <ul class="fc-metrics">
+  <ul class="fc-metrics fc-metric-grid">
     {% for m in group.rows %}
     <li class="fc-metric sig-{{ m.signal.key }}" id="m-{{ m.key }}">
       <div class="fc-metric-head">

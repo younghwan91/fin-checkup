@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from pathlib import Path
 
 import pytest
 from hub_seed import SAMSUNG
@@ -94,3 +95,67 @@ def test_last_year_row_separates_change_from_evaluation(out):
         if "작년과 같음" not in row:
             assert re.search(r"→ .*?(높아짐|낮아짐|늘어남|줄어듦)", row), row
     assert any('<span class="fc-delta-eval">' in r and "쪽" in r for r in rows), "평가 줄이 없다"
+
+
+# ── 넓은 화면: 카드 줄 맞춤 ──────────────────────────────────────
+# 두 열로 놓인 카드는 이름·값 / 설명 / 계산식 / 경계값 / 작년 대비 / 분포 / 링크 / 비고 줄이 서로 어긋났다
+# (설명이 두 줄인 카드 옆의 한 줄 카드는 계산식이 한 줄 위에서 시작). 같은 줄에 놓인 카드는 같은 높이에서
+# 같은 항목이 시작하게 CSS subgrid 로 맞춘다. 휴대폰(한 열)은 그대로 쌓는다 — 페이지가 길어지지 않게.
+
+
+def test_card_grid_rows_are_placed_in_the_stylesheet():
+    """CI 에는 Chromium 이 없다 — 브라우저 테스트가 건너뛰어도 규칙이 지워지면 여기서 잡는다."""
+    import fin_checkup.site
+
+    css = (Path(fin_checkup.site.__file__).parent / "static" / "site.css").read_text(encoding="utf-8")
+    block = css[css.index("@supports (grid-template-rows: subgrid)") :]
+    assert block.index("@media (min-width: 40rem)") < block.index(".fc-metric-grid"), "넓은 화면에서만"
+    assert "grid-template-rows: subgrid" in block[block.index(".fc-metric-grid") :]
+    parts = (".fc-metric-head", ".fc-desc", ".fc-basis-list", ".fc-peer", ".fc-metric-links", ".fc-note")
+    for selector in parts:
+        assert f".fc-metric-grid {selector}" in block, selector
+
+
+def test_company_metric_list_opts_into_the_card_grid(out):
+    text = (out / "c" / SAMSUNG.stock_code / "index.html").read_text(encoding="utf-8")
+    assert '<ul class="fc-metrics fc-metric-grid">' in text
+
+
+def test_browser_desktop_cards_in_a_row_line_up(out):
+    from site_browser import chromium, serve
+
+    with serve(out) as base, chromium() as browser:
+        page = browser.new_page(viewport={"width": 1280, "height": 900})
+        page.goto(base + f"c/{SAMSUNG.stock_code}/")
+        rows = page.locator("ul.fc-metric-grid").evaluate_all(
+            """lists => lists.flatMap(ul => {
+                const cards = [...ul.children];
+                const top = (el, sel) => {
+                    const n = el.querySelector(sel);
+                    return n ? Math.round(n.getBoundingClientRect().top) : null;
+                };
+                const out = [];
+                for (let i = 0; i + 1 < cards.length; i += 2) {
+                    out.push(['.fc-desc', 'dl.fc-basis-list dt', '.fc-metric-links'].map(
+                        s => [top(cards[i], s), top(cards[i + 1], s)]));
+                }
+                return out;
+            })"""
+        )
+        assert rows, "두 열로 놓인 카드가 없다"
+        for row in rows:
+            for left, right in row:
+                if left is not None and right is not None:
+                    assert left == right, row
+
+
+def test_browser_phone_cards_stay_one_column(out):
+    from site_browser import chromium, serve
+
+    with serve(out) as base, chromium() as browser:
+        page = browser.new_page(viewport={"width": 390, "height": 844})
+        page.goto(base + f"c/{SAMSUNG.stock_code}/")
+        lefts = page.locator("ul.fc-metric-grid > li").evaluate_all(
+            "els => els.map(e => Math.round(e.getBoundingClientRect().left))"
+        )
+        assert len(set(lefts)) == 1, lefts
