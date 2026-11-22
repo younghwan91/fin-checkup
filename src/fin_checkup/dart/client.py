@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import json
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -86,6 +87,22 @@ def _install_key_mask() -> None:
 
 
 _install_key_mask()
+
+
+def _error_status(content: bytes) -> tuple[str, str]:
+    """ZIP 이 와야 할 자리에 온 오류 응답(XML 또는 JSON)에서 (status, message)."""
+    text = content.decode("utf-8", errors="replace").strip()
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            return str(data.get("status") or ""), str(data.get("message") or "")
+    except ValueError:
+        pass
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError:
+        return "", ""
+    return (root.findtext("status") or "").strip(), (root.findtext("message") or "").strip()
 
 
 def _amount(value: str | None) -> float | None:
@@ -205,6 +222,13 @@ class DartClient:
     async def fetch_corp_codes(self) -> list[CorpCode]:
         """고유번호 전체 목록(corpCode.xml ZIP)을 내려받아 파싱."""
         resp = await self._get("corpCode.xml", {})
+        if not zipfile.is_zipfile(io.BytesIO(resp.content)):
+            # 키가 틀렸거나 한도를 넘으면 ZIP 대신 status 가 든 XML(또는 JSON)이 온다.
+            # 그대로 열면 BadZipFile 로 죽어 "키가 틀렸다" 는 사실이 묻힌다.
+            status, message = _error_status(resp.content)
+            if status == QUOTA_STATUS:
+                raise RateLimitExceeded(message or "요청 제한 초과", "corpCode.xml")
+            raise DartError(status or "?", message or "고유번호 목록이 ZIP 이 아니다", "corpCode.xml")
         with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
             xml_bytes = zf.read(zf.namelist()[0])
 

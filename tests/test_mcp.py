@@ -45,6 +45,8 @@ TOOLS = {
     "compare_companies",
     "recent_risk_disclosures",
     "data_status",
+    "setup_status",
+    "setup_guide",
 }
 
 
@@ -154,13 +156,16 @@ async def test_missing_company_file_is_not_found_not_network_error(source):
 
 
 def test_source_from_env_defaults_to_the_live_site_and_local_on_request(tmp_path):
-    site = source_from_env({"FIN_CHECKUP_MCP_CACHE_DIR": str(tmp_path)})
+    from fin_checkup.config import Settings
+
+    no_key = Settings(_env_file=None, dart_api_key="")
+    site = source_from_env({"FIN_CHECKUP_MCP_CACHE_DIR": str(tmp_path)}, settings=no_key)
     assert site.mode == "site" and site.base_url == "https://younghwan91.github.io/fin-checkup/"
     local = source_from_env(
         {"FIN_CHECKUP_MCP_SOURCE": "local", "FIN_CHECKUP_DB_PATH": str(tmp_path / "x.duckdb")}
     )
     assert local.mode == "local"
-    off = source_from_env({"FIN_CHECKUP_MCP_CACHE_DIR": "off"})
+    off = source_from_env({"FIN_CHECKUP_MCP_CACHE_DIR": "off"}, settings=no_key)
     assert off.cache_dir is None
 
 
@@ -346,7 +351,7 @@ async def test_local_source_without_a_db_says_where_to_point():
 # Client 는 같은 태스크에서 열고 닫아야 한다(anyio 취소 범위) — async yield 픽스처로 두지 않는다.
 
 
-async def test_server_lists_six_tools_each_saying_it_is_not_advice(source):
+async def test_server_lists_its_tools_each_saying_it_is_not_advice(source):
     async with Client(build_server(source)) as client:
         tools = (await client.list_tools()).tools
         assert {t.name for t in tools} == TOOLS
@@ -366,6 +371,8 @@ async def test_every_tool_is_callable_over_mcp(source):
             "compare_companies": {"companies": ["삼성전자", "KB금융"]},
             "recent_risk_disclosures": {"company": "삼성전자"},
             "data_status": {},
+            "setup_status": {},
+            "setup_guide": {"client": "claude-desktop", "want_key": True},
         }
         assert set(calls) == TOOLS
         for name, args in calls.items():
@@ -429,6 +436,7 @@ async def test_no_banned_phrase_in_descriptions_prompts_resources_or_outputs(sou
             await core.compare_companies(source, ["삼성전자", "KB금융"]),
             await core.recent_risk_disclosures(source),
             await core.data_status(source),
+            await core.setup_status(source),
             *[core.explain_metric(source, d.key) for d in engine.METRIC_DEFS],
         ]
         assert core.banned_in(texts) == []

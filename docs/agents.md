@@ -102,12 +102,16 @@ uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" f
 | `compare_companies(companies)` | 2~4곳을 정해진 지표 순서로 나란히. 회사 순서는 입력 순서이고 우열을 매기지 않음 |
 | `recent_risk_disclosures(company=None, days=7)` | 최근 위험 공시의 사실 목록 + DART 원문 링크 (회사 하나 또는 시장 전체) |
 | `data_status()` | 데이터 기준 — 빌드 날짜·사업연도·기대한 연도가 반영됐는지·공시 수집 기간 |
+| `setup_status(check_key=False)` | 설치 상태 — 출처 모드·사이트 연결·개인 DART 키가 설정됐는지(예/아니오와 어디서 오는지만, 키 값은 없음)·개인 캐시 연도·다음 할 일. `check_key` 면 DART 한 번으로 키 확인 |
+| `setup_guide(client=None, want_key=False)` | 클라이언트별 설치 단계(Claude Code·Desktop·Cursor·VS Code·Codex·Gemini CLI)와 키 받는 법·넣는 법. 단계마다 `ask_first`·`user_runs`, `rules_for_agent` |
 
 프롬프트 `diagnose`(회사 이름 하나)는 위 도구를 순서대로 쓰고 결과를 규칙대로 전하게 안내합니다.
 리소스: `fin-checkup://legend`(신호 범례) · `fin-checkup://policy`(넘지 않는 선) · `fin-checkup://metrics`(지표 17개 표).
 
 회사가 여럿 맞으면(`삼성`) 진단 대신 `status: "ambiguous"` 와 후보 목록이, 없으면 `not_found` 가 옵니다.
 공개 사이트는 회사마다 최신 사업연도 하나만 싣습니다 — 다른 연도를 물으면 `year_unavailable` 로 답하고 값을 만들어 내지 않습니다.
+개인 DART 인증키를 넣었으면(`fin-checkup setup`) 사이트에 없는 회사·사업연도만 DART 에서 받아 같은 모양으로 돌려주고
+결과에 `source: "dart-live"` 가 붙습니다 — 판정 규칙은 사이트와 같고, 동종업계 중앙값은 개인 캐시에 같은 업종 회사가 있어야 나옵니다.
 
 ## 대화 예
 
@@ -143,8 +147,9 @@ fin-checkup 은 측정 도구입니다. 종목 추천이나 투자 판단은 하
 
 | 환경변수 | 기본값 | 뜻 |
 |---|---|---|
-| `FIN_CHECKUP_MCP_SOURCE` | `site` | `local` 이면 로컬 DuckDB 캐시에서 계산 (DART 호출 0, 사업연도 지정 가능) |
-| `FIN_CHECKUP_DB_PATH` | `data/fin_checkup.duckdb` | `local` 일 때 DB 위치. 읽기 전용으로 연다 |
+| `FIN_CHECKUP_MCP_SOURCE` | (비움) | 비우면 공개 사이트 — DART 키가 있으면 사이트에 없는 회사·연도만 DART 에서(`site+dart`). `site` 는 키가 있어도 사이트만, `dart` 는 진단을 늘 DART 에서, `local` 은 로컬 DuckDB 캐시(DART 호출 0) |
+| `DART_API_KEY` | (사용자 설정 파일) | 개인 OpenDART 인증키. 보통은 `fin-checkup setup` 이 넣은 `~/.config/fin-checkup/.env`(Windows `%APPDATA%\fin-checkup\.env`)에서 읽으니 따로 줄 필요가 없다 |
+| `FIN_CHECKUP_DB_PATH` | `data/fin_checkup.duckdb` · `dart` 류는 `~/.cache/fin-checkup-mcp/dart.duckdb` | `local` 일 때 DB 위치(읽기 전용). `site+dart`·`dart` 일 때는 DART 에서 받은 것을 쌓는 개인 캐시 |
 | `FIN_CHECKUP_MCP_BASE_URL` | 공개 사이트 | 직접 빌드한 사이트(`site build`)를 가리킬 때 |
 | `FIN_CHECKUP_MCP_CACHE_DIR` | `~/.cache/fin-checkup-mcp` | 디스크 캐시 위치. `off` 면 메모리만 |
 | `FIN_CHECKUP_MCP_TTL` | `600` | 캐시를 다시 확인하기까지 초 (사이트의 `max-age` 와 같다). 지나면 ETag 로 재검증 |
