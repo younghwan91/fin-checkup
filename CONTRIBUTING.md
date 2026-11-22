@@ -66,6 +66,11 @@ DART 이용약관 제19조 위반입니다.
   `metrics/engine.py` 의 `NOT_APPLICABLE_BY_SECTOR` 가 정합니다. ⊘ 를 늘리자는 제안은 코드보다 이슈가 먼저입니다 —
   `scripts/check_sectors.py` 결과처럼 "계산은 되지만 뜻이 없다"는 근거를 붙여 주세요.
 
+### MCP 도구 고치기
+
+- 파일: `src/fin_checkup/mcp/core.py`(도구가 돌려주는 값) · `server.py`(도구 설명·프롬프트·리소스). 쓰는 법은 [`docs/agents.md`](docs/agents.md).
+- 판정·문장은 새로 만들지 않고 사이트 JSON 과 `explain` 을 그대로 씁니다. `tests/test_mcp.py` 가 도구 설명·결과 전체의 금지 표현을 봅니다.
+
 ### 데이터가 이상할 때
 
 어떤 회사의 숫자가 DART 원문과 다르면 **"데이터가 이상해요"** 이슈 양식으로 종목코드·지표·사업연도·DART 원문 링크를 적어 주세요.

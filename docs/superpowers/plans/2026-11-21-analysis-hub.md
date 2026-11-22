@@ -130,6 +130,7 @@
 | # | PR | 상태 |
 |---|---|---|
 | A4 | MCP 서버 `fin-checkup-mcp` (`src/fin_checkup/mcp/`, extra `[mcp]`) — 공개 사이트 JSON(키 불필요, 메모리+디스크 캐시·ETag) 또는 `FIN_CHECKUP_MCP_SOURCE=local`. 도구 6개(`search_companies`·`diagnose_company`·`explain_metric`·`compare_companies`·`recent_risk_disclosures`·`data_status`), 프롬프트 `diagnose`, 리소스 범례·넘지 않는 선·지표 | ☑ |
+| A5 | MCP 설치·사용 문서 `docs/agents.md` — Claude Code·Desktop·Cursor·Codex·VS Code 설정, 도구 표, 대화 예, 넘지 않는 선, 환경변수, 문제 해결. 가드 `tests/test_docs_agents.py`(명령이 플러그인 `.mcp.json` 과 같은지·JSON/TOML 이 읽히는지·도구 표 = 서버 도구) | ☑ |
 | A7 | Claude Code 플러그인 마켓플레이스 — `.claude-plugin/marketplace.json` · `plugins/fin-checkup/`(스킬 `diagnose`·`compare`, `.mcp.json` 은 `fin-checkup-mcp`, MCP 없으면 정적 JSON). `/plugin marketplace add younghwan91/fin-checkup` → `/plugin install fin-checkup@fin-checkup`. 가드 `tests/test_agent_plugin.py` | ☑ |
 | A8 | 다른 에이전트용 — Agent Skills 표준 경로 사본 `.agents/skills/fin-checkup-*`(Codex·Cursor·Copilot, `scripts/sync_agent_skills.py` 로 생성·테스트가 어긋남을 막음) · 루트 `AGENTS.md` · ChatGPT/Claude.ai 지침 블록 `docs/agents-skill.md` | ☑ |
 
