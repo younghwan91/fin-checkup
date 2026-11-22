@@ -18,6 +18,7 @@
 |---|---|
 | `skills/diagnose` | 한 회사 — 지표 17개 값·신호·계산식·경계값, 위험 신호, 최근 위험 공시, 회사 페이지 링크 |
 | `skills/compare` | 2~4곳을 같은 지표끼리 나란히 (순위·승자 없음) |
+| `skills/setup` | "fin-checkup 설치해줘" · "DART 키 받는 거 도와줘" — uv·MCP 연결·시험 진단, 원하면 OpenDART 키 받는 법. 키는 사용자가 직접 `fin-checkup setup` 으로 넣는다(채팅으로 받지 않음) |
 | `.mcp.json` | MCP 서버 `uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp` |
 
 MCP 서버를 쓸 수 없어도(uv 가 없거나 서버가 뜨지 않아도) 스킬은 돈다 — 정적 JSON

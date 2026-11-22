@@ -2,9 +2,10 @@ name: Pages
 
 # 공개 스냅샷(data-* 릴리스) → 캐시 재구성 → 정적 사이트 빌드 → GitHub Pages.
 #
-# 사이트 빌드는 캐시만 읽는다(DART 호출 0). 캐시는 로컬에서 수집한 것을
-# `scripts/publish_snapshot.sh` 가 허용목록 테이블만 뽑아 릴리스로 올린다 —
-# 개인정보·운영 테이블은 스냅샷에 아예 없다(snapshot.py).
+# 사이트 빌드는 캐시만 읽는다(DART 호출 0). 스냅샷은 collect.yml(매일 04:00 KST 증분 수집)이나
+# 로컬에서 `scripts/publish_snapshot.sh` 가 허용목록 테이블만 뽑아 릴리스로 올린다 —
+# 개인정보·운영 테이블은 스냅샷에 아예 없다(snapshot.py). collect.yml 이 GITHUB_TOKEN 으로 만든
+# 릴리스는 아래 `release` 트리거를 깨우지 않아서, collect.yml 이 이 워크플로를 직접 디스패치한다.
 #
 # DART 를 부르는 건 "최근 위험 공시" 한 단계뿐이고, secret DART_API_KEY 가 있을 때만 돈다.
 # 키는 그 단계의 env 로만 넘긴다(로그·산출물에 안 남게). 같은 키를 로컬 수집이 함께 쓰면
@@ -54,42 +55,15 @@ jobs:
       - name: 의존성 설치 (lock 고정)
         run: uv sync --frozen
 
-      - name: 스냅샷 릴리스 찾기
+      # 릴리스 이벤트면 그 태그, 아니면 가장 최근 data-* 를 받아 들여온다 (collect.yml 과 같은 스크립트).
+      # 없으면 경고만 남기고 found=false — 배포하지 않는다.
+      - name: 스냅샷 받아 캐시 재구성
         id: snapshot
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          tag="$RELEASE_TAG"
-          if [ -z "$tag" ]; then
-            tag="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
-              --json tagName,isDraft,createdAt \
-              --jq '[.[] | select(.isDraft | not) | select(.tagName | startswith("data-"))]
-                    | sort_by(.createdAt) | reverse | .[0].tagName // ""')"
-          fi
-          if [ -z "$tag" ]; then
-            echo "::warning::data-* 스냅샷 릴리스가 없어 배포하지 않는다. scripts/publish_snapshot.sh 로 먼저 올릴 것."
-            echo "found=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          mkdir -p _download
-          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'snapshot-*.zip' --dir _download
-          echo "스냅샷: $tag"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "found=true" >> "$GITHUB_OUTPUT"
-
-      - name: 스냅샷으로 캐시 재구성
-        if: steps.snapshot.outputs.found == 'true'
-        run: |
-          shopt -s nullglob
-          zips=(_download/snapshot-*.zip)
-          if [ "${#zips[@]}" -ne 1 ]; then
-            echo "::error::릴리스에 snapshot-*.zip 이 하나가 아니다: ${zips[*]}"
-            exit 1
-          fi
-          mkdir -p _snapshot/files
-          uv run python -m zipfile -e "${zips[0]}" _snapshot/files
-          uv run python -m fin_checkup.cli snapshot import _snapshot/files --db "$FIN_CHECKUP_DB_PATH"
+        run: scripts/fetch_snapshot.sh _snapshot "$RELEASE_TAG"
 
       # 스냅샷의 metric_values 는 그걸 만든 시점 코드의 계산 결과다. 지표 계산을 고친 PR 이 병합돼도
       # 스냅샷을 다시 올리기 전까지 대조군(동종업계 분포)이 옛 계산으로 남는다 — 배포마다 지금 코드로

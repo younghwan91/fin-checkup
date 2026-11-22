@@ -266,3 +266,26 @@ def test_disclosure_url_points_to_dart_original():
 
     d = Disclosure(rcept_no="20240101000001", corp_code="1", corp_name="A", report_nm="X")
     assert d.url == "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20240101000001"
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    ("body", "status", "exc_name"),
+    [
+        (
+            "<result><status>010</status><message>등록되지 않은 키입니다.</message></result>",
+            "010",
+            "DartError",
+        ),
+        ('{"status": "020", "message": "요청 제한을 초과하였습니다."}', "020", "RateLimitExceeded"),
+    ],
+)
+async def test_corp_codes_error_reply_is_a_dart_error_not_a_bad_zip(
+    client: DartClient, body, status, exc_name
+):
+    """키가 틀리면 corpCode.xml 은 ZIP 대신 status 가 든 XML 을 준다 — BadZipFile 로 죽으면 원인이 묻힌다."""
+    respx.get(f"{BASE}/corpCode.xml").mock(return_value=httpx.Response(200, content=body.encode("utf-8")))
+    with pytest.raises(DartError) as exc:
+        await client.fetch_corp_codes()
+    assert exc.value.status == status and type(exc.value).__name__ == exc_name
+    await client.aclose()

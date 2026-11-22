@@ -92,6 +92,36 @@ uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" f
   --transport streamable-http --port 8000      # → http://127.0.0.1:8000/mcp
 ```
 
+## 설치·키 발급을 에이전트에게 맡기기
+
+플러그인을 넣은 Claude Code 에서 *"fin-checkup 설치해줘"*, *"DART 키 받는 거 도와줘"*, *"set up fin-checkup"* 이라고 하면
+`setup` 스킬([`plugins/fin-checkup/skills/setup/SKILL.md`](../plugins/fin-checkup/skills/setup/SKILL.md))이 순서대로 안내합니다.
+Codex·Cursor·VS Code 는 같은 내용의 [`.agents/skills/fin-checkup-setup/SKILL.md`](../.agents/skills/fin-checkup-setup/SKILL.md),
+MCP 만 붙인 클라이언트는 도구 `setup_guide(client, want_key)` 를 씁니다.
+
+1. OS·클라이언트를 확인하고 `uv` 가 없으면 공식 설치 명령을 보여 준 뒤 **물어보고** 설치합니다.
+2. MCP 서버를 연결합니다 — Claude Code 는 `claude mcp add …`, 다른 클라이언트는 설정 파일을 고칠 diff 를 보여 주고 물은 뒤.
+3. `setup_status()` 와 시험 진단(`diagnose_company("005930")`)으로 확인합니다.
+4. 원하면 OpenDART 인증키 받는 법을 안내합니다(무료, 개인은 신청 즉시 발급, 하루 약 20,000건, 본인만 사용).
+   **키는 사용자가 직접 넣습니다** — 에이전트는 키를 채팅으로 받지 않습니다:
+
+```bash
+uvx --from "fin-checkup @ git+https://github.com/younghwan91/fin-checkup" fin-checkup setup                   # 보이지 않는 입력창(getpass)
+uvx --from "fin-checkup @ git+https://github.com/younghwan91/fin-checkup" fin-checkup setup --from-clipboard  # 입력창이 없는 곳(Claude Code 의 `!`) — 복사한 키를 곧장 파일로
+uvx --from "fin-checkup @ git+https://github.com/younghwan91/fin-checkup" fin-checkup setup --check           # 점검: 키 설정됨/없음 · 유효/무효, 사이트 연결 (비밀 값 없음)
+```
+
+   저장소를 받았다면 그 폴더에서 `uv run python -m fin_checkup.cli setup`. 키는 DART 한 번(기업개황)으로 확인한 뒤
+   사용자 설정 파일(`~/.config/fin-checkup/.env`, Windows `%APPDATA%\fin-checkup\.env`, 권한 600)에 들어가고 — 작업 폴더에
+   `.env` 가 있으면 그 파일 — 화면·로그에는 "유효/무효/한도" 만 나옵니다.
+5. MCP 서버가 그 파일을 읽으므로 클라이언트 설정에 키를 넣을 필요가 없습니다. 클라이언트를 다시 시작한 뒤
+   `setup_status(check_key=true)` 가 `"ok"` 면, 사이트에 없는 사업연도(`diagnose_company("005930", year=2020)`)가
+   `source: "dart-live"` 로 옵니다.
+
+에이전트가 지키는 것: 키를 채팅·명령줄 인자·출력에 넣지 않고, `.env` 를 열어 보거나 커밋하지 않으며, 설치·설정 파일 수정은
+먼저 묻습니다. 클라이언트 설정의 `env` 로 넘기고 싶다면 `setup_guide(client, want_key=true)` 의 `env_alternative` 를
+사용자가 직접 채웁니다(VS Code 는 비밀번호 입력칸으로 묻는 `inputs`).
+
 ## 도구
 
 | 도구 | 하는 일 |
@@ -102,12 +132,16 @@ uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" f
 | `compare_companies(companies)` | 2~4곳을 정해진 지표 순서로 나란히. 회사 순서는 입력 순서이고 우열을 매기지 않음 |
 | `recent_risk_disclosures(company=None, days=7)` | 최근 위험 공시의 사실 목록 + DART 원문 링크 (회사 하나 또는 시장 전체) |
 | `data_status()` | 데이터 기준 — 빌드 날짜·사업연도·기대한 연도가 반영됐는지·공시 수집 기간 |
+| `setup_status(check_key=False)` | 설치 상태 — 출처 모드·사이트 연결·개인 DART 키가 설정됐는지(예/아니오와 어디서 오는지만, 키 값은 없음)·개인 캐시 연도·다음 할 일. `check_key` 면 DART 한 번으로 키 확인 |
+| `setup_guide(client=None, want_key=False)` | 클라이언트별 설치 단계(Claude Code·Desktop·Cursor·VS Code·Codex·Gemini CLI)와 키 받는 법·넣는 법. 단계마다 `ask_first`·`user_runs`, `rules_for_agent` |
 
 프롬프트 `diagnose`(회사 이름 하나)는 위 도구를 순서대로 쓰고 결과를 규칙대로 전하게 안내합니다.
 리소스: `fin-checkup://legend`(신호 범례) · `fin-checkup://policy`(넘지 않는 선) · `fin-checkup://metrics`(지표 17개 표).
 
 회사가 여럿 맞으면(`삼성`) 진단 대신 `status: "ambiguous"` 와 후보 목록이, 없으면 `not_found` 가 옵니다.
 공개 사이트는 회사마다 최신 사업연도 하나만 싣습니다 — 다른 연도를 물으면 `year_unavailable` 로 답하고 값을 만들어 내지 않습니다.
+개인 DART 인증키를 넣었으면(`fin-checkup setup`) 사이트에 없는 회사·사업연도만 DART 에서 받아 같은 모양으로 돌려주고
+결과에 `source: "dart-live"` 가 붙습니다 — 판정 규칙은 사이트와 같고, 동종업계 중앙값은 개인 캐시에 같은 업종 회사가 있어야 나옵니다.
 
 ## 대화 예
 
@@ -143,8 +177,9 @@ fin-checkup 은 측정 도구입니다. 종목 추천이나 투자 판단은 하
 
 | 환경변수 | 기본값 | 뜻 |
 |---|---|---|
-| `FIN_CHECKUP_MCP_SOURCE` | `site` | `local` 이면 로컬 DuckDB 캐시에서 계산 (DART 호출 0, 사업연도 지정 가능) |
-| `FIN_CHECKUP_DB_PATH` | `data/fin_checkup.duckdb` | `local` 일 때 DB 위치. 읽기 전용으로 연다 |
+| `FIN_CHECKUP_MCP_SOURCE` | (비움) | 비우면 공개 사이트 — DART 키가 있으면 사이트에 없는 회사·연도만 DART 에서(`site+dart`). `site` 는 키가 있어도 사이트만, `dart` 는 진단을 늘 DART 에서, `local` 은 로컬 DuckDB 캐시(DART 호출 0) |
+| `DART_API_KEY` | (사용자 설정 파일) | 개인 OpenDART 인증키. 보통은 `fin-checkup setup` 이 넣은 `~/.config/fin-checkup/.env`(Windows `%APPDATA%\fin-checkup\.env`)에서 읽으니 따로 줄 필요가 없다 |
+| `FIN_CHECKUP_DB_PATH` | `data/fin_checkup.duckdb` · `dart` 류는 `~/.cache/fin-checkup-mcp/dart.duckdb` | `local` 일 때 DB 위치(읽기 전용). `site+dart`·`dart` 일 때는 DART 에서 받은 것을 쌓는 개인 캐시 |
 | `FIN_CHECKUP_MCP_BASE_URL` | 공개 사이트 | 직접 빌드한 사이트(`site build`)를 가리킬 때 |
 | `FIN_CHECKUP_MCP_CACHE_DIR` | `~/.cache/fin-checkup-mcp` | 디스크 캐시 위치. `off` 면 메모리만 |
 | `FIN_CHECKUP_MCP_TTL` | `600` | 캐시를 다시 확인하기까지 초 (사이트의 `max-age` 와 같다). 지나면 ETag 로 재검증 |

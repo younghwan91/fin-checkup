@@ -21,6 +21,13 @@ fin-checkup 은 측정 도구다. 화면·알림·문서·에이전트 답 어�
 데이터는 공개 정적 사이트 `https://younghwan91.github.io/fin-checkup/` 의 JSON 이다(키 불필요, 형식은
 [`docs/api-static.md`](docs/api-static.md)). 다른 프로젝트·채팅 도구에서 쓰는 법은 [`docs/agents-skill.md`](docs/agents-skill.md).
 
+## 사용자가 설치·연결·DART 키를 물으면
+
+"fin-checkup 설치해줘", "DART 키 받는 거 도와줘", "set up fin-checkup" 이면
+[`.agents/skills/fin-checkup-setup/SKILL.md`](.agents/skills/fin-checkup-setup/SKILL.md) 를 따른다. 인증키는 사용자가
+직접 `fin-checkup setup` 으로 넣는다 — 키를 채팅으로 받거나, 명령에 넣거나, `.env` 를 출력·커밋하지 않는다.
+설치 명령과 설정 파일 수정은 먼저 묻는다.
+
 ## 스킬을 고칠 때
 
 원본은 `plugins/fin-checkup/skills/<이름>/SKILL.md`(Claude Code 플러그인) 하나다. `.agents/skills/` 는 생성 사본이라

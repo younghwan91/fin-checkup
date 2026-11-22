@@ -354,6 +354,22 @@ class Cache:
         ).fetchall()
         return [CorpCode(**dict(zip(_CORP_FIELDS, r, strict=True))) for r in rows]
 
+    def listed_corp_codes(self) -> list[CorpCode]:
+        """종목코드가 있는 회사 전부, 이름순.
+
+        corpCode.xml 은 상장폐지 회사의 옛 코드도 남긴다 — 상장 여부는 모른다.
+        """
+        rows = self.conn.execute(
+            "SELECT corp_code, corp_name, stock_code, modify_date FROM corp_codes "
+            "WHERE stock_code <> '' ORDER BY corp_name"
+        ).fetchall()
+        return [CorpCode(**dict(zip(_CORP_FIELDS, r, strict=True))) for r in rows]
+
+    def statement_years(self) -> list[int]:
+        """재무제표가 캐시에 있는 사업연도들, 오름차순."""
+        rows = self.conn.execute("SELECT DISTINCT bsns_year FROM statement_lines ORDER BY 1").fetchall()
+        return [int(r[0]) for r in rows]
+
     # ------------------------------------------------------------------
     # 기업개황
     # ------------------------------------------------------------------
@@ -515,6 +531,29 @@ class Cache:
             [bsns_year],
         ).fetchall()
         return [r[0] for r in rows]
+
+    def corp_codes_with_statements(
+        self, bsns_year: int, reprt_code: ReportCode = ReportCode.ANNUAL
+    ) -> set[str]:
+        """해당 연도·보고서의 재무가 캐시에 있는 corp_code (상장 여부 무관). 증분 수집이 빈 곳을 찾는다."""
+        rows = self.conn.execute(
+            "SELECT DISTINCT corp_code FROM statement_lines WHERE bsns_year = ? AND reprt_code = ?",
+            [bsns_year, reprt_code.value],
+        ).fetchall()
+        return {r[0] for r in rows}
+
+    def list_stock_corp_codes(self) -> list[tuple[CorpCode, str | None]]:
+        """종목코드가 있는 corp_code 와 기업개황의 시장 구분(개황이 없으면 None), 종목코드순.
+
+        종목코드만으로는 상장사가 아니다(상장폐지 회사의 옛 코드가 남는다) — 시장 구분이 None 이면
+        개황을 먼저 받아 봐야 안다. 증분 수집(collect.py)의 모집단.
+        """
+        rows = self.conn.execute(
+            "SELECT c.corp_code, c.corp_name, c.stock_code, c.modify_date, co.market "
+            "FROM corp_codes c LEFT JOIN companies co ON co.corp_code = c.corp_code "
+            "WHERE c.stock_code <> '' ORDER BY c.stock_code, c.corp_code"
+        ).fetchall()
+        return [(CorpCode(**dict(zip(_CORP_FIELDS, r[:4], strict=True))), r[4]) for r in rows]
 
     def list_listed_with_statements(
         self, bsns_year: int, reprt_code: ReportCode = ReportCode.ANNUAL

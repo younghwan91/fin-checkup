@@ -84,6 +84,9 @@
 | D5 | 빌드 메타·신선도 표시 (`/build.json` · 꼬리 줄 · `site/buildinfo.py`, `site build --snapshot`) | ☑ |
 | D6 | 빌드 병렬화·증분 (`--jobs` · `--incremental`, `site/incremental.py`; 87초 → 55초 → 재빌드 9초) | ☑ |
 | D7 | 2022·2021 채우기 (추이 5년, 스냅샷 `data-20261121-2`) | ☑ |
+| D8 | 증분 수집 `collect --budget N [--years ...]` (`src/fin_checkup/collect.py`, 상장사 중 빈 (회사, 연도)만 · 예산/020/시간에서 멈추고 0 · `collect-summary` JSON · 빈 응답 TTL 시즌 3일/평소 30일 `fiscal.miss_ttl_days`) | ☑ |
+| D9 | `collect.yml` — 매일 04:00 KST 스냅샷 받아 증분 수집 → 새 `data-*` 릴리스 → 옛 릴리스 정리(7개) → `pages.yml` 디스패치 (`scripts/fetch_snapshot.sh` 공유) | ☑ |
+| D10 | OPERATIONS 자동 갱신 절 (일정·예산·수동 실행·지난 연도 채우기·한도 초과 대응) | ☐ |
 
 ### M. 알리기·기여
 | # | PR | 상태 |
@@ -137,8 +140,8 @@
 | A7 | Claude Code 플러그인 마켓플레이스 — `.claude-plugin/marketplace.json` · `plugins/fin-checkup/`(스킬 `diagnose`·`compare`, `.mcp.json` 은 `fin-checkup-mcp`, MCP 없으면 정적 JSON). `/plugin marketplace add younghwan91/fin-checkup` → `/plugin install fin-checkup@fin-checkup`. 가드 `tests/test_agent_plugin.py` | ☑ |
 | A8 | 다른 에이전트용 — Agent Skills 표준 경로 사본 `.agents/skills/fin-checkup-*`(Codex·Cursor·Copilot, `scripts/sync_agent_skills.py` 로 생성·테스트가 어긋남을 막음) · 루트 `AGENTS.md` · ChatGPT/Claude.ai 지침 블록 `docs/agents-skill.md` | ☑ |
 | A9 | `cli setup` 설치 도우미(`onboarding.py`) — Python·uv·공개 사이트 점검, '키 없이 된다' 먼저, OpenDART 인증키 받는 법(2026-11-22 사이트 메뉴 그대로)·getpass/`--key-stdin`/`--from-clipboard` 로 받아 DART 한 번(company.json)으로 유효/무효/한도 확인 → `.env` 원자적 쓰기·권한 600. `--check` 는 비밀 없이 상태만. `Settings` 가 사용자 설정 파일(`~/.config/fin-checkup/.env`)도 읽고, 콘솔 스크립트 `fin-checkup`(uvx 로 저장소 없이). 가드 `tests/test_setup.py` | ☑ |
-| A10 | MCP 가 개인 키로 DART 에서 받아 오기 — 사이트에 없는 회사·연도는 `CheckupService(allow_fetch=True)` 로(`source: "dart-live"`, 호출 한도 지킴, 키는 응답에 없음) · 도구 `setup_status`·`setup_guide(client, want_key)` | ☐ |
-| A11 | 스킬 `setup`(플러그인 + `.agents/skills/` 사본) — 설치·MCP 연결·키 발급을 에이전트가 안내하되 키는 채팅에 받지 않는다 · `docs/agents.md` '설치·키 발급을 에이전트에게 맡기기' · `AGENTS.md` | ☐ |
+| A10 | MCP 가 개인 키로 DART 에서 받아 오기 — 사이트에 없는 회사·연도는 `CheckupService(allow_fetch=True)` 로(`source: "dart-live"`, 호출 한도 지킴, 키는 응답에 없음) · 도구 `setup_status`·`setup_guide(client, want_key)` | ☑ |
+| A11 | 스킬 `setup`(플러그인 + `.agents/skills/` 사본) — 설치·MCP 연결·키 발급을 에이전트가 안내하되 키는 채팅에 받지 않는다 · `docs/agents.md` '설치·키 발급을 에이전트에게 맡기기' · `AGENTS.md` | ☑ |
 
 ### B. 브랜드
 차분하고 정직한 측정 도구로 보이게 — 로켓·캔들·돈·위쪽 화살표 없이. 마크·색·말투는 `docs/brand/README.md`.
@@ -147,6 +150,6 @@
 |---|---|---|
 | B1 | 브랜드 마크 — 귀퉁이 접은 보고서 + 신호 모양 ●▲■(`src/fin_checkup/brand.py` 한 곳에서 SVG·PNG·ICO). `docs/brand/`(마크·워드마크 밝은/어두운, PNG 512·256·128, 브랜드 안내 — `scripts/brand_assets.py` 로 생성, `tests/test_brand.py` 가 어긋남을 막음) · 사이트 파비콘(다크 모드 대응 SVG)·머리글 마크 | ☑ |
 | B2 | README 배너(밝은/어두운 `<picture>`, `scripts/brand_images.py`) · 라이브 사이트 데모 GIF(`scripts/record_demo.py`, 초성 검색 → 한눈에 보기 → 지표 해설) · GitHub 소셜 미리보기 `docs/images/social-preview.png`(오너가 Settings 에서 올림) | ☑ |
-| B3 | 공유 카드(`/og/<코드>.png`)·카드뉴스 표지에 마크 | ☐ |
+| B3 | 공유 카드(`/og/<코드>.png`)·카드뉴스 모든 장 머리에 마크(`Canvas.logo`, `brand.draw_tight_mark`) · PNG 신호 기호를 사이트 모양 ● ▲ ■ ▬ ⊘ ◌ 로(`Canvas.signal_mark` — 원 여섯 개였다) | ☑ |
 
 마케팅 문안 초안은 `_workspace/marketing/` (gitignore).

@@ -1,4 +1,4 @@
-"""fin-checkup MCP 서버 — 도구 6개 · 프롬프트 `diagnose` · 리소스(신호 범례·넘지 않는 선·지표 목록).
+"""fin-checkup MCP 서버 — 도구 8개 · 프롬프트 `diagnose` · 리소스(신호 범례·넘지 않는 선·지표 목록).
 
     fin-checkup-mcp                                   # stdio (MCP 클라이언트가 띄운다)
     fin-checkup-mcp --transport streamable-http --port 8000   # http://127.0.0.1:8000/mcp
@@ -6,7 +6,8 @@
 설치 없이:
     uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp
 
-환경변수(전부 선택): `FIN_CHECKUP_MCP_SOURCE=local`(로컬 DuckDB, `FIN_CHECKUP_DB_PATH`) ·
+환경변수(전부 선택): `FIN_CHECKUP_MCP_SOURCE`(비우면 사이트 + 키가 있으면 없는 연도만 DART · `site` · `dart` ·
+`local` 로컬 DuckDB, `FIN_CHECKUP_DB_PATH`) · `DART_API_KEY`(보통은 `fin-checkup setup` 이 넣은 사용자 설정 파일에서) ·
 `FIN_CHECKUP_MCP_BASE_URL`(사이트 주소) · `FIN_CHECKUP_MCP_CACHE_DIR`(디스크 캐시, `off` 면 끔) ·
 `FIN_CHECKUP_MCP_TTL`(초). 설명은 `docs/agents.md`.
 
@@ -28,7 +29,7 @@ from pydantic import Field
 
 from fin_checkup.disclaimer import DISCLAIMER
 from fin_checkup.explain import explainers
-from fin_checkup.mcp import core
+from fin_checkup.mcp import core, guide
 from fin_checkup.mcp.client import Source, SourceError, source_from_env
 
 #: 모든 도구 설명 끝에 붙는다 — 측정값이라는 것, 사고팔라는 말을 하지 말라는 것.
@@ -49,6 +50,7 @@ INSTRUCTIONS = (
 )
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True, idempotent_hint=True, open_world_hint=True)
+_LOCAL_ONLY = ToolAnnotations(read_only_hint=True, idempotent_hint=True, open_world_hint=False)
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +206,51 @@ def build_server(source: Source) -> MCPServer:
     )
     async def data_status() -> dict[str, Any]:
         return await guarded(core.data_status(source))
+
+    @server.tool(
+        title="설치 상태 (setup status)",
+        description=(
+            "fin-checkup 이 어떻게 설치·설정됐나: 출처 모드(site · site+dart · dart · local), 공개 사이트 연결, 개인 DART 인증키가 "
+            "설정됐는지(예/아니오와 어디서 오는지만 — 키 값은 절대 돌려주지 않는다), DART 에서 받아 오기가 켜졌는지, 개인 캐시의 사업연도, "
+            "다음에 할 일. check_key=true 면 DART 를 한 번 불러 키가 통하는지 본다. 설치를 돕거나 '키 넣었는데 되나?' 를 확인할 때 쓴다. "
+            "사용자에게 키를 채팅으로 달라고 하지 말 것.\n"
+            "Installation/config status: source mode, site reachability, whether a personal DART key is configured "
+            "(yes/no and where from — never the key itself), live DART fetching, cached years, next steps. Never ask "
+            "the user to paste the key into chat." + NOT_ADVICE
+        ),
+        annotations=_READ_ONLY,
+    )
+    async def setup_status(
+        check_key: Annotated[
+            bool, Field(description="DART 를 한 번 불러 키가 통하는지 확인 / call DART once to verify the key")
+        ] = False,
+    ) -> dict[str, Any]:
+        return await guarded(core.setup_status(source, check_key))
+
+    @server.tool(
+        title="설치 안내 (setup guide)",
+        description=(
+            "클라이언트별 설치 단계: uv 확인, MCP 서버 연결(Claude Code · Claude Desktop(Windows·macOS 설정 경로) · Cursor · VS Code · "
+            "Codex · Gemini CLI), 확인 방법. want_key=true 면 OpenDART 인증키 받는 법과, 키를 사용자가 직접 터미널에서 넣는 명령, "
+            "MCP 서버 env 로 넘기는 법까지. 단계마다 ask_first(먼저 물을 것)·user_runs(사용자가 직접 할 것)가 있고 rules_for_agent 를 "
+            "따른다 — 키를 채팅으로 받지 않는다.\n"
+            "Step-by-step setup for a given MCP client, and (want_key) how the user obtains and stores their own OpenDART "
+            "key without pasting it into chat." + NOT_ADVICE
+        ),
+        annotations=_LOCAL_ONLY,
+    )
+    async def setup_guide(
+        client: Annotated[
+            str | None,
+            Field(
+                description="claude-code · claude-desktop · cursor · vscode · codex · gemini. 비우면 목록 / client name"
+            ),
+        ] = None,
+        want_key: Annotated[
+            bool, Field(description="OpenDART 인증키 안내도 / include the personal DART key steps")
+        ] = False,
+    ) -> dict[str, Any]:
+        return guide.setup_guide(client, want_key)
 
     @server.prompt(
         name="diagnose",
