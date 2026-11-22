@@ -16,7 +16,7 @@
       <dl class="fc-basis-list">
         <dt>계산식</dt><dd>{{ m.formula }}</dd>
         <dt>경계값</dt><dd>{{ m.band_text }}</dd>
-        {% if m.delta_text %}<dt>작년 대비</dt><dd>{{ m.delta_text }}</dd>{% endif %}
+        {% if m.delta_text %}<dt>작년 대비</dt><dd class="fc-delta"><span class="fc-delta-values">{{ m.delta_values }}</span>{% if m.delta_change %} · {{ m.delta_change }}{% endif %}{% if m.delta_direction %}<span class="fc-delta-eval">{{ m.delta_direction }}</span>{% endif %}</dd>{% endif %}
       </dl>
       {% include "company/_peer_strip.html" %}
       <p class="fc-metric-links"><a href="{{ url('m/' ~ m.key ~ '/') }}">{{ m.label }} 해설</a> · <a href="{{ url(metric_dist.path) }}#d-{{ m.key }}">{{ metric_dist.text }}</a></p>

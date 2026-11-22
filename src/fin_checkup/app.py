@@ -130,8 +130,9 @@ def render_metric(
 
     # 자기 과거와의 비교. 대조군이 답하지 못하는 "우리가 나아졌나"에 답한다.
     if delta is not None and not delta.unchanged:
-        tone = "up" if delta.improved else "down"
-        parts.append(f'<div class="fc-delta {tone}">{_esc(delta.summary)}</div>')
+        # 색은 평가(좋아진·나빠진 쪽)를 따른다. 경계값이 없는 지표는 색을 입히지 않는다.
+        tone = {True: " up", False: " down"}.get(delta.improved, "")
+        parts.append(f'<div class="fc-delta{tone}">{_esc(delta.summary)}</div>')
 
     if peer is not None and peer.percentile is not None:
         parts += [

@@ -55,8 +55,13 @@ class MetricRow:
     band_text: str
     #: 엔진의 비고. ⊘ 면 "대신 볼 것", ⚫ 면 무엇이 없었는지.
     note: str
-    #: 작년의 자기 자신과 견준 한 줄. 견줄 값이 없으면 빈 문자열.
+    #: 작년의 자기 자신과 견준 한 줄(JSON `delta.summary` 와 같은 문장). 견줄 값이 없으면 빈 문자열.
     delta_text: str
+    #: 카드에서는 같은 내용을 짧게 나눠 쓴다 — "27.93% → 29.94%" / "2.01%p 높아짐" / 평가(없으면 빈 문자열).
+    #: 같으면 delta_values 만 "작년과 같음 (…)".
+    delta_values: str
+    delta_change: str
+    delta_direction: str
     missing: bool
     not_applicable: bool
 
@@ -113,6 +118,13 @@ def _row(metric: Metric, currency: str, delta: SelfDelta | None) -> MetricRow:
         band_text=band_text(metric),
         note=metric.note,
         delta_text=delta.summary if delta is not None else "",
+        delta_values=""
+        if delta is None
+        else delta.summary
+        if delta.unchanged
+        else f"{delta.before_text} → {delta.after_text}",
+        delta_change="" if delta is None or delta.unchanged else delta.change_text,
+        delta_direction="" if delta is None else delta.direction_text,
         missing=metric.signal is Signal.UNKNOWN,
         not_applicable=metric.signal is Signal.NOT_APPLICABLE,
     )

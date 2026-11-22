@@ -123,8 +123,18 @@ def schemas() -> dict[str, Any]:
             {
                 "previous": _nullable(NUM),
                 "current": _nullable(NUM),
-                "improved": _nullable(BOOL),
-                "summary": STR,
+                "improved": _nullable(
+                    {
+                        "type": "boolean",
+                        "description": "엔진 경계값 방향으로 좋아진 쪽인가. 같거나 경계값이 없는 지표면 null",
+                    }
+                ),
+                "summary": {
+                    "type": "string",
+                    "description": "한 줄 — '작년 X → 올해 Y (차이 높아짐/낮아짐 · "
+                    "높을수록/낮을수록 좋게 보는 지표라 좋아진/나빠진 쪽)'. "
+                    "경계값이 없는 지표는 평가 없이 차이만, 같으면 '작년과 같음 (X)'",
+                },
             },
             "작년 대비. 작년 값이 없거나 ⊘ 면 metric.delta 가 null.",
         ),

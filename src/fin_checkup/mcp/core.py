@@ -263,7 +263,7 @@ def _peer_from_json(raw: dict[str, Any], metric: Metric, currency: str) -> PeerS
     peer = raw.get("peer")
     if not isinstance(peer, dict) or _finite(peer.get("median")) is None:
         return None
-    hib = metric.band.higher_is_better if metric.band else True
+    hib = metric.band.higher_is_better if metric.band else None  # 경계값 없는 지표는 방향을 말하지 않는다
     return PeerStat(
         metric_key=metric.key,
         median=float(peer["median"]),
@@ -283,7 +283,7 @@ def _delta_from_json(raw: dict[str, Any], metric: Metric, currency: str) -> Self
     previous, current = _finite(delta.get("previous")), _finite(delta.get("current"))
     if previous is None or current is None:
         return None
-    hib = metric.band.higher_is_better if metric.band else True
+    hib = metric.band.higher_is_better if metric.band else None  # 경계값 없는 지표는 방향을 말하지 않는다
     return SelfDelta(metric.key, previous, current, hib, metric.unit, currency)
 
 

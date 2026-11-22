@@ -98,35 +98,81 @@ class SelfDelta:
     metric_key: str
     previous: float
     current: float
-    higher_is_better: bool
+    #: 엔진 경계값(Band.higher_is_better)의 방향. 경계값이 없는 지표(회전율)는 None —
+    #: 좋아졌다·나빠졌다를 말하지 않는다.
+    higher_is_better: bool | None
     unit: str = ""
     currency: str = "KRW"
 
     @property
-    def improved(self) -> bool:
-        return (
-            self.current > self.previous
-            if self.higher_is_better
-            else self.current < self.previous
-        )
-
-    @property
     def unchanged(self) -> bool:
-        return self.current == self.previous
+        """화면에 같은 숫자로 보이면 같다 — "10.00% → 10.00% (0.00%p 낮아짐)" 을 쓰지 않는다."""
+        if self.unit == MONEY:
+            return self.current == self.previous
+        return f"{self.previous:.2f}" == f"{self.current:.2f}"
 
     @property
-    def summary(self) -> str:
+    def improved(self) -> bool | None:
+        """엔진 기준으로 좋아진 쪽인가. 같거나 경계값이 없는 지표면 None."""
+        if self.unchanged or self.higher_is_better is None:
+            return None
+        return self.current > self.previous if self.higher_is_better else self.current < self.previous
+
+    def _text(self, value: float) -> str:
         from fin_checkup.format import format_money
 
         if self.unit == MONEY:
-            before = format_money(self.previous, self.currency)
-        else:
-            before = f"{self.previous:,.2f}{self.unit}"
+            return format_money(value, self.currency)
+        return f"{value:,.2f}{self.unit}"
+
+    @property
+    def before_text(self) -> str:
+        return self._text(self.previous)
+
+    @property
+    def after_text(self) -> str:
+        return self._text(self.current)
+
+    @property
+    def values_text(self) -> str:
+        """"작년 27.93% → 올해 29.94%"."""
+        return f"작년 {self.before_text} → 올해 {self.after_text}"
+
+    @property
+    def change_text(self) -> str:
+        """값이 어느 쪽으로 얼마나 움직였나 — 평가 없이. "2.01%p 높아짐"·"80억원 늘어남".
+
+        퍼센트 지표의 차이는 %p(118% → 142% 는 '24% 늘었다' 가 아니다). 배는 단위를 떼어 적는다 —
+        "1.50배 높아짐" 은 '1.5배가 됐다' 로 읽힌다.
+        """
+        up = self.current > self.previous
+        if self.unit == MONEY:
+            return f"{self._text(abs(self.current - self.previous))} {'늘어남' if up else '줄어듦'}"
+        # 보이는 두 숫자의 차이로 — 0.5847 → 0.5884 를 "0.58 → 0.59 (0.00 높아짐)" 으로 쓰지 않는다.
+        gap = abs(round(self.current, 2) - round(self.previous, 2))
+        unit = {"%": "%p", "배": ""}.get(self.unit, self.unit)
+        return f"{gap:,.2f}{unit} {'높아짐' if up else '낮아짐'}"
+
+    @property
+    def direction_text(self) -> str:
+        """그 움직임이 엔진 경계값의 방향으로 어느 쪽인가. 경계값이 없으면 빈 문자열."""
+        if self.improved is None:
+            return ""
+        side = "높을수록" if self.higher_is_better else "낮을수록"
+        return f"{side} 좋게 보는 지표라 {'좋아진' if self.improved else '나빠진'} 쪽"
+
+    @property
+    def summary(self) -> str:
+        """한 줄 — "작년 118.70% → 올해 142.16% (23.46%p 높아짐 · 낮을수록 좋게 보는 지표라 나빠진 쪽)".
+
+        값의 움직임(높아짐)과 평가(나빠진 쪽)를 따로 적는다. 예전 "작년 118.70% ↑ 악화" 는 화살표와
+        낱말이 서로 반대로 읽혔다(2026-11-21 사용성 조사). JSON `delta.summary`·Streamlit·MCP 가
+        이 문장을 쓴다.
+        """
         if self.unchanged:
-            return f"작년과 같음 ({before})"
-        arrow = "↑" if self.current > self.previous else "↓"
-        word = "개선" if self.improved else "악화"
-        return f"작년 {before} {arrow} {word}"
+            return f"작년과 같음 ({self.before_text})"
+        tail = " · ".join(t for t in (self.change_text, self.direction_text) if t)
+        return f"{self.values_text} ({tail})"
 
 
 def self_delta(
@@ -139,7 +185,7 @@ def self_delta(
         metric_key=metric.key,
         previous=previous_value,
         current=metric.value,
-        higher_is_better=metric.band.higher_is_better if metric.band else True,
+        higher_is_better=metric.band.higher_is_better if metric.band else None,
         unit=metric.unit,
         currency=currency,
     )
