@@ -197,3 +197,93 @@ async def test_backfill_leaves_the_suspect_year_out_of_peer_values(service):
     service.backfill_metric_values(2024)
     assert service.cache.peer_metric_values(["00390860"], 2023) == {}
     assert "operating_margin" in service.cache.peer_metric_values(["00390860"], 2024)
+
+
+# ── 재작성 표시 (Q16) ─────────────────────────────────────────────
+
+
+def _restated_raw(year: int, revenue: float, prior_revenue: float):
+    from fin_checkup.models import AccountLine, RawStatements
+
+    def line(sj, aid, name, cur, prev, ord_):
+        return AccountLine(sj_div=sj, account_id=aid, account_nm=name, ord=ord_,
+                           thstrm_amount=cur, frmtrm_amount=prev)
+
+    return RawStatements(
+        corp_code="00117188", bsns_year=year, reprt_code=ReportCode.ANNUAL, fs_div=FsDiv.CFS,
+        lines=[
+            line("BS", "ifrs-full_Assets", "자산총계", 10_000.0, 10_000.0, 1),
+            line("BS", "ifrs-full_Equity", "자본총계", 6_000.0, 6_000.0, 2),
+            line("BS", "ifrs-full_Liabilities", "부채총계", 4_000.0, 4_000.0, 3),
+            line("IS", "ifrs-full_Revenue", "매출액", revenue, prior_revenue, 4),
+            line("IS", "dart_OperatingIncomeLoss", "영업이익", revenue * 0.1, prior_revenue * 0.1, 5),
+        ],
+    )
+
+
+@pytest.fixture
+async def hyosung(tmp_path, test_settings):
+    """(주)효성: 2023 보고서 매출 3.44조, 2024 보고서 전기 열 1.85조(분할로 중단영업 재분류)."""
+    from fin_checkup.models import Company, CorpCode, Market
+    from fin_checkup.service import CheckupService
+    from fin_checkup.storage import Cache
+
+    with Cache(tmp_path / "h.duckdb") as cache:
+        cache.save_company(Company(corp_code="00117188", corp_name="(주)효성", stock_code="004800",
+                                   industry_code="20", market=Market.KOSPI))
+        cache.save_statements(_restated_raw(2022, 3.2e12, 3.0e12))
+        cache.save_statements(_restated_raw(2023, 3.44e12, 3.2e12))
+        cache.save_statements(_restated_raw(2024, 2.27e12, 1.85e12))
+        service = CheckupService(cache, settings=test_settings)
+        corp = CorpCode(corp_code="00117188", corp_name="(주)효성", stock_code="004800")
+        yield await service.run(corp, end_year=2024, years=3, allow_fetch=False)
+
+
+async def test_restated_year_is_marked_with_the_following_reports_value(hyosung):
+    from fin_checkup.site.charts import trend_series, trend_svg
+
+    revenue = next(s for s in trend_series(hyosung, years=3) if s.key == "revenue")
+    points = {p.year: p for p in revenue.points}
+    assert points[2023].value == pytest.approx(3.44e12), "막대는 그해 보고서 값 그대로"
+    assert points[2023].restated == pytest.approx(1.85e12)
+    assert "다음 해 보고서 기준 값: 1.9조원" in points[2023].restated_line
+    assert points[2022].restated is None, "2023 보고서 전기 열(3.2조)과 같다"
+    assert points[2024].restated is None, "최신 연도는 다음 해 보고서가 없다"
+    svg = str(trend_svg(revenue, "t"))
+    assert svg.count(">재작성</text>") == 1 and "다음 해 보고서 기준 값: 1.9조원" in svg
+
+
+async def test_ratio_trend_marks_restatement_only_when_the_ratio_moved(hyosung):
+    from fin_checkup.site.charts import trend_series
+
+    margin = next(s for s in trend_series(hyosung, years=3) if s.key == "operating_margin")
+    assert all(p.restated is None for p in margin.points), "같은 비율로 다시 적혀 이익률은 같다"
+
+
+def test_restatement_compares_with_the_next_reports_prior_column_unless_unit_suspect():
+    from fin_checkup.models import Financials
+    from fin_checkup.site.charts import _following_comparative
+
+    base = dict(corp_code="1", reprt_code=ReportCode.ANNUAL, fs_div=FsDiv.CFS)
+    later = Financials(bsns_year=2023, **base, revenue=3.39e12)
+    by_year = {2023: Financials(bsns_year=2023, **base, revenue=3.44e12),
+               2024: Financials(bsns_year=2024, **base, revenue=3.6e12, comparative=later)}
+    assert _following_comparative(by_year, 2023) is later
+    suspect = {**by_year, 2024: by_year[2024].model_copy(update={"unit_suspect": UNIT_SUSPECT_NOTE})}
+    assert _following_comparative(suspect, 2023) is None, "×1000 보고서의 전기 열은 재작성이 아니다"
+
+
+def test_restatement_tolerance_is_one_percent():
+    from fin_checkup.site.charts import is_restated
+
+    assert not is_restated(100.0, 100.9)
+    assert is_restated(100.0, 101.5)
+    assert not is_restated(None, 100.0) and not is_restated(0.0, 0.0)
+
+
+async def test_api_json_exposes_restated_values(hyosung):
+
+    from fin_checkup.site.pages.api import restated_values
+
+    assert restated_values(hyosung) == {"revenue": {"2023": pytest.approx(1.85e12)},
+                                        "operating_income": {"2023": pytest.approx(1.85e11)}}

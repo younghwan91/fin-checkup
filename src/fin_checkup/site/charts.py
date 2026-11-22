@@ -87,6 +87,14 @@ class TrendPoint:
     #: 표시 문자열. 값이 없으면 "⚫ 데이터 없음" / "⊘ 해당 없음".
     text: str
     gap: Gap | None = None
+    #: 다음 해 보고서(전기 열)가 같은 해를 1% 넘게 다르게 적었을 때 그 값 — 재작성(분할·합병 재분류 등).
+    #: 막대는 그해 보고서 값 그대로 그리고 "재작성" 표시만 단다.
+    restated: float | None = None
+    restated_text: str = ""
+
+    @property
+    def restated_line(self) -> str:
+        return f"재작성 — 다음 해 보고서 기준 값: {self.restated_text}" if self.restated is not None else ""
 
 
 @dataclass(frozen=True)
@@ -103,12 +111,34 @@ class TrendSeries:
         return [p for p in self.points if p.gap is None]
 
     @property
+    def has_restated(self) -> bool:
+        return any(p.restated is not None for p in self.points)
+
+    @property
     def has_unit_suspect(self) -> bool:
         return any(p.gap is Gap.UNIT_SUSPECT for p in self.points)
 
 
 def _gap_point(year: int, gap: Gap) -> TrendPoint:
     return TrendPoint(year=year, value=None, text=f"{gap.mark} {gap.label}", gap=gap)
+
+
+#: 그해 보고서 값과 다음 해 보고서의 같은 해 값이 이만큼(상대) 넘게 다르면 재작성으로 본다.
+RESTATED_TOLERANCE = 0.01
+
+
+def is_restated(own: float | None, later: float | None) -> bool:
+    if own is None or later is None:
+        return False
+    return abs(own - later) > RESTATED_TOLERANCE * max(abs(own), abs(later))
+
+
+def _following_comparative(by_year: dict[int, Financials], year: int) -> Financials | None:
+    """다음 해 보고서의 전기 열(같은 해). 어느 쪽이든 단위 오류 의심이면 견주지 않는다."""
+    own, following = by_year.get(year), by_year.get(year + 1)
+    if own is None or following is None or own.unit_suspect or following.unit_suspect:
+        return None
+    return following.comparative
 
 
 def trend_series(data: Checkup, years: int = 5) -> list[TrendSeries]:
@@ -136,7 +166,14 @@ def trend_series(data: Checkup, years: int = 5) -> list[TrendSeries]:
             elif value is None:
                 points.append(_gap_point(year, Gap.NO_ACCOUNT))
             else:
-                points.append(TrendPoint(year, value, format_money(value, currency)))
+                later_fin = _following_comparative(by_year, year)
+                later = getattr(later_fin, field) if later_fin is not None else None
+                restated = later if is_restated(value, later) else None
+                text = format_money(value, currency)
+                later_text = format_money(restated, currency) if restated is not None else ""
+                if later_text == text:  # 1~5% 차이는 축약하면 같은 글자다 — 원 단위로 적는다
+                    later_text = format_money(restated, currency, compact=False)
+                points.append(TrendPoint(year, value, text, restated=restated, restated_text=later_text))
         series.append(TrendSeries(field, label, MONEY, currency, tuple(points)))
 
     yearly = {year: checkup(fin, by_year.get(year - 1), sector=sector) for year, fin in by_year.items()}
@@ -157,7 +194,16 @@ def trend_series(data: Checkup, years: int = 5) -> list[TrendSeries]:
             elif metric.value is None:
                 points.append(_gap_point(year, Gap.NO_ACCOUNT))
             else:
-                points.append(TrendPoint(year, metric.value, format_metric(metric, currency)))
+                later_fin = _following_comparative(by_year, year)
+                later = (
+                    checkup(later_fin, sector=sector).by_key(key) if later_fin is not None else None
+                )
+                later_value = later.value if later is not None else None
+                restated = later_value if is_restated(metric.value, later_value) else None
+                points.append(TrendPoint(
+                    year, metric.value, format_metric(metric, currency), restated=restated,
+                    restated_text=format_metric(later, currency) if restated is not None else "",
+                ))
         series.append(TrendSeries(key, current.label, current.unit, currency, tuple(points)))
     return series
 
@@ -278,7 +324,10 @@ def trend_svg(series: TrendSeries, chart_id: str) -> Markup:
         cx = _LEFT + slot * (i + 0.5)
         is_latest = point is latest
         parts.append(f'<g class="fc-ch-year{" fc-ch-latest" if is_latest else ""}">')
-        parts.append(f"<title>{_esc(point.year)}년 {_esc(series.label)}: {_esc(point.text)}</title>")
+        tooltip = f"{point.year}년 {series.label}: {point.text}"
+        if point.restated is not None:
+            tooltip += f" · {point.restated_line}"
+        parts.append(f"<title>{_esc(tooltip)}</title>")
         if point.gap is not None or point.value is None:
             gap = point.gap or Gap.NO_ACCOUNT
             gx = cx - slot / 2 + 3
@@ -299,6 +348,12 @@ def trend_svg(series: TrendSeries, chart_id: str) -> Markup:
         else:
             y_end = y(point.value)
             parts.append(f'<path class="fc-ch-bar" d="{_bar_path(cx - bar / 2, bar, y_zero, y_end)}"/>')
+            if point.restated is not None:
+                # 막대는 그해 보고서 값 그대로. 그림 맨 위 줄에 작게 표시만 한다(최신 연도는 다음 해가 없다).
+                parts.append(
+                    f'<text class="fc-ch-gap-text fc-ch-restated" x="{cx:.1f}" y="{plot_top - 8}" '
+                    'text-anchor="middle">재작성</text>'
+                )
             if is_latest:
                 label_y = y_end - 5 if point.value >= 0 else y_end + 12
                 parts.append(

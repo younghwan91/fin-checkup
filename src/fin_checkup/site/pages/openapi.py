@@ -208,6 +208,19 @@ def schemas() -> dict[str, Any]:
                 "currency": STR,
                 "years": {"type": "array", "items": INT},
                 "metrics": {"type": "array", "items": _ref("Metric"), "minItems": len(METRIC_DEFS)},
+                "restated": {
+                    "type": "object",
+                    "description": (
+                        "재작성 — 추이 키(revenue·operating_income·net_income·operating_cash_flow·"
+                        "operating_margin·debt_ratio·current_ratio) → {연도: 다음 해 보고서의 같은 해 값}. "
+                        "그해 보고서 값과 1% 넘게 다른 칸만. 없으면 빈 객체"
+                    ),
+                    "additionalProperties": {
+                        "type": "object",
+                        "propertyNames": {"pattern": "^[0-9]{4}$"},
+                        "additionalProperties": {"type": "number"},
+                    },
+                },
                 "red_flags": {"type": "array", "items": _ref("RedFlag")},
                 "sources": {"type": "array", "items": _ref("Source")},
             },
