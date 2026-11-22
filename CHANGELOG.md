@@ -2,9 +2,10 @@
 
 버전은 코드 릴리스(`v*` 태그)입니다. 데이터 스냅샷(`data-*` 릴리스)은 매일 따로 올라가며 여기에 적지 않습니다.
 
-## [0.1.0] — 2026-11-23
+## [0.1.1] — 2026-11-23
 
-첫 버전 릴리스입니다.
+첫 버전 릴리스입니다. (`v0.1.0` 태그는 릴리스 워크플로가 번들을 만들기 전에 멈춰 릴리스·레지스트리 항목이 없습니다 —
+내용은 같고, 테스트 의존성 `pyyaml` 을 `dev` extra 에 적었습니다.)
 
 - **사이트** — [younghwan91.github.io/fin-checkup](https://younghwan91.github.io/fin-checkup/): 상장사 2,642곳(코스피·코스닥·코넥스)의
   재무 지표 17개를 신호(🟢정상 🟡주의 🔴위험 ⚪측정값 ⊘해당 없음 ⚫데이터 없음)로. 지표마다 계산식·경계값·작년 값·같은 업종
@@ -12,7 +13,7 @@
 - **에이전트가 읽는 길** — `llms.txt`·`llms-full.txt`, 회사별 마크다운, `openapi.json`. ChatGPT·Claude.ai 에 주소만 붙여 넣으면 된다.
 - **MCP 서버** `fin-checkup-mcp` — 도구 8개(회사 찾기·진단·지표 해설·비교·위험 공시·데이터 상태·설치 상태·설치 안내).
   키 없이 공개 사이트를 읽고, 원하면 개인 OpenDART 키로 사이트에 없는 회사·연도를 받아 온다.
-- **Claude Desktop 확장** — 릴리스 파일 [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/download/v0.1.0/fin-checkup.mcpb)
+- **Claude Desktop 확장** — 릴리스 파일 [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/download/v0.1.1/fin-checkup.mcpb)
   를 두 번 눌러 설치(uv·git 불필요, DART 키 칸은 선택). 공식 MCP Registry 항목 `io.github.younghwan91/fin-checkup`.
 - **Claude Code 플러그인** — `claude plugin marketplace add younghwan91/fin-checkup` → `claude plugin install fin-checkup@fin-checkup`
   (진단·비교·설치 스킬 + MCP). Codex·Cursor·Copilot 용 Agent Skills 사본(`.agents/skills/`).

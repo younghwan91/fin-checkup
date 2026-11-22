@@ -41,6 +41,7 @@ jobs:
           python-version: "3.13"
           enable-cache: true
 
+      # ci.yml 의 mcpb 잡과 같은 설치·같은 테스트 — PR 마다 거기서 먼저 돈다(v0.1.0 은 여기서 처음 돌아 yaml 이 없어 멈췄다).
       - name: 의존성 설치 (lock 고정)
         run: uv sync --frozen --extra mcp --extra dev
 
@@ -118,6 +119,9 @@ jobs:
             "$archive"
           tar xzf "$archive" mcp-publisher
           rm -f "$archive" "$archive.sigstore.json"
+
+      - name: server.json 검사 (레지스트리 규칙)
+        run: ./mcp-publisher validate server.json
 
       - name: MCP Registry 로그인 (GitHub OIDC)
         run: ./mcp-publisher login github-oidc

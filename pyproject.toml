@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fin-checkup"
-version = "0.1.0"
+version = "0.1.1"
 description = "DART 공시 기반 재무 건강검진 — 재무비율을 신호등으로, 위험 공시는 사실만"
 readme = "README.md"
 license = { text = "MIT" }
@@ -47,6 +47,7 @@ dev = [
     # 화면을 실제로 띄워 확인할 때 쓴다. 표시 결함은 캡처를 봐야만 드러난다.
     "playwright>=1.40.0",
     "jsonschema>=4.21",
+    "pyyaml>=6.0",
 ]
 mcp = [
     "mcp>=2.3.0",
