@@ -395,7 +395,8 @@ async def test_self_comparison_skips_not_applicable_metrics(service, cache):
     """⊘ 지표에 "작년 대비 개선/악화" 를 붙이면 판정하지 않겠다던 지표를 판정하게 된다."""
     from fin_checkup.models import Company
 
-    cache.save_company(Company(corp_code="00126380", corp_name="KB금융", industry_code="64992"))
+    # 보험사(금융업): 부채비율은 ⊘, 보험수익으로 낸 영업이익률은 판정한다.
+    cache.save_company(Company(corp_code="00126380", corp_name="삼성화재", industry_code="65121"))
     cache.save_statements(statements(2023, 1000.0))
     cache.save_statements(statements(2024, 1200.0))
     result = await service.run(SAMSUNG, end_year=2024, allow_fetch=False)
@@ -510,3 +511,25 @@ async def test_market_peer_group_is_not_capped(service, cache):
     assert stat.scope is PeerScope.MARKET
     assert stat.sample_size == count
     assert stat.median == (count - 1) / 2
+
+
+async def test_not_applicable_values_stay_out_of_peer_pools(service, cache):
+    """⊘ 값(증권사 영업이익률 — 영업수익이 평가·처분이익 총액)은 대조군에 넣지 않는다.
+
+    같은 묶음(66)의 PG사나 시장 전체 분포에 섞이면 다른 회사의 대조군이 거짓말을 한다.
+    """
+    _seed_industry(cache, 6, industry="66121")  # 증권 중개업 → 은행·증권·금융지주
+    general = _company("00126380", industry="66199")  # 같은 묶음 66 의 금융 지원 서비스
+    cache.save_company(general)
+    cache.save_statements(statements(2024, 1000.0))
+
+    service.backfill_metric_values(2024)
+    pooled = cache.peer_metric_values([f"9000000{i}" for i in range(6)], 2024)
+    assert "operating_margin" not in pooled and "debt_ratio" not in pooled
+
+    # 견줄 값이 증권사 ⊘ 뿐이면 대조군을 내지 않는다(업종도 시장 전체도).
+    with respx.mock:
+        result = await service.run(SAMSUNG, end_year=2024, allow_fetch=False)
+    assert result is not None
+    assert result.result.by_key("operating_margin").signal.value != "not_applicable"
+    assert "operating_margin" not in result.peers

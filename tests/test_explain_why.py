@@ -366,3 +366,16 @@ def test_ordinary_decline_gets_no_turnaround_fact():
     assert m.signal is Signal.RED
     sentence = why_color(m)
     assert "전환" not in sentence and "지속" not in sentence
+
+
+@pytest.mark.parametrize(
+    ("word", "expected"),
+    [
+        ("금융업", "금융업으로"), ("은행·증권·금융지주", "은행·증권·금융지주로"),
+        ("서울", "서울로"), ("641", "641로"), ("63", "63으로"),
+    ],
+)
+def test_ro_particle_follows_the_last_sound(word, expected):
+    from fin_checkup.explain._korean import ro
+
+    assert ro(word) == expected

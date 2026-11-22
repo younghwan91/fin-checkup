@@ -130,7 +130,7 @@ async def test_not_applicable_metric_shows_what_to_look_at_instead(built):
     debt = text.split('id="m-debt_ratio"', 1)[1].split("</li>", 1)[0]
     assert "⊘" in debt and "해당 없음" in debt
     assert "대신 볼 것" in debt and "BIS" in debt
-    assert "금융업으로 분류돼" in text
+    assert "은행·증권·금융지주로 분류돼" in text
 
 
 async def test_signal_is_never_color_alone(built):

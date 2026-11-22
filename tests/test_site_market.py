@@ -52,22 +52,22 @@ async def test_every_metric_has_formula_thresholds_signal_shares_and_explainer_l
 
 
 async def test_distribution_and_shares_cover_every_company(page):
+    # KB금융(매출 3000·영업이익 600)은 은행·증권·금융지주라 영업이익률이 ⊘ — 분포에서 빠진다.
     margins = [op / rev * 100 for _n, _c, rev, op in EXTRA_26] + [
         40 / 900 * 100,
-        600 / 3000 * 100,
         -50 / 100 * 100,
         50 / 500 * 100,
     ]
     block = card(page, "operating_margin")
     assert f"{len(margins)}곳" in block
     assert f"{statistics.median(margins):,.2f}%" in block
-    shares = dict(re.findall(r"[🟢🟡🔴⚪⊘⚫] (\S+) [\d.]+% <small>\((\d+)곳\)</small>", block))
+    shares = dict(re.findall(r"[🟢🟡🔴⚪⊘⚫] ([^<\d]+?) [\d.]+% <small>\((\d+)곳\)</small>", block))
     assert sum(int(n) for n in shares.values()) == TOTAL
 
 
 async def test_thresholds_are_listed_per_sector_rule_in_use(page):
     debt = card(page, "debt_ratio")
-    assert "경계값 (일반)" in debt and "경계값 (금융업)" in debt
+    assert "경계값 (일반)" in debt and "경계값 (은행·증권·금융지주)" in debt
     assert "업종에 맞지 않는 ⊘ 1곳" in debt, "KB금융의 부채비율은 분포에 넣지 않는다"
 
 

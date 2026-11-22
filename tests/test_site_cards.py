@@ -99,7 +99,7 @@ async def test_cards_carry_formula_and_plain_language_why(checkups, fonts):
 
 async def test_bank_cards_say_what_to_look_at_instead(checkups, fonts):
     deck = card_deck(checkups["105560"])
-    assert deck.sector_label == "금융업"
+    assert deck.sector_label == "은행·증권·금융지주"
     text = squash("\n".join(c.all_text() for _, c in draw_deck(deck, fonts)))
     assert squash("대신 볼 것") in text
 

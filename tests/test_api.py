@@ -243,7 +243,7 @@ def test_checkup_response_always_carries_the_disclaimer(client, api_key):
 
 def test_bank_is_reported_with_its_sector(client, api_key):
     body = client.get("/checkup/105560", headers=auth(api_key)).json()
-    assert body["sector"] == "financial"
+    assert body["sector"] == "banking"
     debt = next(m for m in body["metrics"] if m["key"] == "debt_ratio")
     assert debt["signal"] == "not_applicable"
 

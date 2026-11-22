@@ -44,7 +44,7 @@ def test_every_non_general_sector_has_a_reading():
     }
 
 
-@pytest.mark.parametrize("sector", [Sector.FINANCIAL, Sector.REAL_ESTATE])
+@pytest.mark.parametrize("sector", [Sector.BANKING, Sector.FINANCIAL, Sector.REAL_ESTATE])
 async def test_not_applicable_metrics_come_from_the_engine_with_instead(out, sector):
     block = section(page(out), sector.value)
     for key in NOT_APPLICABLE_BY_SECTOR[sector]:
@@ -66,9 +66,10 @@ async def test_sector_specific_band_and_the_rest_are_spelled_out(out):
 
 
 async def test_links_to_sector_pages_use_the_sector_lane_paths(out):
-    """시드의 KB금융(64992) → 묶음 64. 부동산 회사는 없어서 링크도 없다."""
+    """시드의 KB금융(64992) → 은행·증권·금융지주, 묶음 64. 금융업·부동산 회사는 없어서 그 칸엔 링크도 없다."""
     text = page(out)
-    assert f'href="../../{sector_path("64")}"' in section(text, Sector.FINANCIAL.value)
+    assert f'href="../../{sector_path("64")}"' in section(text, Sector.BANKING.value)
+    assert "s/64/" not in section(text, Sector.FINANCIAL.value)
     assert "s/68/" not in text
     for target in re.findall(r'href="\.\./\.\./(s/\d\d/)"', text):
         assert (out / target / "index.html").exists(), target

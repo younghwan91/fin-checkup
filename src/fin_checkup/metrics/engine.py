@@ -144,6 +144,26 @@ FINANCIAL_NOT_APPLICABLE: dict[str, str] = {
     "asset_turnover": "자산 규모가 영업의 결과가 아니라 전제인 업종이다.",
 }
 
+#: 은행·증권·금융지주에 더 적용하지 않는 매출 기반 지표. 계산식의 분모(매출액)가 이 업종에는 없다.
+#:
+#: 은행·은행지주는 매출 줄이 없어 셋 다 ⚫(데이터 없음)로 나갔다 — 2023~2025 상장 34곳 100 회사-연도 중
+#: 47. 없는 게 아니라 개념이 없는 것이라 ⚫ 는 거짓말이다. 증권사·증권지주는 '영업수익' 줄이 있지만
+#: 금융상품 평가·처분이익과 외환거래이익을 손실과 따로 총액으로 담는다(2023~2025 증권사 45 회사-연도,
+#: 표준 태그만 센 하한으로 영업수익의 중앙값 49% · 미래에셋증권 2024 은 22.2조 중 63%) — 이익률이
+#: 수익성이 아니라 거래 규모에 따라 움직인다. 보험사의 매출은 보험수익(IFRS 17) 줄이라 이런 총액이 아니어서
+#: 금융업 규칙 그대로 판정한다(같은 이익 ÷ 보험수익의 중앙값 12%, 2023~2025 보험사 30 회사-연도).
+NO_SALES_REASON = (
+    "은행·금융지주에는 '매출' 개념이 없어 매출 기반 지표가 뜻이 없다. "
+    "증권사의 영업수익도 금융상품 평가·처분이익을 손실과 따로 총액으로 담아 매출이 아니다. "
+    "ROE·ROA와 사업보고서의 순이자마진(NIM)·영업이익경비율(CIR)로 본다."
+)
+BANKING_NOT_APPLICABLE: dict[str, str] = {
+    "operating_margin": NO_SALES_REASON,
+    "net_margin": NO_SALES_REASON,
+    **FINANCIAL_NOT_APPLICABLE,
+    "revenue_growth": NO_SALES_REASON,
+}
+
 #: 부동산업은 재고자산이 분양용 토지·건물이라 회전율이 몇 년 단위로 움직인다.
 REAL_ESTATE_NOT_APPLICABLE: dict[str, str] = {
     "inventory_turnover": "재고자산이 분양용 토지·건물이라 회전 주기가 사업 단위(수년)다.",
@@ -154,6 +174,7 @@ MISSING_ACCOUNT_NOTE = "공시에서 필요한 계정을 찾지 못했다."
 
 NOT_APPLICABLE_BY_SECTOR: dict[Sector, dict[str, str]] = {
     Sector.FINANCIAL: FINANCIAL_NOT_APPLICABLE,
+    Sector.BANKING: BANKING_NOT_APPLICABLE,
     Sector.REAL_ESTATE: REAL_ESTATE_NOT_APPLICABLE,
     Sector.GENERAL: {},
 }
@@ -437,7 +458,10 @@ METRIC_DEFS: tuple[MetricDef, ...] = (
         Band(good=5, warn=0),  # p75=5.2
         # 은행은 자산 규모가 커서 ROA 1%면 우량하다. 일반 기업 기준(5%)을 들이대면
         # 모든 은행이 🔴가 된다. 감독당국·업계가 쓰는 통상 기준으로 갈아 끼운다.
-        sector_bands={Sector.FINANCIAL: Band(good=1.0, warn=0.5)},
+        sector_bands={
+            Sector.FINANCIAL: Band(good=1.0, warn=0.5),
+            Sector.BANKING: Band(good=1.0, warn=0.5),
+        },
     ),
     # ── ② 안정성 ────────────────────────────────────────────────
     MetricDef(

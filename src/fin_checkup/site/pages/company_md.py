@@ -104,7 +104,7 @@ def company_markdown(entry: CompanyEntry, site: Site, out_path: str) -> str:
         "| 지표 | 신호 | 값 | 작년 | 비교군 중앙값 | 계산식 | 경계값 |",
         "|---|---|---|---|---|---|---|",
     ]
-    notes: list[str] = []
+    notes: dict[tuple[str, str], list[str]] = {}
     for m in result.metrics:
         delta = data.deltas.get(m.key)
         prev = (
@@ -126,9 +126,13 @@ def company_markdown(entry: CompanyEntry, site: Site, out_path: str) -> str:
         lines.append("| " + " | ".join(_cell(c) for c in cells) + " |")
         # ⚪ 의 메모는 늘 같은 문장('업종별 편차가 커서…')이라 경계값 칸으로 충분하다.
         if m.note and m.signal is not Signal.NEUTRAL:
-            notes.append(f"- {m.label} ({m.signal.emoji}): {' '.join(m.note.split())}")
+            # 같은 메모는 한 줄로 — 은행의 이익률·순이익률·매출 증가율 ⊘ 는 이유가 하나다.
+            notes.setdefault((m.signal.emoji, " ".join(m.note.split())), []).append(m.label)
     if notes:
-        lines += ["", "메모 (⊘ 는 대신 볼 것, ⚫ 은 무엇이 없었는지):", "", *notes]
+        lines += [
+            "", "메모 (⊘ 는 대신 볼 것, ⚫ 은 무엇이 없었는지):", "",
+            *(f"- {'·'.join(labels)} ({emoji}): {note}" for (emoji, note), labels in notes.items()),
+        ]
     lines += [
         "",
         f"지표마다 뜻·경계값 근거·한계: [지표 해설]({link('m/')})"

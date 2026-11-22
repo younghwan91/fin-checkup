@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from fin_checkup.explain._korean import ro
 from fin_checkup.metrics.changes import Change, detect_changes
 from fin_checkup.metrics.engine import MONEY, Category, CheckupResult, Metric, checkup
 from fin_checkup.metrics.sector import Sector
@@ -88,6 +89,6 @@ def sector_notice(data: Checkup) -> str:
     if sector is Sector.GENERAL:
         return ""
     return (
-        f"이 회사는 {sector.label}으로 분류돼, 업종에 맞지 않는 지표는 ⊘로 표시하고 판정하지 않습니다. "
+        f"이 회사는 {ro(sector.label)} 분류돼, 업종에 맞지 않는 지표는 ⊘로 표시하고 판정하지 않습니다. "
         "각 지표의 '대신 볼 것'을 참고하세요."
     )

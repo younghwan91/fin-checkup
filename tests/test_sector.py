@@ -39,11 +39,11 @@ BANK = dict(
 @pytest.mark.parametrize(
     ("corp_name", "expected"),
     [
-        ("KB금융", Sector.FINANCIAL),
-        ("신한지주", Sector.FINANCIAL),
-        ("하나금융지주", Sector.FINANCIAL),
-        ("우리금융지주", Sector.FINANCIAL),
-        ("한국금융지주", Sector.FINANCIAL),
+        ("KB금융", Sector.BANKING),
+        ("신한지주", Sector.BANKING),
+        ("하나금융지주", Sector.BANKING),
+        ("우리금융지주", Sector.BANKING),
+        ("한국금융지주", Sector.BANKING),
         ("(주)LG", Sector.GENERAL),
         ("GS", Sector.GENERAL),
         ("한진칼", Sector.GENERAL),
@@ -61,8 +61,13 @@ def test_holding_company_code_is_split_by_name(corp_name, expected):
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        ("64110", Sector.FINANCIAL),   # 은행
+        ("64110", Sector.BANKING),     # 중앙은행
+        ("64121", Sector.BANKING),     # 국내은행 (중소기업은행·카카오뱅크)
+        ("64132", Sector.BANKING),     # 저축은행
+        ("66121", Sector.BANKING),     # 증권 중개업
         ("64", Sector.FINANCIAL),
+        ("64913", Sector.FINANCIAL),   # 신용카드
+        ("64209", Sector.FINANCIAL),   # 벤처투자
         ("65110", Sector.FINANCIAL),   # 보험
         ("66199", Sector.FINANCIAL),   # 금융 지원 서비스
         ("68100", Sector.REAL_ESTATE),
@@ -213,3 +218,65 @@ def test_not_applicable_does_not_count_as_worst():
     result = checkup(fin(**BANK), sector=Sector.FINANCIAL)
     assert result.worst is not Signal.NOT_APPLICABLE
     assert result.counts[Signal.NOT_APPLICABLE] == 7
+
+
+# ── 은행·증권·금융지주: 매출이 없는 업종 (Q12) ──────────────────────
+
+
+@pytest.mark.parametrize(
+    ("corp_name", "expected"),
+    [
+        ("다올투자증권(주)", Sector.BANKING),
+        # 세 자리 661 은 PG사·기업인수목적회사도 쓴다. 이름이 '증권'으로 끝나는 회사만 증권사다.
+        ("에스케이증권제14호기업인수목적 주식회사", Sector.FINANCIAL),
+        ("(주)헥토파이낸셜", Sector.FINANCIAL),
+        (None, Sector.FINANCIAL),
+    ],
+)
+def test_three_digit_financial_support_code_splits_securities_by_name(corp_name, expected):
+    assert sector_for("661", corp_name) is expected
+
+
+@pytest.mark.parametrize("key", ["operating_margin", "net_margin", "revenue_growth"])
+def test_sales_based_metrics_are_not_applicable_to_banks(key):
+    """은행·금융지주는 '매출' 줄이 없어 이 셋이 ⚫(데이터 없음)로 나갔다 — 없는 게 아니라 개념이 없다."""
+    metric = checkup(fin(**BANK), fin(**BANK), sector=Sector.BANKING).by_key(key)
+    assert metric.signal is Signal.NOT_APPLICABLE
+    assert "'매출' 개념이 없어" in metric.note
+
+
+def test_securities_operating_revenue_is_not_judged_as_sales():
+    """증권사는 '영업수익' 줄이 있어도 금융상품 평가·처분이익 총액이라 매출로 판정하지 않는다."""
+    securities = fin(**BANK, revenue=22_242_000_000_000)
+    prior = fin(**BANK, revenue=18_000_000_000_000)
+    result = checkup(securities, prior, sector=Sector.BANKING)
+    for key in ("operating_margin", "net_margin", "revenue_growth"):
+        metric = result.by_key(key)
+        assert metric.signal is Signal.NOT_APPLICABLE, key
+        assert metric.band is None
+
+
+def test_insurer_revenue_is_still_judged():
+    """보험사의 보험수익(IFRS 17)은 매출에 해당한다 — 금융업이어도 이익률을 판정한다."""
+    insurer = fin(**BANK, revenue=17_276_000_000_000)
+    result = checkup(insurer, sector=Sector.FINANCIAL)
+    assert result.by_key("operating_margin").signal in (Signal.GREEN, Signal.YELLOW, Signal.RED)
+    assert result.by_key("net_margin").signal in (Signal.GREEN, Signal.YELLOW, Signal.RED)
+
+
+def test_banking_keeps_every_financial_rule():
+    """은행·증권·금융지주는 금융업 규칙(부채비율 ⊘·ROA 밴드·좀비 제외)을 모두 그대로 받는다."""
+    from fin_checkup.metrics.engine import NOT_APPLICABLE_BY_SECTOR
+
+    assert set(NOT_APPLICABLE_BY_SECTOR[Sector.FINANCIAL]) < set(NOT_APPLICABLE_BY_SECTOR[Sector.BANKING])
+    weak = dict(BANK) | {"net_income": 2_300_000_000_000}  # ROA 약 0.3%
+    assert checkup(fin(**weak), sector=Sector.BANKING).by_key("roa").signal is Signal.RED
+    history = [
+        Financials(corp_code="105560", bsns_year=y, reprt_code=ReportCode.ANNUAL,
+                   fs_div=FsDiv.CFS, operating_income=6_700_000_000_000,
+                   interest_expense=14_600_000_000_000)
+        for y in (2022, 2023, 2024)
+    ]
+    assert "zombie_streak" not in {f.key for f in detect_red_flags(history, sector=Sector.BANKING)}
+    assert Sector.BANKING.is_financial and Sector.FINANCIAL.is_financial
+    assert not Sector.GENERAL.is_financial

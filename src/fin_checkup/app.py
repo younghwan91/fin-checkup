@@ -17,6 +17,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from fin_checkup.config import settings
+from fin_checkup.explain._korean import ro
 from fin_checkup.fiscal import default_fiscal_year
 from fin_checkup.format import chart_scale, format_metric
 from fin_checkup.metrics.engine import Metric
@@ -400,8 +401,9 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     if data.result.sector is not Sector.GENERAL:
+        label = data.result.sector.label
         st.info(
-            f"이 기업은 **{data.result.sector.label}**으로 분류돼, 업종에 맞지 않는 지표는 "
+            f"이 기업은 **{label}**{ro(label)[len(label):]} 분류돼, 업종에 맞지 않는 지표는 "
             "⊘로 표시하고 판정하지 않습니다. 예를 들어 은행은 예금이 부채로 잡혀 "
             "부채비율이 1,000%를 넘는 것이 정상이며, 건전성은 BIS 자기자본비율로 봅니다."
         )

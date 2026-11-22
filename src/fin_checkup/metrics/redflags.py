@@ -105,7 +105,7 @@ def detect_red_flags(
         )
 
     # 이자보상배율 1 미만 연속
-    zombie = 0 if sector is Sector.FINANCIAL else _trailing_zombie_streak(ordered)
+    zombie = 0 if sector.is_financial else _trailing_zombie_streak(ordered)
     if zombie >= ZOMBIE_STREAK_MIN:
         flags.append(
             RedFlag(
