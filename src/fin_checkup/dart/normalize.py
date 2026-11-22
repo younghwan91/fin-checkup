@@ -39,7 +39,7 @@ class FieldSpec:
     aliases: tuple[str, ...] = field(default=(), repr=False)
 
 
-#: 매출액. 금융업은 '영업수익', 보험은 '보험수익'으로 공시한다.
+#: 매출액. 금융업은 '영업수익'으로 공시한다. 보험사의 보험수익은 아래 `INSURANCE_REVENUE`.
 REVENUE = FieldSpec(
     "revenue", INCOME,
     account_ids=(
@@ -47,7 +47,16 @@ REVENUE = FieldSpec(
         "ifrs-full_RevenueFromContractsWithCustomers",
         "ifrs_Revenue",
     ),
-    account_names=("매출액", "수익(매출액)", "영업수익", "매출", "영업수익합계", "보험수익"),
+    account_names=("매출액", "수익(매출액)", "영업수익", "매출", "영업수익합계"),
+)
+#: 보험사의 매출 — IFRS 17 보험수익(보험 서비스를 제공한 대가). 이름이 회사마다 달라('보험수익',
+#: 삼성생명·미래에셋생명 2024~ '일반보험서비스수익') 표준 태그를 먼저 본다. 그 위 머리 줄
+#: '보험영업수익'·'보험서비스수익'(dart_OperatingIncomeInsurance)은 재보험수익까지 더한 값이라 쓰지 않는다.
+#: 위 매출 줄이 없거나 0 일 때만 보는 맨 끝 후보다 — 보험 태그가 '매출액' 줄을 밀어내지 않게.
+INSURANCE_REVENUE_ID = "ifrs-full_InsuranceRevenue"
+INSURANCE_REVENUE_NAME = "보험수익"
+INSURANCE_REVENUE = FieldSpec(
+    "revenue", INCOME, account_ids=(INSURANCE_REVENUE_ID,), account_names=(INSURANCE_REVENUE_NAME,)
 )
 #: 영업활동현금흐름.
 OPERATING_CASH_FLOW = FieldSpec(
@@ -76,7 +85,6 @@ INTEREST_REVENUE_IDS = frozenset({
     "ifrs-full_RevenueFromInterest",
     "ifrs-full_InterestRevenueCalculatedUsingEffectiveInterestMethod",
 })
-INSURANCE_REVENUE_NAME = "보험수익"
 
 
 FIELD_SPECS: tuple[FieldSpec, ...] = (
@@ -319,11 +327,17 @@ def _operating_cash_flow(lines: list[AccountLine]) -> float | None:
     return found if found is not None else _find(lines, OPERATING_CASH_FLOW)
 
 
+def _is_insurance_revenue(line: AccountLine) -> bool:
+    return line.account_id == INSURANCE_REVENUE_ID or _key(line.account_nm) == INSURANCE_REVENUE_NAME
+
+
 def _revenue(lines: Iterable[AccountLine]) -> float | None:
-    """매출액. 이자수익보다 작은 '보험수익' 줄은 은행·금융지주의 보험 부문이라 후보에서 뺀다.
+    """매출액. 매출 줄이 없거나 0 이면 보험수익. 이자수익보다 작은 보험수익 줄은 은행·금융지주의 보험 부문이라
+    후보에서 뺀다(이름이 달라도 태그로 찾은 줄까지).
 
     중소기업은행·KB·신한·하나·iM 금융지주(2023·2024)가 보험 자회사의 보험수익을 매출로 써서
-    영업이익률이 70~3,845% 🟢 로 나갔다. 보험사는 보험수익이 이자수익보다 크다(2023·2024 보험사 11곳 모두).
+    영업이익률이 70~3,845% 🟢 로 나갔다. 보험사는 보험수익이 이자수익보다 크다(2023~2025 보험사 12곳
+    34 회사-연도 모두). 다만 생명보험사는 차이가 얇다 — 삼성생명 2023 8.54조 대 8.44조, 동양생명 1.14~1.20배.
     """
     income = [ln for ln in lines if ln.sj_div in INCOME and ln.thstrm_amount is not None]
     interest = max(
@@ -336,12 +350,16 @@ def _revenue(lines: Iterable[AccountLine]) -> float | None:
     )
     candidates = [
         ln for ln in income
-        if not (
-            _key(ln.account_nm) == INSURANCE_REVENUE_NAME
-            and abs(ln.thstrm_amount) < interest  # type: ignore[arg-type]
-        )
+        if not (_is_insurance_revenue(ln) and abs(ln.thstrm_amount) < interest)  # type: ignore[arg-type]
     ]
-    return _find(candidates, REVENUE)
+    found = _find(candidates, REVENUE)
+    if found:
+        return found
+    # 0 으로 온 머리 줄('영업수익' 0 아래에 '보험수익' 9.79조 — 한화생명 2023)은 보험수익에 자리를 내준다.
+    insurance = _find(candidates, INSURANCE_REVENUE)
+    if insurance is None or (found is not None and insurance == 0):
+        return found
+    return insurance
 
 
 def _trade_receivables(

@@ -442,6 +442,37 @@ def test_zero_header_line_does_not_hide_the_real_revenue_line():
     assert fin.revenue == 9_790.0
 
 
+def test_life_insurers_renamed_insurance_revenue_line_is_revenue():
+    """삼성생명·미래에셋생명 2024~: IFRS 17 보험수익 줄 이름이 '일반보험서비스수익' 이라 이름으로 못 찾아
+    매출이 ⚫ 였다. 표준 태그(ifrs-full_InsuranceRevenue)로 읽는다 — '보험서비스수익'(재보험수익까지 더한
+    머리 줄)이나 '투자서비스수익'(운용 총액)이 아니다. 삼성생명 2024 연결, 억원."""
+    fin = normalize_statements(raw(
+        line("CIS", "ifrs-full_InvestmentIncome", "투자서비스수익", 246_000.0),
+        line("CIS", "dart_OperatingIncomeInsurance", "보험서비스수익", 91_900.0),
+        line("CIS", "ifrs-full_InsuranceRevenue", "일반보험서비스수익", 90_110.0),
+        line("CIS", "ifrs-full_RevenueFromInterest", "이자수익", 84_600.0),
+    ))
+    assert fin.revenue == 90_110.0
+
+
+def test_bank_groups_tagged_insurance_line_is_not_revenue_under_any_name():
+    """Q9 그대로 — 이자수익보다 작은 보험수익은 이름이 달라도(태그로 찾아도) 보험 자회사 한 부문이다."""
+    fin = normalize_statements(raw(
+        line("CIS", "ifrs-full_InsuranceRevenue", "보험서비스수익", 93_466.0),
+        line("CIS", "ifrs-full_RevenueFromInterest", "이자수익", 18_954_860.0),
+    ))
+    assert fin.revenue is None
+
+
+def test_insurance_tag_does_not_outrank_a_named_sales_line():
+    """매출액 줄에 표준 태그가 없어도 보험수익 태그 줄이 매출액을 밀어내지 않는다 — 맨 끝 후보."""
+    fin = normalize_statements(raw(
+        line("IS", "-표준계정코드 미사용-", "매출액", 5_000.0),
+        line("IS", "ifrs-full_InsuranceRevenue", "보험료수익", 7_000.0),
+    ))
+    assert fin.revenue == 5_000.0
+
+
 def test_revenue_reported_as_zero_stays_zero():
     """매출이 정말 0 인 회사(기업인수목적회사 등)는 0 이다 — 다른 후보가 없으면 없다고 하지 않는다."""
     fin = normalize_statements(raw(line("IS", "ifrs-full_Revenue", "매출액", 0.0)))
