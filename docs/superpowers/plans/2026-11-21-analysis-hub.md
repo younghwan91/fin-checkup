@@ -124,4 +124,12 @@
 | X5 | 첫 화면 — 검색 아래 결과 예시 하나(고정 규칙 예시 회사의 한눈에 보기 첫 묶음), 데이터 기준일은 한 줄로 접고 자세히는 한 번 눌러 (`index.html`·`_season.html`) | ☑ |
 | X6 | 신호 표시는 CSS 모양 + 글자 — ⚪ 가 흑백 "○" 로 나와 빈 값처럼 보이던 것. 정상 ●·주의 ▲·위험 ■·측정값 ▬·해당 없음 ⊘·데이터 없음 ◌ (`_signal.html`·`render.signal_marks`·compare/watch.js). 피드·JSON·meta 는 이모지 그대로 | ☑ |
 
+### A. 에이전트가 쓰는 길
+"삼성전자 재무 진단해줘" 라고 하면 코딩·채팅 에이전트가 fin-checkup 을 쓴다 — 측정값·계산식·경계값·면책 그대로.
+
+| # | PR | 상태 |
+|---|---|---|
+| A7 | Claude Code 플러그인 마켓플레이스 — `.claude-plugin/marketplace.json` · `plugins/fin-checkup/`(스킬 `diagnose`·`compare`, `.mcp.json` 은 `fin-checkup-mcp`, MCP 없으면 정적 JSON). `/plugin marketplace add younghwan91/fin-checkup` → `/plugin install fin-checkup@fin-checkup`. 가드 `tests/test_agent_plugin.py` | ☑ |
+| A8 | 다른 에이전트용 — Agent Skills 표준 경로의 같은 스킬 사본 · `AGENTS.md` · ChatGPT/Claude.ai 프로젝트 지침 블록 | ☐ |
+
 마케팅 문안 초안은 `_workspace/marketing/` (gitignore).
