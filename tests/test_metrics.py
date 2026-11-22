@@ -514,3 +514,57 @@ def test_fcf_states_its_capex_basis_and_is_still_judged(source, piece):
 def test_fcf_on_ppe_total_has_no_basis_note():
     m = get(checkup(fin(operating_cash_flow=500, capex=200, capex_source=CapexSource.PPE)), "fcf")
     assert m.note == ""
+
+
+# ── 분모가 아주 작은 값 (Q14): 값·판정은 그대로, 사실만 덧붙인다 ─────────
+
+
+def test_inventory_smaller_than_a_days_revenue_gets_a_note_not_a_cap():
+    """엔비티 2024 재고자산회전율 18만 회 — 계산은 맞다. 상한도 ⊘ 도 없이 이유만 적는다."""
+    from fin_checkup.metrics.engine import TINY_INVENTORY_NOTE
+
+    m = get(checkup(fin(revenue=188_349_000, inventories=1_000)), "inventory_turnover")
+    assert m.value == pytest.approx(188_349)
+    assert m.signal is Signal.NEUTRAL
+    assert TINY_INVENTORY_NOTE in m.note
+    assert "하루 매출보다 적어" in TINY_INVENTORY_NOTE
+
+
+def test_inventory_note_starts_above_365_turns():
+    from fin_checkup.metrics.engine import TINY_INVENTORY_NOTE
+
+    at_one_day = get(checkup(fin(revenue=365, inventories=1)), "inventory_turnover")
+    assert TINY_INVENTORY_NOTE not in at_one_day.note
+    above = get(checkup(fin(revenue=366, inventories=1)), "inventory_turnover")
+    assert TINY_INVENTORY_NOTE in above.note
+
+
+def test_receivables_smaller_than_a_days_revenue_keep_the_aggregate_note_too():
+    from fin_checkup.metrics.engine import RECEIVABLE_AGGREGATE_NOTE, TINY_RECEIVABLE_NOTE
+
+    m = get(
+        checkup(fin(revenue=1_000_000, trade_receivables=100,
+                    trade_receivables_source=ReceivableSource.TRADE_AND_OTHER)),
+        "receivable_turnover",
+    )
+    assert m.value == pytest.approx(10_000) and m.signal is Signal.NEUTRAL
+    assert TINY_RECEIVABLE_NOTE in m.note and RECEIVABLE_AGGREGATE_NOTE in m.note
+
+
+@pytest.mark.parametrize("key", ["operating_margin", "net_margin"])
+def test_margin_on_a_tiny_revenue_keeps_its_value_and_signal_with_a_note(key):
+    """매출 1억 미만 바이오의 영업이익률 −20만 % — 적자라 🔴 는 맞다. 큰 숫자의 이유를 적는다."""
+    from fin_checkup.metrics.engine import TINY_REVENUE_NOTE
+
+    m = get(checkup(fin(revenue=14_708_000, operating_income=-32_905_000_000,
+                        net_income=-32_000_000_000)), key)
+    assert m.value < -100_000 and m.signal is Signal.RED
+    assert TINY_REVENUE_NOTE in m.note
+
+
+def test_ordinary_margin_has_no_tiny_revenue_note():
+    from fin_checkup.metrics.engine import TINY_REVENUE_NOTE
+
+    m = get(checkup(fin(revenue=100, operating_income=-900, net_income=-999)), "operating_margin")
+    assert m.value == pytest.approx(-900)
+    assert TINY_REVENUE_NOTE not in m.note

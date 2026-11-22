@@ -65,7 +65,8 @@ def why_color(
         reason = rule.fact if rule else metric.note
         return f"{name} {topic(value)} {signal.emoji} {is_(signal.label)} — {reason}"
 
-    basis = next((n for n in BASIS_NOTES if n in metric.note), None)
+    # 근거 비고는 여럿일 수 있다(합계 기준 + 하루 매출보다 작은 매출채권). 메모에 적힌 순서대로 붙인다.
+    basis = " ".join(sorted((n for n in BASIS_NOTES if n in metric.note), key=metric.note.index)) or None
     if signal is Signal.NEUTRAL or metric.band is None:
         sentence = f"{name} {topic(value)} 업종마다 차이가 커서 경계값 없이 ⚪ 측정값으로만 보여 줘요{context}."
         return f"{sentence} {basis}" if basis else sentence
