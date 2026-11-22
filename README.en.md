@@ -2,7 +2,7 @@
 
 **English** | [한국어](README.md)
 
-**Financial statements as traffic lights — with the formula behind every color.** fin-checkup reads Korean corporate filings (DART) and shows 17 financial ratios for 2,642 listed companies, each with its formula, thresholds, last year's value and where the company sits among its industry peers. No install, no sign-up.
+**Financial statements as traffic lights — with the formula behind every color.** fin-checkup reads Korean corporate filings (DART) and shows 17 financial ratios for 2,642 listed companies, each with its formula, thresholds, last year's value and where the company sits among its industry peers. No install, no sign-up, no API key — and you can simply ask your AI agent "diagnose Samsung Electronics' financials".
 
 ## ▶ Open the site: [younghwan91.github.io/fin-checkup](https://younghwan91.github.io/fin-checkup/)
 
@@ -21,11 +21,38 @@ Example: **[Samsung Electronics (005930)](https://younghwan91.github.io/fin-chec
 
 ## Three things
 
-- **2,642 Korean listed companies, FY2025 annual reports** — KOSPI 829 · KOSDAQ 1,798 · KONEX 15. Source: DART, Korea's Financial Supervisory Service disclosure system. Values from 2022 on give year-over-year change and trends.
+- **2,642 Korean listed companies, FY2025 annual reports** — KOSPI 829 · KOSDAQ 1,798 · KONEX 15. Source: DART, Korea's Financial Supervisory Service disclosure system. Values from 2021 on give year-over-year change and 5-year trends.
 - **Three layers of context per number.** "Operating margin 13.07%" comes with last year's 10.88%, "top 10% of 294 companies in the same industry" and the industry median of 2.00%. Industries are KSIC two-digit groups; by operating margin, 98.7% of companies (2,607) are compared with at least 5 industry peers, the rest with the whole market. Thresholds are calibrated to actual market quantiles, not borrowed rules of thumb (rationale in comments in [`metrics/engine.py`](src/fin_checkup/metrics/engine.py)).
 - **Missing data stays missing.** An account that could not be found is ⚫, never 0. A ratio that doesn't fit the sector is ⊘ with what to look at instead — a bank's debt ratio of 1,211.73% ([KB Financial](https://younghwan91.github.io/fin-checkup/c/105560/)) is normal because deposits are liabilities, so it is not judged. There is no composite score.
 
 Lights: 🟢 normal · 🟡 caution · 🔴 risk · ⚪ measured only (no absolute threshold) · ⊘ not applicable · ⚫ no data.
+
+## Ask your AI agent — "diagnose Samsung Electronics' financials"
+
+Agents answer from this data with **no API key and no sign-up** — they only read the static site.
+
+**No install (ChatGPT · Claude.ai · Perplexity on the web)** — paste:
+
+```text
+Read https://younghwan91.github.io/fin-checkup/llms.txt and follow it to diagnose Samsung Electronics' (005930) financials
+```
+
+**Claude Code** — two lines add the "diagnose" / "compare" skills and tools:
+
+```bash
+claude plugin marketplace add younghwan91/fin-checkup
+claude plugin install fin-checkup@fin-checkup
+```
+
+**MCP server (Cursor · VS Code · Claude Desktop · Codex …)** — [![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=fin-checkup&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJmaW4tY2hlY2t1cFttY3BdIEAgZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS95b3VuZ2h3YW45MS9maW4tY2hlY2t1cCIsImZpbi1jaGVja3VwLW1jcCJdfQ%3D%3D) [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22fin-checkup%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22fin-checkup%5Bmcp%5D%20%40%20git%2Bhttps%3A%2F%2Fgithub.com%2Fyounghwan91%2Ffin-checkup%22%2C%22fin-checkup-mcp%22%5D%7D)
+
+```bash
+claude mcp add fin-checkup -- uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp
+```
+
+Needs [uv](https://docs.astral.sh/uv/getting-started/installation/) and git. Per-client setup and the tool list: [`docs/agents.md`](docs/agents.md) (Korean). Answers come in Korean by default with formulas, thresholds and the disclaimer; ask "is it a buy?" and the agent declines and shows the facts instead.
+
+> Data flow: DART → collection and a public snapshot → a static site rebuilt daily at 07:00 KST → browsers and agents read only that site. Financial statements refresh each filing season; risk disclosures daily.
 
 ## On the site
 
