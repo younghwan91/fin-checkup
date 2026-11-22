@@ -26,7 +26,11 @@ def _format_krw(value: float, compact: bool) -> str:
     size = abs(value)
     if size >= 1e12:
         return f"{sign}{size / 1e12:,.1f}조원"
+    if round(size / 1e8) >= 10_000:  # 10,000억 으로 반올림되면 1.0조 로
+        return f"{sign}{size / 1e12:,.1f}조원"
     if size >= 1e8:
+        return f"{sign}{size / 1e8:,.0f}억원"
+    if round(size / 1e4) >= 10_000:  # 10,000만 으로 반올림되면 1억 으로
         return f"{sign}{size / 1e8:,.0f}억원"
     if size >= 1e4:
         return f"{sign}{size / 1e4:,.0f}만원"
@@ -41,7 +45,11 @@ def _format_usd(value: float, currency: str, compact: bool) -> str:
     size = abs(value)
     if size >= 1e9:
         return f"{sign}{symbol}{size / 1e9:,.1f}B"
+    if round(size / 1e6, 1) >= 1_000:  # $1,000.0M 으로 반올림되면 $1.0B 로
+        return f"{sign}{symbol}{size / 1e9:,.1f}B"
     if size >= 1e6:
+        return f"{sign}{symbol}{size / 1e6:,.1f}M"
+    if round(size / 1e3, 1) >= 1_000:  # $1,000.0K 으로 반올림되면 $1.0M 으로
         return f"{sign}{symbol}{size / 1e6:,.1f}M"
     if size >= 1e3:
         return f"{sign}{symbol}{size / 1e3:,.1f}K"
