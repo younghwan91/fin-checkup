@@ -1,0 +1,230 @@
+{
+ "year": 2025,
+ "built_on": "2026-11-22",
+ "companies": [
+  {
+   "name": "3S",
+   "code": "060310",
+   "market": "KOSDAQ",
+   "sector": "일반",
+   "chosung": "3s"
+  },
+  {
+   "name": "AJ네트웍스",
+   "code": "095570",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ajㄴㅌㅇㅅ"
+  },
+  {
+   "name": "KB금융",
+   "code": "105560",
+   "market": "KOSPI",
+   "sector": "금융업",
+   "chosung": "kbㄱㅇ"
+  },
+  {
+   "name": "롯데손해보험",
+   "code": "000400",
+   "market": "KOSPI",
+   "sector": "금융업",
+   "chosung": "ㄹㄷㅅㅎㅂㅎ"
+  },
+  {
+   "name": "모아라이프플러스",
+   "code": "142760",
+   "market": "KOSDAQ",
+   "sector": "일반",
+   "chosung": "ㅁㅇㄹㅇㅍㅍㄹㅅ"
+  },
+  {
+   "name": "비투엔",
+   "code": "307870",
+   "market": "KOSDAQ",
+   "sector": "일반",
+   "chosung": "ㅂㅌㅇ"
+  },
+  {
+   "name": "삼성E&A",
+   "code": "028050",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅea"
+  },
+  {
+   "name": "삼성FN리츠",
+   "code": "448730",
+   "market": "KOSPI",
+   "sector": "부동산업",
+   "chosung": "ㅅㅅfnㄹㅊ"
+  },
+  {
+   "name": "삼성SDI",
+   "code": "006400",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅsdi"
+  },
+  {
+   "name": "삼성공조",
+   "code": "006660",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㄱㅈ"
+  },
+  {
+   "name": "삼성물산",
+   "code": "028260",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅁㅅ"
+  },
+  {
+   "name": "삼성바이오로직스",
+   "code": "207940",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅂㅇㅇㄹㅈㅅ"
+  },
+  {
+   "name": "삼성생명",
+   "code": "032830",
+   "market": "KOSPI",
+   "sector": "금융업",
+   "chosung": "ㅅㅅㅅㅁ"
+  },
+  {
+   "name": "삼성스팩10호",
+   "code": "0044K0",
+   "market": "KOSDAQ",
+   "sector": "금융업",
+   "chosung": "ㅅㅅㅅㅍ10ㅎ"
+  },
+  {
+   "name": "삼성스팩11호",
+   "code": "0071M0",
+   "market": "KOSDAQ",
+   "sector": "금융업",
+   "chosung": "ㅅㅅㅅㅍ11ㅎ"
+  },
+  {
+   "name": "삼성스팩12호",
+   "code": "0096B0",
+   "market": "KOSDAQ",
+   "sector": "금융업",
+   "chosung": "ㅅㅅㅅㅍ12ㅎ"
+  },
+  {
+   "name": "삼성스팩13호",
+   "code": "0115H0",
+   "market": "KOSDAQ",
+   "sector": "금융업",
+   "chosung": "ㅅㅅㅅㅍ13ㅎ"
+  },
+  {
+   "name": "삼성에스디에스",
+   "code": "018260",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅇㅅㄷㅇㅅ"
+  },
+  {
+   "name": "삼성에피스홀딩스",
+   "code": "0126Z0",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅇㅍㅅㅎㄷㅅ"
+  },
+  {
+   "name": "삼성전기",
+   "code": "009150",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅈㄱ"
+  },
+  {
+   "name": "삼성전자",
+   "code": "005930",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅈㅈ"
+  },
+  {
+   "name": "삼성제약",
+   "code": "001360",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅈㅇ"
+  },
+  {
+   "name": "삼성중공업",
+   "code": "010140",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅈㄱㅇ"
+  },
+  {
+   "name": "삼성증권",
+   "code": "016360",
+   "market": "KOSPI",
+   "sector": "금융업",
+   "chosung": "ㅅㅅㅈㄱ"
+  },
+  {
+   "name": "삼성출판사",
+   "code": "068290",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅅㅅㅊㅍㅅ"
+  },
+  {
+   "name": "삼성카드",
+   "code": "029780",
+   "market": "KOSPI",
+   "sector": "금융업",
+   "chosung": "ㅅㅅㅋㄷ"
+  },
+  {
+   "name": "삼성화재해상보험",
+   "code": "000810",
+   "market": "KOSPI",
+   "sector": "금융업",
+   "chosung": "ㅅㅅㅎㅈㅎㅅㅂㅎ"
+  },
+  {
+   "name": "성원에너텍",
+   "code": "340930",
+   "market": "KOSDAQ",
+   "sector": "일반",
+   "chosung": "ㅅㅇㅇㄴㅌ"
+  },
+  {
+   "name": "에이프로젠",
+   "code": "007460",
+   "market": "KOSPI",
+   "sector": "일반",
+   "chosung": "ㅇㅇㅍㄹㅈ"
+  },
+  {
+   "name": "이지스밸류플러스리츠",
+   "code": "334890",
+   "market": "KOSPI",
+   "sector": "부동산업",
+   "chosung": "ㅇㅈㅅㅂㄹㅍㄹㅅㄹㅊ"
+  },
+  {
+   "name": "퀀텀레일",
+   "code": "070300",
+   "market": "KOSDAQ",
+   "sector": "일반",
+   "chosung": "ㅋㅌㄹㅇ"
+  },
+  {
+   "name": "큐라티스",
+   "code": "348080",
+   "market": "KOSDAQ",
+   "sector": "일반",
+   "chosung": "ㅋㄹㅌㅅ"
+  }
+ ]
+}

@@ -1,0 +1,43 @@
+{
+ "schema_version": 1,
+ "disclaimer": "본 결과는 공시 수치를 공개된 재무비율 공식으로 계산한 측정값입니다. 투자권유·자문이 아니며, 데이터 정확성과 이용에 따른 손익에 책임지지 않습니다.",
+ "built_at": "2026-11-22T07:08:13+09:00",
+ "built_on": "2026-11-22",
+ "fiscal_year": 2025,
+ "fiscal_years_in_data": [
+  2021,
+  2022,
+  2023,
+  2024,
+  2025
+ ],
+ "expected_fiscal_year": 2025,
+ "fresh": true,
+ "snapshot": {
+  "built_on": "2026-11-21",
+  "built_at": "2026-11-21T16:19:23+09:00",
+  "bsns_years": [
+   2017,
+   2018,
+   2019,
+   2020,
+   2021,
+   2022,
+   2023,
+   2024,
+   2025
+  ]
+ },
+ "disclosures": {
+  "begin": "2026-11-16",
+  "end": "2026-11-22",
+  "count": 664
+ },
+ "git_sha": "73277216c0bc",
+ "counts": {
+  "companies": 2642,
+  "skipped": 0,
+  "pages": 2732,
+  "files": 13315
+ }
+}
