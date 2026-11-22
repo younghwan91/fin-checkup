@@ -262,6 +262,10 @@ class Financials(BaseModel):
     #: 그 뒤의 재작성(중단영업 재분류·합병·회계정책 변경)도, 올해의 연결/개별 기준도 모른다.
     #: 전기 열이 없는 보고서(DART 일부·SEC)는 None.
     comparative: Financials | None = Field(default=None, exclude=True, repr=False)
+    #: 보고서 금액 단위 오류(×1000) 의심 메모(`metrics.units`). 비면 의심 없음. 그해 지표는 ⚫,
+    #: 대조군·작년 대비·위험 신호·추이 값에서 뺀다. 다음 해 보고서와 견줘야 알 수 있어 정규화가 아니라
+    #: 이력을 읽는 쪽(service)이 단다.
+    unit_suspect: str = Field(default="", exclude=True, repr=False)
 
     @property
     def free_cash_flow(self) -> float | None:

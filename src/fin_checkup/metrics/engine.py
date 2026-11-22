@@ -14,6 +14,7 @@ from enum import Enum
 
 from fin_checkup.metrics.sector import Sector
 from fin_checkup.metrics.signals import SEVERITY, Band, Signal
+from fin_checkup.metrics.units import PRIOR_UNIT_SUSPECT_NOTE
 from fin_checkup.models import CapexSource, Financials, InterestSource, ReceivableSource
 
 #: 금액 지표의 unit. 실제 통화(원/달러)는 CheckupResult.currency에서 결정된다.
@@ -624,10 +625,28 @@ def checkup(
     prior = comparison_base(current, prior)
     not_applicable = NOT_APPLICABLE_BY_SECTOR.get(sector, {})
     metrics: list[Metric] = []
+    # 작년 보고서가 단위 오류 의심이면(올해 보고서에 전기 열이 없을 때만 여기까지 온다) 작년과 견주지 않는다.
+    prior_suspect = prior is not None and bool(prior.unit_suspect)
 
     for spec in METRIC_DEFS:
         band = spec.band_for(sector)
         proxy = spec.is_proxy(current) if spec.is_proxy is not None else False
+
+        # 그해 보고서 금액이 단위 오류 의심이면 아무것도 계산하지 않는다 — 1,000 으로 나눠 '고치지' 않는다.
+        # 비율은 단위와 무관해 보여도, 어느 줄이 틀렸는지 원문을 보기 전엔 모른다.
+        unit_note = current.unit_suspect or (
+            PRIOR_UNIT_SUSPECT_NOTE if prior_suspect and spec.category is Category.GROWTH else ""
+        )
+        if unit_note:
+            metrics.append(
+                Metric(
+                    key=spec.key, label=spec.label, category=spec.category,
+                    value=None, unit=spec.unit, signal=Signal.UNKNOWN,
+                    description=spec.description, formula=spec.formula,
+                    note=unit_note, band=band, proxy=False,
+                )
+            )
+            continue
 
         # 적용 불가 판정이 가장 먼저다. 값이 나오더라도 판정하지 않는다.
         if spec.key in not_applicable:

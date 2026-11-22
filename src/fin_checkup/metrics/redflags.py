@@ -48,6 +48,9 @@ def detect_red_flags(
     ordered = sorted(history, key=lambda f: f.bsns_year)
     latest = ordered[-1]
     flags: list[RedFlag] = []
+    # 보고서 금액 단위 오류 의심(metrics.units)인 해는 판정하지 않는다. 연속 기록도 그 해에서 끊긴다.
+    if latest.unit_suspect:
+        return flags
 
     def money(value: float | None) -> str:
         # 공시 통화로 적는다. '원'을 박아두면 미국 기업에도 원이 붙는다.
@@ -122,6 +125,8 @@ def detect_red_flags(
 def _trailing_loss_streak(ordered: list[Financials]) -> int:
     streak = 0
     for fin in reversed(ordered):
+        if fin.unit_suspect:
+            break
         if fin.operating_income is not None and fin.operating_income < 0:
             streak += 1
         else:
@@ -132,6 +137,8 @@ def _trailing_loss_streak(ordered: list[Financials]) -> int:
 def _trailing_zombie_streak(ordered: list[Financials]) -> int:
     streak = 0
     for fin in reversed(ordered):
+        if fin.unit_suspect:
+            break
         op, interest = fin.operating_income, fin.interest_expense
         if op is None or interest is None or interest == 0:
             break

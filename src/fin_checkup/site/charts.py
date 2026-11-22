@@ -28,6 +28,7 @@ from fin_checkup.format import chart_scale, format_metric, format_money
 from fin_checkup.metrics.engine import MONEY, Metric, checkup
 from fin_checkup.metrics.peers import PeerStat
 from fin_checkup.metrics.signals import Band, Signal
+from fin_checkup.metrics.units import UNIT_SUSPECT_NOTE
 from fin_checkup.models import Financials
 from fin_checkup.service import Checkup
 from fin_checkup.theme import SIGNAL_COLORS
@@ -56,6 +57,8 @@ class Gap(str, Enum):
     NO_YEAR = "no_year"
     NO_ACCOUNT = "no_account"
     NOT_APPLICABLE = "not_applicable"
+    #: 그해 보고서 금액이 단위 오류(×1000) 의심이라 그리지 않는다(`metrics.units`).
+    UNIT_SUSPECT = "unit_suspect"
 
     @property
     def mark(self) -> str:
@@ -63,6 +66,8 @@ class Gap(str, Enum):
 
     @property
     def label(self) -> str:
+        if self is Gap.UNIT_SUSPECT:
+            return "단위 의심"
         return "해당 없음" if self is Gap.NOT_APPLICABLE else "데이터 없음"
 
     @property
@@ -71,6 +76,7 @@ class Gap(str, Enum):
             "no_year": "이 해의 사업보고서 재무가 아직 수집되지 않았습니다",
             "no_account": "공시에서 이 계정을 찾지 못했습니다",
             "not_applicable": "이 업종에는 뜻이 없는 지표라 판정하지 않습니다",
+            "unit_suspect": UNIT_SUSPECT_NOTE,
         }[self.value]
 
 
@@ -95,6 +101,10 @@ class TrendSeries:
     @property
     def present(self) -> list[TrendPoint]:
         return [p for p in self.points if p.gap is None]
+
+    @property
+    def has_unit_suspect(self) -> bool:
+        return any(p.gap is Gap.UNIT_SUSPECT for p in self.points)
 
 
 def _gap_point(year: int, gap: Gap) -> TrendPoint:
@@ -121,6 +131,8 @@ def trend_series(data: Checkup, years: int = 5) -> list[TrendSeries]:
             value = getattr(fin, field) if fin is not None else None
             if fin is None:
                 points.append(_gap_point(year, Gap.NO_YEAR))
+            elif fin.unit_suspect:
+                points.append(_gap_point(year, Gap.UNIT_SUSPECT))
             elif value is None:
                 points.append(_gap_point(year, Gap.NO_ACCOUNT))
             else:
@@ -138,6 +150,8 @@ def trend_series(data: Checkup, years: int = 5) -> list[TrendSeries]:
             metric = result.by_key(key) if result is not None else None
             if result is None:
                 points.append(_gap_point(year, Gap.NO_YEAR))
+            elif by_year[year].unit_suspect:
+                points.append(_gap_point(year, Gap.UNIT_SUSPECT))
             elif metric is None or metric.signal is Signal.NOT_APPLICABLE:
                 points.append(_gap_point(year, Gap.NOT_APPLICABLE))
             elif metric.value is None:

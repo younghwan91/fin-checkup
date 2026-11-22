@@ -23,6 +23,7 @@ from fin_checkup.metrics.engine import (
 from fin_checkup.metrics.peers import PeerStat, SelfDelta
 from fin_checkup.metrics.sector import Sector
 from fin_checkup.metrics.signals import Signal
+from fin_checkup.metrics.units import UNIT_SUSPECT_MARKER
 
 _NO_ZERO_FILL = "없는 값을 0으로 채우지 않고 비워 둬요."
 
@@ -108,6 +109,9 @@ def _not_applicable(metric: Metric, sector: Sector | None) -> str:
 
 def _missing_reason(metric: Metric) -> str:
     explainer = get_explainer(metric.key)
+    if UNIT_SUSPECT_MARKER in metric.note:
+        # 자본잠식 같은 규칙 문장으로 바꿔 적으면 이유가 거짓이 된다.
+        return metric.note.rstrip(".") + ". 원문에서 단위를 확인해 주세요."
     if metric.note and metric.note != MISSING_ACCOUNT_NOTE:
         rule = next((r for r in explainer.special_rules if r.signal is Signal.UNKNOWN), None)
         if rule is not None:
