@@ -55,3 +55,24 @@ async def test_metrics_are_grouped_and_worst_first(tmp_path):
     for _category, metrics in metrics_by_category(data.result):
         severities = [SEVERITY[m.signal] for m in metrics]
         assert severities == sorted(severities, reverse=True)
+
+
+def test_band_text_without_a_caution_band_does_not_invent_one():
+    # 영업활동현금흐름·FCF 는 good == warn == 0 — 🟡 구간이 없다.
+    # "주의 0 이상" 이라고 쓰면 있는 것처럼 읽힌다.
+    from fin_checkup.metrics.engine import Category, Metric
+    from fin_checkup.metrics.signals import Band, Signal
+
+    def metric(band):
+        return Metric(
+            key="fcf", label="잉여현금흐름", category=Category.EARNINGS_QUALITY, value=1.0, unit="money",
+            description="", formula="", band=band, signal=Signal.GREEN,
+        )
+
+    up = band_text(metric(Band(good=0, warn=0)))
+    assert "주의" not in up.replace("주의 구간 없음", "")
+    assert up == "정상 0 이상 · 그 미만은 위험 (주의 구간 없음)"
+    down = band_text(metric(Band(good=5, warn=5, higher_is_better=False)))
+    assert down == "정상 5 이하 · 그 초과는 위험 (주의 구간 없음)"
+    normal = band_text(metric(Band(good=7, warn=0)))
+    assert normal == "정상 7 이상 · 주의 0 이상 · 그 미만은 위험"

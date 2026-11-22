@@ -27,8 +27,14 @@ def band_text(metric: Metric) -> str:
         return "절대 기준 없음 — 추이와 업종 비교로 판단할 항목."
     band = metric.band
     unit = "" if metric.unit == MONEY else metric.unit
+    # 정상과 주의 경계가 같으면(영업활동현금흐름·FCF 의 0) 🟡 구간이 없다. "주의 0 이상" 을 적으면
+    # 주의 구간이 있는 것처럼 읽힌다 — 에이전트 답에도 그대로 옮겨졌다(2026-11-22 직접 써 보고 발견).
     if band.higher_is_better:
+        if band.good == band.warn:
+            return f"정상 {band.good}{unit} 이상 · 그 미만은 위험 (주의 구간 없음)"
         return f"정상 {band.good}{unit} 이상 · 주의 {band.warn}{unit} 이상 · 그 미만은 위험"
+    if band.good == band.warn:
+        return f"정상 {band.good}{unit} 이하 · 그 초과는 위험 (주의 구간 없음)"
     return f"정상 {band.good}{unit} 이하 · 주의 {band.warn}{unit} 이하 · 그 초과는 위험"
 
 
