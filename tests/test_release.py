@@ -307,3 +307,22 @@ def test_ci_builds_and_runs_the_bundle_with_the_same_mcpb_version():
     runs = " ".join(s.get("run") or "" for s in ci["steps"])
     for needle in ("release.py check-tag", "release.py stage", " validate ", " pack ", "release.py smoke"):
         assert needle in runs, needle
+
+
+# ── 문서 ────────────────────────────────────────────────────────────
+
+LATEST_BUNDLE = f"{release.REPO_URL}/releases/latest/download/{release.BUNDLE_NAME}"
+
+
+def test_changelog_has_the_current_version_and_it_becomes_the_release_notes():
+    notes = release.release_notes(f"v{__version__}")
+    assert "fin-checkup.mcpb" in notes and NAME in notes
+    assert find_outside_allowed(release.CHANGELOG.read_text(encoding="utf-8")) == []
+
+
+def test_docs_and_readmes_link_the_latest_bundle():
+    agents = (ROOT / "docs" / "agents.md").read_text(encoding="utf-8")
+    assert "### Claude Desktop 원클릭 (.mcpb)" in agents and LATEST_BUNDLE in agents
+    for readme in ("README.md", "README.en.md"):
+        text = (ROOT / readme).read_text(encoding="utf-8")
+        assert LATEST_BUNDLE in text and "docs/agents.md#claude-desktop-원클릭-mcpb" in text, readme

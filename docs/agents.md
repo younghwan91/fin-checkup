@@ -28,7 +28,19 @@ claude mcp add fin-checkup -- uvx --from "fin-checkup[mcp] @ git+https://github.
 플러그인(`/plugin marketplace add younghwan91/fin-checkup` → `/plugin install fin-checkup@fin-checkup`)으로 설치하면 이 MCP 설정과
 진단·비교 스킬이 함께 들어옵니다 — [`agents-skill.md`](agents-skill.md). MCP 가 없는 채팅 도구(ChatGPT·Claude.ai)용 지침도 거기 있습니다.
 
-### Claude Desktop
+### Claude Desktop 원클릭 (.mcpb)
+
+설정 파일을 손대지 않는 방법입니다. Python·uv 를 따로 깔 필요도 없습니다 — Claude Desktop 이 확장에 든 잠긴 의존성을 깝니다.
+
+1. 최신 릴리스의 [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/latest/download/fin-checkup.mcpb) 를 받습니다.
+2. 받은 파일을 두 번 누르거나, Claude Desktop 의 **설정 → 확장(Extensions)** 화면에 끌어다 놓고 **설치** 를 누릅니다.
+3. **OpenDART 인증키 (선택)** 칸은 비워 둬도 됩니다 — 공개 사이트 데이터로 모든 상장사의 최신 사업연도를 진단합니다.
+   키를 넣으면 사이트에 없는 회사·연도만 그 키로 DART 에서 받아 옵니다. 칸은 민감 값으로 저장되고, 키는 응답·로그에 나오지 않습니다.
+   이미 `fin-checkup setup` 으로 사용자 설정 파일에 키를 넣었다면 비워 둬도 그 키를 씁니다.
+
+공식 MCP Registry 에도 `io.github.younghwan91/fin-checkup` 으로 올라 있습니다(같은 `.mcpb`).
+
+### Claude Desktop (설정 파일)
 
 설정 파일(`claude_desktop_config.json` — macOS `~/Library/Application Support/Claude/`, Windows `%APPDATA%\Claude\`)에:
 
