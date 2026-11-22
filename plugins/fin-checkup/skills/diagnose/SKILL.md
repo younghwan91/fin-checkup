@@ -133,5 +133,6 @@ fin-checkup 데이터에서만 가져온다 — 기억이나 다른 사이트의
 2. `diagnose_company("005930")` 또는 `curl -s https://younghwan91.github.io/fin-checkup/api/c/005930.json`.
 3. `recent_risk_disclosures("005930")` 또는 `https://younghwan91.github.io/fin-checkup/data/disclosures.json` 에서 `005930`.
 4. 5번 틀로 답한다: 첫 줄 `영업이익률 | 13.07% | 🟢 정상 | 영업이익 ÷ 매출액 × 100 | 정상 7% 이상 · 주의 0% 이상 ·
-   그 미만은 위험` 처럼(숫자는 그때 받은 JSON 값). 끝에 회사 페이지 `https://younghwan91.github.io/fin-checkup/c/005930/`
+   그 미만은 위험` 처럼(숫자는 그때 받은 JSON 값). 경계값 칸은 `thresholds` 숫자로 새로 짓지 말고 **`threshold_text` 를
+   그대로** 옮긴다 — 영업활동현금흐름·FCF 처럼 주의 구간이 없는 지표를 "주의 0 이상" 으로 잘못 쓰지 않게. 끝에 회사 페이지 `https://younghwan91.github.io/fin-checkup/c/005930/`
    링크와 면책 문구.
