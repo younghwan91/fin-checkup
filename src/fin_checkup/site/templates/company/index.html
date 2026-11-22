@@ -6,6 +6,7 @@
 {% block title %}{{ c.name }} 재무 신호등 — {{ c.year }} 사업연도 {{ c.groups | map(attribute="rows") | map("length") | sum }}개 지표 · fin-checkup{% endblock %}
 {% block description %}{{ c.name }}({{ c.stock_code }}) {{ c.year }}년 {{ c.report_label }} {{ c.statement_label }}로 계산한 재무비율 — {% for chip in c.chips %}{{ chip.signal.label }} {{ chip.count }}{% if not loop.last %} · {% endif %}{% endfor %}. 지표마다 계산식과 경계값을 함께 적었습니다.{% endblock %}
 {% block head %}
+<link rel="alternate" type="text/markdown" title="{{ c.name }} 재무 측정 (마크다운, 에이전트용)" href="index.md">
 <link rel="alternate" type="application/atom+xml" title="{{ c.name }} 재무 신호등 피드" href="{{ url('feeds/c/' ~ c.stock_code ~ '.xml') }}">
 {% endblock %}
 {% block main %}
