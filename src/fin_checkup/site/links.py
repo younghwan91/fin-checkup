@@ -2,7 +2,8 @@
 
     uv run python -m fin_checkup.cli site links site-out --base-url https://younghwan91.github.io/fin-checkup/
 
-HTML 파일을 전부 읽어 `href`·`src` 를 모은다. 사이트 안을 가리키는 주소(상대경로, 그리고 `--base-url`
+HTML 파일을 전부 읽어 `href`·`src` 를, 에이전트용 글(`llms.txt`·`*.md`, `guard.is_agent_text`)은
+마크다운 링크 `[글](주소)` 를 모은다. 사이트 안을 가리키는 주소(상대경로, 그리고 `--base-url`
 아래의 절대주소)는 출력 폴더의 파일로 풀어 없으면 **깨진 링크**다. `#앵커` 가 붙어 있으면 그 페이지에 같은
 `id` 가 있어야 한다. 다른 사이트 주소는 모아서 보고만 한다 — 네트워크를 부르지 않고, 남의 사이트 장애로
 배포를 막지 않는다.
@@ -12,14 +13,19 @@ Pages 워크플로가 빌드 뒤에 돌리고(깨진 내부 링크가 있으면 
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
+from fin_checkup.site.guard import is_agent_text
+
 #: 주소를 담는 속성. `srcset` 은 쉼표로 여러 개.
 _URL_ATTRS = frozenset({"href", "src", "poster", "data"})
+#: 마크다운 링크 `[글](주소)` 의 주소. 주소에 공백·괄호는 없다고 본다(우리가 만드는 글).
+_MD_LINK = re.compile(r"\]\(([^)\s]+)\)")
 #: 이동하지 않는 스킴 — 검사하지 않는다.
 _IGNORED_SCHEMES = frozenset({"mailto", "tel", "data", "javascript", "blob", "about"})
 
@@ -148,14 +154,23 @@ def check_links(out: Path, base_url: str = "/") -> LinkReport:
             parsed[path] = _parse(path)
         return parsed[path]
 
-    external_seen: dict[str, set[str]] = {}
+    sources: list[tuple[str, str, list[str]]] = []
     for page in html_files:
         rel = page.relative_to(out).as_posix()
         collector = collector_for(page)
         page_url = _ROOT + _page_url(rel).lstrip("/")
         if collector.base:
             page_url = urljoin(page_url, _to_root(collector.base, origin, prefix) or collector.base)
-        for url in collector.urls:
+        sources.append((rel, page_url, collector.urls))
+    for text_file in sorted(p for p in out.rglob("*") if p.is_file()):
+        rel = text_file.relative_to(out).as_posix()
+        if is_agent_text(rel):
+            urls = _MD_LINK.findall(text_file.read_text(encoding="utf-8", errors="replace"))
+            sources.append((rel, _ROOT + rel, urls))
+
+    external_seen: dict[str, set[str]] = {}
+    for rel, page_url, urls in sources:
+        for url in urls:
             parts = urlsplit(url)
             scheme = parts.scheme.lower()
             if scheme in _IGNORED_SCHEMES:

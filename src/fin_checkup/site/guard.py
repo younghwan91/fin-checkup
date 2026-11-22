@@ -20,6 +20,8 @@
                 · 신호(`sig-*`)는 색만으로 말하지 않는다 — 기호(🟢…)나 글자(정상…)가 함께 있다.
 - `banned`      추천·매매 권유·재촉 표현(`explain.banned`)이 빌드된 HTML·템플릿·해설 데이터에 없다.
                 예외는 `ALLOWED_SENTENCES` 의 문장 그대로와, 검색 인덱스의 회사 이름(데이터)뿐.
+- 에이전트용 글(`llms.txt`·`llms-full.txt`·`*.md`)도 `disclaimer`·`banned` 를 본다 — 에이전트가 그대로
+  옮겨 말하는 글이라 HTML 과 같은 선이다.
 """
 
 from __future__ import annotations
@@ -73,7 +75,16 @@ _LOCAL_STORAGE = re.compile(r"localStorage")
 _LOCAL_STORAGE_OK = re.compile(
     r"localStorage\.(?:getItem|setItem|removeItem)\(\s*([\"'`])" + re.escape(STORAGE_PREFIX)
 )
-_TEXT_SUFFIXES = frozenset({".html", ".js", ".css", ".json", ".xml", ".txt", ".svg", ".webmanifest"})
+_TEXT_SUFFIXES = frozenset(
+    {".html", ".js", ".css", ".json", ".xml", ".txt", ".svg", ".webmanifest", ".md"}
+)
+#: 에이전트가 읽고 옮겨 말하는 글. 면책 문구·금지 표현을 HTML 과 똑같이 본다.
+AGENT_TEXT_FILES = frozenset({"llms.txt", "llms-full.txt"})
+AGENT_TEXT_SUFFIXES = frozenset({".md"})
+
+
+def is_agent_text(path: str) -> bool:
+    return path in AGENT_TEXT_FILES or Path(path).suffix.lower() in AGENT_TEXT_SUFFIXES
 
 
 @dataclass(frozen=True)
@@ -350,6 +361,10 @@ def check_file(path: str, data: bytes, proper_nouns: Iterable[str] = ()) -> list
     found = list(_check_secrets(path, text))
     if suffix == ".html":
         found += _check_page(path, text)
+        found += _check_banned(path, text, proper_nouns)
+    elif is_agent_text(path):
+        if DISCLAIMER not in text:
+            found.append(Violation(path, "disclaimer", "면책 문구(DISCLAIMER)가 없다"))
         found += _check_banned(path, text, proper_nouns)
     if suffix in {".html", ".js"}:
         found += _check_storage(path, text)

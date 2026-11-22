@@ -53,8 +53,15 @@ def sitemap_xml(site: Site, paths: Iterable[str]) -> str:
     )
 
 
+#: AI 에이전트용 안내 (`pages/llms.py`). robots.txt 에는 표준 지시어가 없어 주석으로 알린다.
+AGENT_GUIDES = ("llms.txt", "llms-full.txt")
+
+
 def robots_txt(site: Site) -> str:
     lines = ["User-agent: *", "Allow: /"]
+    guides = [site.absolute_url(g) if site.has_absolute_base else g for g in AGENT_GUIDES]
+    lines += ["", "# AI agents: read these first (how to use this site, rules for answers)"]
+    lines += [f"# {g}" for g in guides]
     # Sitemap: 은 절대주소여야 한다. 상대 base 로 만든 빌드에는 넣지 않는다.
     if site.has_absolute_base:
         lines += ["", f"Sitemap: {site.absolute_url(SITEMAP)}"]
