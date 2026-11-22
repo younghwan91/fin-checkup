@@ -137,4 +137,13 @@
 | A7 | Claude Code 플러그인 마켓플레이스 — `.claude-plugin/marketplace.json` · `plugins/fin-checkup/`(스킬 `diagnose`·`compare`, `.mcp.json` 은 `fin-checkup-mcp`, MCP 없으면 정적 JSON). `/plugin marketplace add younghwan91/fin-checkup` → `/plugin install fin-checkup@fin-checkup`. 가드 `tests/test_agent_plugin.py` | ☑ |
 | A8 | 다른 에이전트용 — Agent Skills 표준 경로 사본 `.agents/skills/fin-checkup-*`(Codex·Cursor·Copilot, `scripts/sync_agent_skills.py` 로 생성·테스트가 어긋남을 막음) · 루트 `AGENTS.md` · ChatGPT/Claude.ai 지침 블록 `docs/agents-skill.md` | ☑ |
 
+### B. 브랜드
+차분하고 정직한 측정 도구로 보이게 — 로켓·캔들·돈·위쪽 화살표 없이. 마크·색·말투는 `docs/brand/README.md`.
+
+| # | PR | 상태 |
+|---|---|---|
+| B1 | 브랜드 마크 — 귀퉁이 접은 보고서 + 신호 모양 ●▲■(`src/fin_checkup/brand.py` 한 곳에서 SVG·PNG·ICO). `docs/brand/`(마크·워드마크 밝은/어두운, PNG 512·256·128, 브랜드 안내 — `scripts/brand_assets.py` 로 생성, `tests/test_brand.py` 가 어긋남을 막음) · 사이트 파비콘(다크 모드 대응 SVG)·머리글 마크 | ☑ |
+| B2 | README 배너(밝은/어두운 `<picture>`) · 사이트 데모 애니메이션 · GitHub 소셜 미리보기 이미지 | ☐ |
+| B3 | 공유 카드(`/og/<코드>.png`)·카드뉴스 표지에 마크 | ☐ |
+
 마케팅 문안 초안은 `_workspace/marketing/` (gitignore).

@@ -23,6 +23,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, pass_context, se
 from jinja2.runtime import Context
 from markupsafe import Markup, escape
 
+from fin_checkup.brand import inline_mark_svg
 from fin_checkup.disclaimer import DISCLAIMER
 from fin_checkup.metrics.signals import Signal
 
@@ -67,6 +68,6 @@ def make_env() -> Environment:
         lstrip_blocks=True,
         keep_trailing_newline=True,
     )
-    env.globals.update(url=_url, DISCLAIMER=DISCLAIMER)
+    env.globals.update(url=_url, DISCLAIMER=DISCLAIMER, LOGO=Markup(inline_mark_svg()))
     env.filters["marks"] = signal_marks
     return env

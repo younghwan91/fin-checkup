@@ -15,6 +15,7 @@ from datetime import date
 import pytest
 from hub_seed import seed_site_cache
 
+from fin_checkup.brand import adaptive_mark_svg, draw_mark
 from fin_checkup.site.build import build_site
 from fin_checkup.site.guard import check_site
 from fin_checkup.storage import Cache
@@ -79,6 +80,7 @@ def test_favicon_svg_is_a_plain_self_contained_svg(out):
     svg = read(out, "favicon.svg")
     assert svg.startswith('<svg xmlns="http://www.w3.org/2000/svg"')
     assert "<script" not in svg and "href" not in svg
+    assert svg == adaptive_mark_svg(), "파비콘은 브랜드 마크 (fin_checkup.brand)"
 
 
 def test_favicon_ico_is_a_valid_32px_icon(out):
@@ -93,7 +95,8 @@ def test_favicon_ico_is_a_valid_32px_icon(out):
         assert icon.size == (32, 32)
         rgba = icon.convert("RGBA")
         assert rgba.getpixel((0, 0))[3] == 0, "모서리는 투명"
-        assert rgba.getpixel((16, 24))[3] == 255, "가운데 신호등 칸은 불투명"
+        assert rgba.getpixel((16, 24))[3] == 255, "가운데 보고서 종이는 불투명"
+        assert list(rgba.getdata()) == list(draw_mark(32).getdata()), "ICO 도 같은 마크"
 
 
 # ── 포커스·대비 ────────────────────────────────────────────────────
