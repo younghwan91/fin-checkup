@@ -423,6 +423,30 @@ h3 { font-size: .9rem; color: var(--ink-muted); margin: 1.2rem 0 .5rem; letter-s
   .fc-sector-list, .fc-members { grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
 }
 
+/* 회사 지표 카드 줄 맞춤 — 두 열로 놓인 카드는 이름·값 / 설명 / 계산식 / 경계값 / 작년 대비 / 분포 / 링크 /
+   비고가 같은 높이에서 시작한다(설명이 두 줄인 카드 옆 카드의 계산식이 한 줄 위에서 시작하던 것).
+   카드마다 8줄을 부모 격자에서 빌려 쓰고(subgrid), 계산식·경계값·작년 대비 dl 은 그 가운데 3줄을 다시 빌린다.
+   항목이 없는 카드(작년 대비·분포·비고)는 그 줄이 비고 순서는 그대로. subgrid 가 없는 브라우저·휴대폰(한 열)은
+   위의 기본 배치 그대로 쌓는다 — 페이지가 길어지지 않는다. */
+@supports (grid-template-rows: subgrid) {
+  @media (min-width: 40rem) {
+    .fc-metric-grid { row-gap: 0; }
+    .fc-metric-grid > .fc-metric {
+      display: grid; grid-row: span 8; grid-template-rows: subgrid; grid-template-columns: minmax(0, 1fr);
+      row-gap: 0; align-content: start; margin-bottom: .6rem;
+    }
+    .fc-metric-grid .fc-metric-head { grid-row: 1; }
+    .fc-metric-grid .fc-desc { grid-row: 2; }
+    .fc-metric-grid .fc-basis-list {
+      grid-row: 3 / span 3; grid-template-rows: subgrid; grid-template-columns: 4.6em minmax(0, 1fr); row-gap: 0;
+    }
+    .fc-metric-grid .fc-basis-list > :nth-child(n+3) { padding-top: .15rem; }
+    .fc-metric-grid .fc-peer { grid-row: 6; }
+    .fc-metric-grid .fc-metric-links { grid-row: 7; }
+    .fc-metric-grid .fc-note { grid-row: 8; }
+  }
+}
+
 @media print {
   .fc-header .fc-search, .fc-skip { display: none; }
   body { background: #fff; }
