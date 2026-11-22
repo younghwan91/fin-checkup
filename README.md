@@ -55,6 +55,8 @@ claude plugin install fin-checkup@fin-checkup
 
 **3) Cursor · VS Code · Claude Desktop · Codex (MCP 서버)** — [![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=fin-checkup&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJmaW4tY2hlY2t1cFttY3BdIEAgZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS95b3VuZ2h3YW45MS9maW4tY2hlY2t1cCIsImZpbi1jaGVja3VwLW1jcCJdfQ%3D%3D) [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22fin-checkup%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22fin-checkup%5Bmcp%5D%20%40%20git%2Bhttps%3A%2F%2Fgithub.com%2Fyounghwan91%2Ffin-checkup%22%2C%22fin-checkup-mcp%22%5D%7D)
 
+**Claude Desktop 은 파일 하나로:** [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/latest/download/fin-checkup.mcpb) 를 받아 두 번 누르면 설치됩니다 (uv·git 불필요, DART 키 칸은 선택) — [자세히](docs/agents.md#claude-desktop-원클릭-mcpb)
+
 모든 MCP 클라이언트는 아래 명령으로 서버를 실행합니다 (Claude Code에서 MCP만 단독 연결할 때는 앞에 `claude mcp add fin-checkup --` 을 붙이세요):
 
 ```bash
