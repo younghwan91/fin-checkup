@@ -190,3 +190,76 @@ def test_compare_does_not_pick_a_winner():
     assert "compare_companies" in body
     assert f"{SITE}/compare/?c=" in body
     assert "순위" in body  # "순위를 매기지 않는다" 규칙이 적혀 있다
+
+
+# ── 다른 에이전트 (Agent Skills 표준 경로 · AGENTS.md · 채팅 지침) ──────────
+
+
+def _sync_module():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "sync_agent_skills", ROOT / "scripts" / "sync_agent_skills.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+PORTABLE = sorted((ROOT / ".agents" / "skills").glob("*/SKILL.md"))
+
+
+def test_portable_copies_match_the_plugin_skills():
+    # 원본만 고치고 사본을 잊으면 Codex·Cursor 는 옛 규칙으로 답한다.
+    sync = _sync_module()
+    assert sync.stale() == [], "uv run python scripts/sync_agent_skills.py 로 다시 만들 것"
+    assert {p.parent.name for p in PORTABLE} == {f"fin-checkup-{p.parent.name}" for p in SKILLS}
+
+
+@pytest.mark.parametrize("skill", PORTABLE, ids=lambda p: p.parent.name)
+def test_portable_copy_is_a_valid_standard_skill(skill):
+    assert not skill.is_symlink() and not skill.parent.is_symlink()
+    meta, body = split_skill(skill)
+    assert set(meta) <= PORTABLE_KEYS
+    assert meta["name"] == skill.parent.name
+    assert _NAME.fullmatch(meta["name"]) and len(meta["name"]) <= 64
+    assert DISCLAIMER in body
+    assert find_outside_allowed(outside_quotes(body)) == []
+    # 상호 참조도 새 이름으로 — 다른 에이전트엔 `diagnose` 라는 스킬이 없다.
+    assert not re.search(r"`(diagnose|compare)` 스킬", body)
+
+
+def test_agents_md_points_to_the_portable_skills():
+    text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    for skill in PORTABLE:
+        assert str(skill.relative_to(ROOT)) in text
+    assert "CLAUDE.md" in text and "docs/agents-skill.md" in text
+    assert find_outside_allowed(text) == []
+
+
+def _instruction_block() -> str:
+    text = (ROOT / "docs" / "agents-skill.md").read_text(encoding="utf-8")
+    match = re.search(
+        r"<!-- fc:instructions-start -->\n```text\n(.*?)\n```\n<!-- fc:instructions-end -->", text, re.S
+    )
+    assert match, "지침 블록 표식이 없다"
+    return match.group(1)
+
+
+def test_chat_instruction_block_keeps_the_red_lines():
+    block = _instruction_block()
+    # ChatGPT 맞춤 지침 한 칸이 1,500자다 — 넘으면 붙여 넣다 잘려 면책 문장(끝 줄)이 빠진다.
+    assert len(block) <= 1500, len(block)
+    assert DISCLAIMER in block
+    for must in (f"{SITE}/api/c/", f"{SITE}/search-index.json", f"{SITE}/c/", "⚫", "⊘", "계산식", "경계값"):
+        assert must in block, must
+    assert find_outside_allowed(block) == []
+
+
+def test_agents_doc_has_install_paths_for_each_agent():
+    text = (ROOT / "docs" / "agents-skill.md").read_text(encoding="utf-8")
+    assert "/plugin install fin-checkup@fin-checkup" in text
+    assert ".agents/skills/" in text
+    assert find_outside_allowed(text) == []
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "docs/agents-skill.md" in readme

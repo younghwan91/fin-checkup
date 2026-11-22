@@ -130,6 +130,6 @@
 | # | PR | 상태 |
 |---|---|---|
 | A7 | Claude Code 플러그인 마켓플레이스 — `.claude-plugin/marketplace.json` · `plugins/fin-checkup/`(스킬 `diagnose`·`compare`, `.mcp.json` 은 `fin-checkup-mcp`, MCP 없으면 정적 JSON). `/plugin marketplace add younghwan91/fin-checkup` → `/plugin install fin-checkup@fin-checkup`. 가드 `tests/test_agent_plugin.py` | ☑ |
-| A8 | 다른 에이전트용 — Agent Skills 표준 경로의 같은 스킬 사본 · `AGENTS.md` · ChatGPT/Claude.ai 프로젝트 지침 블록 | ☐ |
+| A8 | 다른 에이전트용 — Agent Skills 표준 경로 사본 `.agents/skills/fin-checkup-*`(Codex·Cursor·Copilot, `scripts/sync_agent_skills.py` 로 생성·테스트가 어긋남을 막음) · 루트 `AGENTS.md` · ChatGPT/Claude.ai 지침 블록 `docs/agents-skill.md` | ☑ |
 
 마케팅 문안 초안은 `_workspace/marketing/` (gitignore).
