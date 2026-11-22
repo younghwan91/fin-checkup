@@ -154,8 +154,13 @@ def _recipe(site: Site, doc: _Doc, examples: list[CompanyEntry]) -> list[str]:
         f"2. GET `api/c/<code>.json`, e.g. [{name} {code}]({doc.url(f'api/c/{code}.json')})."
         " Use `fiscal_year`, `company` (`name`, `market`, `sector_label`, `page`), `metrics[]` (`label`,"
         " `category`, `value_text`, `signal`, `formula`, `threshold_text`, `note`, `peer.median_text`,"
-        " `peer.percentile`, `delta.summary`), `red_flags[]` and `disclaimer`."
-        f" Field reference: [api-static.md]({API_DOC}).",
+        " `peer.percentile`, `delta.summary`), `red_flags[]`, `summary_ko` (plain facts paragraph),"
+        " `agent_guidance` and `disclaimer`."
+        f" Field reference: [api-static.md]({API_DOC})."
+        " If you read Markdown more easily, GET `c/<code>/index.md` instead"
+        f" (e.g. [{name} Markdown]({doc.url(f'c/{code}/index.md')})): the same measurements as a compact"
+        " table with formula, threshold, last year and peer median, plus red flags, recent risk filings,"
+        " sources and the disclaimer.",
         f"3. Optional: GET `m/<metric key>/` (e.g."
         f" [m/{first_metric}/]({doc.url(metric_path(first_metric))}))"
         " for what a metric means and its limits, or read all of them at once in"
@@ -228,6 +233,8 @@ def _files(doc: _Doc, examples: list[CompanyEntry]) -> list[str]:
         f"- [Company JSON]({doc.url(f'api/c/{code}.json')}): `api/c/<code>.json`, the 17 metrics with"
         f" signal,"
         " formula, thresholds, peer median and last-year change, plus red flags and sources.",
+        f"- [Company Markdown]({doc.url(f'c/{code}/index.md')}): `c/<code>/index.md` (alias `c/<code>.md`),"
+        " the same measurements as one compact Markdown page for agents.",
         f"- [Company page]({doc.url(f'c/{code}/')}): `c/<code>/`, the human-readable page to cite as"
         f" the source.",
         f"- [Metric explainers]({doc.url('m/')}): `m/<key>/` for each metric. Keys: {keys}.",

@@ -99,6 +99,7 @@ async def test_llms_explains_the_two_or_three_get_recipe(out):
     assert f"{BASE}search-index.json" in text
     assert f"{BASE}api/c/005930.json" in text
     assert f"{BASE}c/005930/" in text
+    assert f"{BASE}c/005930/index.md" in text
     assert "chosung" in text and "compare/?c=" in text
 
 

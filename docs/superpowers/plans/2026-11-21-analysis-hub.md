@@ -130,7 +130,7 @@
 | # | PR | 상태 |
 |---|---|---|
 | A1 | `/llms.txt` · `/llms-full.txt` — 에이전트가 지킬 선·GET 두세 번 진단법·비교·신호 읽기, full 은 지표 해설 17개 펼침 (`pages/llms.py`). robots.txt 주석·꼬리 링크, 가드·링크 검사가 에이전트용 글(`guard.is_agent_text`)도 본다 | ☑ |
-| A2 | 회사별 마크다운 `/c/<코드>/index.md` · HTML 에 `rel="alternate" type="text/markdown"` · JSON 에 `summary_ko`·`agent_guidance` | ☐ |
+| A2 | 회사별 마크다운 `/c/<코드>/index.md`(+`/c/<코드>.md`, `pages/company_md.py`) · HTML 에 `rel="alternate" type="text/markdown"` · JSON 에 `summary_ko`(`explain/summary.py` `facts_summary`)·`agent_guidance`(`explain/agents.py`) — 필드 추가라 schema_version 1 그대로 | ☑ |
 | A3 | `/openapi.json` (정적 GET 엔드포인트, 실제 JSON 으로 검증) · `/agents/` 에이전트에서 쓰기 안내 | ☐ |
 | A4 | MCP 서버 `fin-checkup-mcp` (`src/fin_checkup/mcp/`, extra `[mcp]`) — 공개 사이트 JSON(키 불필요, 메모리+디스크 캐시·ETag) 또는 `FIN_CHECKUP_MCP_SOURCE=local`. 도구 6개(`search_companies`·`diagnose_company`·`explain_metric`·`compare_companies`·`recent_risk_disclosures`·`data_status`), 프롬프트 `diagnose`, 리소스 범례·넘지 않는 선·지표 | ☑ |
 | A5 | MCP 설치·사용 문서 `docs/agents.md` — Claude Code·Desktop·Cursor·Codex·VS Code 설정, 도구 표, 대화 예, 넘지 않는 선, 환경변수, 문제 해결. 가드 `tests/test_docs_agents.py`(명령이 플러그인 `.mcp.json` 과 같은지·JSON/TOML 이 읽히는지·도구 표 = 서버 도구) | ☑ |

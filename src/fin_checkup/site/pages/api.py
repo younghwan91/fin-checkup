@@ -17,6 +17,8 @@ from collections.abc import Iterator
 from typing import Any
 
 from fin_checkup.disclaimer import DISCLAIMER
+from fin_checkup.explain.agents import AGENT_GUIDANCE
+from fin_checkup.explain.summary import facts_summary
 from fin_checkup.format import format_metric
 from fin_checkup.metrics.engine import Metric
 from fin_checkup.metrics.peers import PeerStat, SelfDelta
@@ -102,6 +104,9 @@ def company_json(entry: CompanyEntry, site: Site) -> dict[str, Any]:
         "disclaimer": DISCLAIMER,
         "built_on": site.built_on.isoformat(),
         "fiscal_year": latest.bsns_year,
+        # 평이한 사실 문단과 에이전트용 고정 안내 (schema 1 에 더한 필드 — 판은 그대로).
+        "summary_ko": facts_summary(data),
+        "agent_guidance": AGENT_GUIDANCE,
         "company": {
             "name": entry.name,
             "stock_code": entry.stock_code,

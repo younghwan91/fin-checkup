@@ -18,6 +18,8 @@
 | 필드 | 뜻 |
 |---|---|
 | `schema_version` · `disclaimer` · `built_on` · `fiscal_year` | 위와 같다 |
+| `summary_ko` | 측정 결과를 평이한 한국어 사실 문단으로 — 어느 보고서로 쟀는지, 신호 개수, 🔴·🟡 구간 지표와 값, ⊘·⚫ 지표, 위험 신호. 평가·권유는 없다 (`explain/summary.py`) |
+| `agent_guidance` | AI 에이전트가 이 값을 사람에게 전하는 법 — 고정 문장(영어), 모든 회사 같음 (`explain/agents.py`) |
 | `company` | `name` · `stock_code` · `corp_code` · `market` · `industry_code`(KSIC) · `peer_group`(KSIC 앞 두 자리, 업종 비교 단위) · `sector`(`general`·`financial`·`real_estate`) · `sector_label` · `page` |
 | `report` | `reprt_code`(`11011`=사업보고서) · `label` · `fs_div`(`CFS` 연결 / `OFS` 개별) |
 | `currency` · `years` | 금액 통화 · 계산에 쓴 사업연도들 |
@@ -42,6 +44,13 @@
 
 판정 규칙·경계값의 근거는 `src/fin_checkup/metrics/engine.py`, 생성 코드는 `src/fin_checkup/site/pages/api.py`.
 쓰는 예: [`examples/`](../examples/README.md) — 두 회사를 나란히 출력하는 스크립트와 단계별 설명.
+
+## `c/<종목코드>/index.md` (별칭 `c/<종목코드>.md`)
+
+같은 측정값을 에이전트가 읽기 쉬운 마크다운 한 장으로(회사당 5~8 KB): 한눈에 보기(`summary_ko`) · 지표 표(신호 ·
+값 · 작년 · 비교군 중앙값 · 계산식 · 경계값) · 메모(⊘ 대신 볼 것, ⚫ 무엇이 없었는지) · 위험 신호 · 최근 위험 공시 ·
+출처·면책. 경계값 칸은 그 지표에 쓰인 경계를 기호로 줄인 것(`🟢 ≥7% · 🟡 ≥0% · 🔴 <0%`). 회사 HTML 은
+`<link rel="alternate" type="text/markdown" href="index.md">` 로 이 파일을 알린다. 에이전트용 사이트 안내는 `/llms.txt`.
 
 ## `data/disclosures.json` (빌드에 공시 파일을 넘겼을 때만)
 
