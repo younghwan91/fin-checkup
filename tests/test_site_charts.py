@@ -301,6 +301,85 @@ def test_money_metric_strip_uses_korean_units():
     assert bands == ["sig-red", "sig-green"], "good == warn 이면 주의 구간은 폭 0 이라 그리지 않는다"
 
 
+# 경계값 표시: 그린 범위 밖의 경계값은 끝에 "경계 200% →", 가까이 붙은 두 경계값은 한 이름표로.
+# 예전엔 두 번째 경계값 글자를 소리 없이 뺐다 — 실데이터 FY2025 에서 유동비율 띠 2,487개 중 2,010개,
+# 이자보상배율 2,344개 중 2,256개가 경계값 하나를 잃었다.
+
+DEBT_BAND = Band(good=100, warn=200, higher_is_better=False)
+
+
+def strip_texts(svg, cls):
+    return [t.text for t in parse(svg).iter(f"{SVG}text") if t.get("class") == cls]
+
+
+def edge_lines(svg):
+    return [float(ln.get("x1")) for ln in parse(svg).iter(f"{SVG}line") if ln.get("class") == "fc-ch-edge"]
+
+
+def test_thresholds_in_range_get_a_line_and_a_tick_each():
+    svg = peer_strip(metric(), stat(), "KRW", "p").svg
+    assert strip_texts(svg, "fc-ch-tick") == ["0%", "7%"]
+    assert len(edge_lines(svg)) == 2
+    assert strip_texts(svg, "fc-ch-off") == []
+
+
+def test_thresholds_left_of_the_range_are_named_at_the_left_edge():
+    """모두가 40~60% 인 업종 — 0%·7% 를 억지로 넣으면 분포가 한쪽에 짜부라진다. 끝에 이름만."""
+    m = metric(value=50.0)
+    svg = peer_strip(m, stat(median=50.0, p10=40.0, q1=45.0, q3=55.0, p90=60.0), "KRW", "p").svg
+    assert strip_texts(svg, "fc-ch-off") == ["← 경계 0%·7%"]
+    assert strip_texts(svg, "fc-ch-tick") == [] and edge_lines(svg) == []
+    off = next(t for t in parse(svg).iter(f"{SVG}text") if t.get("class") == "fc-ch-off")
+    assert off.get("text-anchor") == "start"
+    box = parse(svg).find(f".//{SVG}rect[@class='fc-ch-box']")
+    assert float(box.get("width")) > 100, "분포가 넓게 보인다"
+
+
+def test_thresholds_right_of_the_range_are_named_at_the_right_edge():
+    m = metric("debt_ratio", 20.0, band=DEBT_BAND)
+    svg = peer_strip(m, stat(median=20.0, p10=5.0, q1=12.0, q3=30.0, p90=40.0), "KRW", "p").svg
+    assert strip_texts(svg, "fc-ch-off") == ["경계 100%·200% →"]
+    off = next(t for t in parse(svg).iter(f"{SVG}text") if t.get("class") == "fc-ch-off")
+    assert off.get("text-anchor") == "end"
+    rects = parse(svg).iter(f"{SVG}rect")
+    bands = [r.get("class").split()[-1] for r in rects if "fc-ch-band" in r.get("class")]
+    assert bands == ["sig-green"], "그린 범위 안은 전부 정상 구간"
+
+
+def test_thresholds_on_both_sides_of_the_range():
+    m = metric(value=50.0, band=Band(good=100, warn=0))
+    svg = peer_strip(m, stat(median=50.0, p10=45.0, q1=48.0, q3=52.0, p90=55.0), "KRW", "p").svg
+    assert strip_texts(svg, "fc-ch-off") == ["← 경계 0%", "경계 100% →"]
+
+
+def test_threshold_between_peers_and_the_company_stays_in_range():
+    """동종업계는 10% 안팎, 이 회사는 -2% — 둘 사이의 0% 선이 이 회사가 위험 구간이라는 걸 보여 준다."""
+    m = metric("roe", -2.0, signal=Signal.RED, band=Band(good=8, warn=0))
+    svg = peer_strip(m, stat(median=10.0, p10=8.6, q1=9.8, q3=11.0, p90=11.5), "KRW", "p").svg
+    assert strip_texts(svg, "fc-ch-tick") == ["0%", "8%"] and strip_texts(svg, "fc-ch-off") == []
+    assert parse(svg).find(f".//{SVG}circle[@class='fc-ch-marker']") is not None, "이 회사 값도 범위 안"
+
+
+def test_one_threshold_in_range_one_off_range_do_not_overlap():
+    """부채비율 100% 는 오른쪽 끝 가까이, 200% 는 밖 — 두 이름표가 겹치면 아랫줄로 내린다."""
+    m = metric("debt_ratio", 50.0, band=DEBT_BAND)
+    strip = peer_strip(m, stat(median=50.0, p10=20.0, q1=35.0, q3=70.0, p90=100.0), "KRW", "p")
+    assert strip_texts(strip.svg, "fc-ch-tick") == ["100%"]
+    assert strip_texts(strip.svg, "fc-ch-off") == ["경계 200% →"]
+    texts = {t.get("class"): float(t.get("y")) for t in parse(strip.svg).iter(f"{SVG}text")}
+    assert texts["fc-ch-off"] != texts["fc-ch-tick"]
+    height = float(parse(strip.svg).get("viewBox").split()[3])
+    assert texts["fc-ch-off"] < height, "아랫줄도 그림 안에"
+
+
+def test_close_thresholds_share_one_label_instead_of_dropping_one():
+    """이자보상배율 1배·3배 — 분포가 -10~100배면 두 선이 몇 px 차이. 둘 다 그리고 이름표는 하나로."""
+    m = metric("interest_coverage", 90.0, band=Band(good=3, warn=1), unit="배")
+    svg = peer_strip(m, stat(median=1.5, p10=-10.0, q1=-2.0, q3=12.0, p90=100.0), "KRW", "p").svg
+    assert len(edge_lines(svg)) == 2
+    assert strip_texts(svg, "fc-ch-tick") == ["1배·3배"]
+
+
 async def test_peer_strips_skip_metrics_without_peers_or_judgement(checkups):
     data = checkups[KB.stock_code]
     peers = {m.key: stat() for m in data.result.metrics}

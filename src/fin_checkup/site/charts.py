@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from html import escape
@@ -332,7 +332,17 @@ _BAND_Y = 42  # 경계값 띠
 _BAND_LABEL_Y = 58
 #: 구간 이름을 적을 최소 폭(px). 더 좁으면 뺀다 — 그 구간은 경계값 숫자와 카드의 경계값 문장이 말해 준다.
 BAND_LABEL_MIN_WIDTH = 30
-_LABEL_GAP = 36  # 경계값 글자 사이 최소 간격(px). 더 가까우면 뒤의 것을 뺀다 — 경계값 문장에 이미 있다.
+_LABEL_GAP = 36  # 경계값 선 사이가 이보다 가까우면 두 선의 이름표를 하나("1배·3배")로 합친다.
+#: 분포(10~90%)에서 폭의 이만큼 넘게 떨어진 값은 범위에 넣지 않는다 — 이 회사 값은 끝에 화살표로,
+#: 경계값은 끝에 "경계 200% →" 로. 억지로 넣으면 분포가 한 점으로 짜부라진다.
+_NEAR = 0.6
+_TICK_ROW = STRIP_H - 2
+_TICK_ROW_2 = STRIP_H + 11  # 이름표가 겹치면 쓰는 아랫줄. 그때만 viewBox 를 늘린다.
+
+
+def _label_width(text: str, size: float = 11) -> float:
+    """11px 산세리프 글자 폭 어림 — 이름표끼리 겹치는지만 본다."""
+    return sum(size * (0.95 if ord(ch) >= 0x1100 else 0.6) for ch in text)
 
 
 def _value_text(value: float, unit: str, currency: str) -> str:
@@ -365,6 +375,53 @@ def _band_segments(band: Band, lo: float, hi: float) -> list[tuple[float, float,
     return out
 
 
+def _edge_labels(
+    edges: list[float], lo: float, hi: float, x: Callable[[float], float], unit: str, currency: str
+) -> list[tuple[str, str, float, str, int]]:
+    """경계값 이름표 (class, 글자, x, text-anchor, y). 경계값은 하나도 빼지 않는다.
+
+    - 그린 범위 안: 선 아래 숫자. 두 선이 `_LABEL_GAP` 보다 가까우면 "1배·3배" 한 이름표로.
+    - 범위 밖: 그쪽 끝에 "← 경계 0%" / "경계 100%·200% →".
+    - 이름표끼리 겹치면 뒤의 것을 아랫줄로.
+    """
+    def text(values: list[float]) -> str:
+        return "·".join(_value_text(v, unit, currency) for v in values)
+
+    inside = [e for e in edges if lo < e < hi]
+    groups: list[list[float]] = []
+    for edge in inside:
+        if groups and x(edge) - x(groups[-1][-1]) < _LABEL_GAP:
+            groups[-1].append(edge)
+        else:
+            groups.append([edge])
+    labels: list[tuple[str, str, float, str, int]] = []
+    left = [e for e in edges if e <= lo]
+    if left:
+        labels.append(("fc-ch-off", f"← 경계 {text(left)}", 0.0, "start", _TICK_ROW))
+    for group in groups:
+        label = text(group)
+        half = _label_width(label) / 2
+        centre = sum(x(e) for e in group) / len(group)
+        labels.append(("fc-ch-tick", label, min(max(centre, half), STRIP_W - half), "middle", _TICK_ROW))
+    right = [e for e in edges if e >= hi]
+    if right:
+        labels.append(("fc-ch-off", f"경계 {text(right)} →", float(STRIP_W), "end", _TICK_ROW))
+
+    def span(label: tuple[str, str, float, str, int]) -> tuple[float, float]:
+        _, t, lx, anchor, _ = label
+        w = _label_width(t)
+        return {"start": (lx, lx + w), "end": (lx - w, lx)}.get(anchor, (lx - w / 2, lx + w / 2))
+
+    placed: list[tuple[str, str, float, str, int]] = []
+    for label in labels:
+        a, b = span(label)
+        clash = any(
+            p[4] == _TICK_ROW and span(p)[0] < b + 4 and a - 4 < span(p)[1] for p in placed
+        )
+        placed.append((*label[:4], _TICK_ROW_2) if clash else label)
+    return placed
+
+
 @dataclass(frozen=True)
 class PeerStrip:
     svg: Markup
@@ -395,11 +452,20 @@ def peer_strip(metric: Metric, stat: PeerStat | None, currency: str, chart_id: s
     unit = metric.unit
     value = metric.value
 
-    anchors = [p10, p90] + ([band.good, band.warn] if band else [])
-    lo, hi = min(anchors), max(anchors)
-    span = hi - lo or max(abs(hi), 1.0)
+    def near(v: float, lo: float, hi: float) -> bool:
+        span = hi - lo or max(abs(hi), 1.0)
+        return lo - span * _NEAR <= v <= hi + span * _NEAR
+
     # 동떨어진 값 하나가 분포를 한 점으로 짜부라뜨리지 않게, 너무 먼 값은 끝에 붙이고 화살표로 표시한다.
-    if lo - span * 0.6 <= value <= hi + span * 0.6:
+    lo, hi = p10, p90
+    if near(value, lo, hi):
+        lo, hi = min(lo, value), max(hi, value)
+    # 경계값은 분포·이 회사 값 가까이 있거나 그 둘 사이에 있을 때만 범위에 넣는다 — 사이에 있는 선이
+    # 이 회사가 어느 구간에 떨어졌는지를 보여 준다. 나머지는 끝에 이름표로("경계 200% →").
+    edges = sorted({band.warn, band.good}) if band else []
+    kept = [e for e in edges if near(e, lo, hi) or value < e < p10 or p90 < e < value]
+    lo, hi = min([lo, *kept]), max([hi, *kept])
+    if near(value, lo, hi):
         lo, hi = min(lo, value), max(hi, value)
     pad = (hi - lo or 1.0) * 0.06
     lo, hi = lo - pad, hi + pad
@@ -440,20 +506,19 @@ def peer_strip(metric: Metric, stat: PeerStat | None, currency: str, chart_id: s
                     f'<text class="fc-ch-band-label" x="{(x0 + x1) / 2:.1f}" y="{_BAND_LABEL_Y}" '
                     f'text-anchor="middle">{_esc(signal.label)}</text>'
                 )
-        last = -math.inf
-        for edge in sorted({band.warn, band.good}):
-            ex = x(edge)
-            if not (lo < edge < hi) or ex - last < _LABEL_GAP:
-                continue
-            last = ex
+        labels = _edge_labels(edges, lo, hi, x, unit, currency)
+        for edge in edges:
+            if lo < edge < hi:
+                parts.append(
+                    f'<line class="fc-ch-edge" x1="{x(edge):.1f}" x2="{x(edge):.1f}" '
+                    f'y1="{_BAND_Y - 3}" y2="{_BAND_Y + 7}"/>'
+                )
+        for cls, text, lx, anchor, row in labels:
             parts.append(
-                f'<line class="fc-ch-edge" x1="{ex:.1f}" x2="{ex:.1f}" '
-                f'y1="{_BAND_Y - 3}" y2="{_BAND_Y + 7}"/>'
+                f'<text class="{cls}" x="{lx:.1f}" y="{row}" text-anchor="{anchor}">{_esc(text)}</text>'
             )
-            parts.append(
-                f'<text class="fc-ch-tick" x="{ex:.1f}" y="{STRIP_H - 2}" text-anchor="middle">'
-                f"{_esc(_value_text(edge, unit, currency))}</text>"
-            )
+        if any(row == _TICK_ROW_2 for *_, row in labels):
+            parts[0] = parts[0].replace(f"0 0 {STRIP_W} {STRIP_H}", f"0 0 {STRIP_W} {_TICK_ROW_2 + 2}")
         parts.append("</g>")
 
     parts.append(f'<g class="fc-ch-dist"><title>{_esc(title)}: {_esc(spread)}</title>')
