@@ -145,6 +145,7 @@
 | A11 | 스킬 `setup`(플러그인 + `.agents/skills/` 사본) — 설치·MCP 연결·키 발급을 에이전트가 안내하되 키는 채팅에 받지 않는다 · `docs/agents.md` '설치·키 발급을 에이전트에게 맡기기' · `AGENTS.md` | ☑ |
 | A12 | Claude Desktop 확장 `.mcpb`(`mcpb/manifest.json`, server.type `uv` — 번들의 `pyproject.toml`·`uv.lock` 을 `uv run --frozen --extra mcp` 로, 선택·민감 `dart_api_key` → env `DART_API_KEY`, 빈 값·자리표시자는 없는 것으로 `drop_unset_key`) · 공식 MCP Registry `server.json`(`io.github.younghwan91/fin-checkup`, `mcpb` 패키지) · `release.yml`(v* 태그 → 태그=버전 확인·pack·validate·stdio 실행 확인·Release(Latest)·sha256 채워 OIDC publish) · CI `mcpb` 잡 · data-* 가 Latest 를 가져가면 v* 로 되돌림(`publish_snapshot.sh`). 도우미 `scripts/release.py`, 가드 `tests/test_release.py`(공개 스키마 사본 `tests/fixtures/schemas/`) | ☑ |
 | A13 | 문서 — `docs/agents.md` 'Claude Desktop 원클릭 (.mcpb)'(최신 릴리스 파일 받기·두 번 눌러 설치·선택 키 칸) · README 두 벌에 한 줄 · `CHANGELOG.md` v0.1.0(릴리스 설명은 이 절에서, `release.py notes`) | ☑ |
+| A14 | 릴리스 고침 v0.1.1 — v0.1.0 태그의 release.yml 이 `tests/test_release.py` 에서 `import yaml` 실패(pyyaml 이 다른 extra 를 타고만 들어와 `--extra mcp --extra dev` 엔 없었다). `pyyaml` 을 `dev` 에, CI `mcpb` 잡이 같은 설치·같은 테스트를 PR 마다, 레지스트리 올리기 전 `mcp-publisher validate`. 버전 0.1.1 | ☑ |
 
 ### B. 브랜드
 차분하고 정직한 측정 도구로 보이게 — 로켓·캔들·돈·위쪽 화살표 없이. 마크·색·말투는 `docs/brand/README.md`.

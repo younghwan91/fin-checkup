@@ -1,6 +1,6 @@
 {
   "name": "fin-checkup",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "한국 상장사 재무 진단 — DART 공시로 계산한 지표 17개의 값·신호등·계산식·경계값을 보여 준다. 측정값이며 투자권유·자문이 아니다.",
   "author": {
     "name": "younghwan91",

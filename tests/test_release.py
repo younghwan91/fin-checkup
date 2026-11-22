@@ -309,6 +309,32 @@ def test_ci_builds_and_runs_the_bundle_with_the_same_mcpb_version():
         assert needle in runs, needle
 
 
+def test_ci_runs_the_release_steps_in_the_same_environment():
+    """v0.1.0: release.yml 은 --extra mcp --extra dev 로 깔고 tests/test_release.py 를 돌렸는데,
+    yaml 은 다른 extra 를 타고만 들어와 있어 태그 때 처음 ImportError 로 멈췄다.
+    CI 의 mcpb 잡이 같은 설치·같은 테스트를 PR 마다 돌린다."""
+
+    def by_name(steps: list[dict]) -> dict[str, str]:
+        return {s["name"]: s.get("run") or "" for s in steps if "name" in s}
+
+    def load(name: str) -> dict:
+        return yaml.safe_load((WORKFLOWS / name).read_text(encoding="utf-8"))
+
+    ci = by_name(load("ci.yml")["jobs"]["mcpb"]["steps"])
+    rel = by_name(load("release.yml")["jobs"]["release"]["steps"])
+    for name in ("의존성 설치 (lock 고정)", "릴리스 가드 테스트", "번들 실행 확인 (stdio)"):
+        assert ci[name].strip() == rel[name].replace('"$BUNDLE"', "fin-checkup.mcpb").strip(), name
+
+
+def test_test_only_imports_are_declared_in_the_dev_extra():
+    import tomllib
+
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    dev = project["optional-dependencies"]["dev"]
+    names = {re.split(r"[<>=\[ ]", d, maxsplit=1)[0].lower() for d in dev}
+    assert {"pyyaml", "jsonschema", "pytest", "respx"} <= names
+
+
 # ── 문서 ────────────────────────────────────────────────────────────
 
 LATEST_BUNDLE = f"{release.REPO_URL}/releases/latest/download/{release.BUNDLE_NAME}"
@@ -317,6 +343,8 @@ LATEST_BUNDLE = f"{release.REPO_URL}/releases/latest/download/{release.BUNDLE_NA
 def test_changelog_has_the_current_version_and_it_becomes_the_release_notes():
     notes = release.release_notes(f"v{__version__}")
     assert "fin-checkup.mcpb" in notes and NAME in notes
+    # 절 안의 번들 링크는 그 버전 것 (버전을 올리며 옛 링크를 남기지 않게).
+    assert set(re.findall(r"/releases/download/(v[^/]+)/", notes)) <= {f"v{__version__}"}
     assert find_outside_allowed(release.CHANGELOG.read_text(encoding="utf-8")) == []
 
 
