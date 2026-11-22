@@ -26,3 +26,43 @@ def test_defaults_to_today_when_not_given():
     today = date.today()
     expected = today.year - 1 if today.month >= 4 else today.year - 2
     assert default_fiscal_year() == expected
+
+
+# ---------------------------------------------------------------------------
+# 증분 수집(collect) — 어느 연도를 볼지, '없음' 을 며칠 믿을지
+# ---------------------------------------------------------------------------
+
+from fin_checkup.fiscal import (  # noqa: E402
+    collect_years,
+    in_filing_season,
+    latest_filing_year,
+    miss_ttl_days,
+)
+
+
+def test_filing_season_is_march_20_to_april_30_inclusive():
+    assert not in_filing_season(date(2026, 3, 19))
+    assert in_filing_season(date(2026, 3, 20))
+    assert in_filing_season(date(2026, 4, 30))
+    assert not in_filing_season(date(2026, 5, 1))
+    assert not in_filing_season(date(2026, 11, 22))
+
+
+def test_latest_filing_year_switches_when_season_starts():
+    # 3/20 부터 직전 연도 사업보고서가 들어오기 시작한다 — 사이트 기본값(4월)보다 먼저 받는다.
+    assert latest_filing_year(date(2026, 3, 19)) == 2024
+    assert latest_filing_year(date(2026, 3, 20)) == 2025
+    assert latest_filing_year(date(2026, 11, 22)) == 2025
+    assert latest_filing_year(date(2027, 1, 5)) == 2025
+
+
+def test_collect_years_are_latest_and_previous_newest_first():
+    assert collect_years(date(2026, 11, 22)) == [2025, 2024]
+    assert collect_years(date(2027, 3, 25)) == [2026, 2025]
+
+
+def test_miss_ttl_is_short_during_filing_season():
+    assert miss_ttl_days(date(2026, 4, 10)) == 3
+    assert miss_ttl_days(date(2026, 11, 22)) == 30
+    assert miss_ttl_days(date(2026, 4, 10), normal=10, season=1) == 1
+    assert miss_ttl_days(date(2026, 6, 1), normal=10, season=1) == 10
