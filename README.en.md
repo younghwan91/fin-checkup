@@ -162,7 +162,7 @@ Operations & policy docs: [OPERATIONS](docs/OPERATIONS.md) · [REGULATORY](docs/
 
 **MIT** — see [LICENSE](./LICENSE). You are free to use, modify, and distribute this software, including commercially.
 
-The underlying data does not belong to fin-checkup: DART is public data that may be used commercially and redistributed, and SEC EDGAR is in the public domain. Because DART API keys are issued per individual, never include your own key in a fork or deployment. Additional domain conditions outside the MIT license are in [docs/REGULATORY.md](docs/REGULATORY.md) (Korean).
+The underlying data does not belong to fin-checkup: the OpenDART terms contain no clause prohibiting commercial use or redistribution and defer to Korea's Public Data Act (they also don't grant it explicitly), and SEC EDGAR is in the public domain. Because DART API keys are issued per individual, never include your own key in a fork or deployment. Additional domain conditions outside the MIT license are in [docs/REGULATORY.md](docs/REGULATORY.md) (Korean).
 
 ## Disclaimer
 
