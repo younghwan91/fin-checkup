@@ -155,3 +155,40 @@ def test_og_png_is_1200_by_630(fonts):
 @pytest.mark.skipif(not os.environ.get("CI"), reason="CI 에서만 — 로컬은 글꼴이 없어도 된다")
 def test_ci_has_a_korean_font_so_drawing_tests_do_not_silently_skip():
     assert resolve_fonts() is not None, "ci.yml 의 fonts-noto-cjk 설치 단계를 확인할 것"
+
+
+def _overlaps(a, b) -> bool:
+    return min(a.x1, b.x1) - max(a.x0, b.x0) > 0 and min(a.y1, b.y1) - max(a.y0, b.y0) > 0
+
+
+def test_og_card_wears_the_brand_mark_beside_the_name(fonts):
+    """머리글 왼쪽에 작은 마크 하나 — 글자와 겹치지 않고 'fin-checkup' 과 같은 줄."""
+    canvas = draw_og(_card(), fonts)
+    assert len(canvas.logos) == 1
+    logo = canvas.logos[0]
+    name = next(box for text, box in canvas.texts if text == "fin-checkup")
+    assert logo.x1 < name.x0 and logo.height <= 48
+    assert logo.y0 < (name.y0 + name.y1) / 2 < logo.y1
+    assert not any(_overlaps(logo, box) for _t, box in canvas.texts)
+    # 마크의 종이(먹색)가 실제로 찍혔다 — 상자만 남기고 그림을 빠뜨리지 않게.
+    with Image.open(io.BytesIO(render_og(_card(), fonts))) as image:
+        px = image.convert("RGB").getpixel((round(logo.x0 + logo.width * 0.85), round(logo.y1 - 4)))
+    assert max(abs(c - t) for c, t in zip(px, (0x1B, 0x1B, 0x19), strict=True)) < 24, px
+
+
+def test_signal_marks_are_the_site_shapes_not_six_circles(fonts):
+    """PNG 의 신호 기호도 사이트·브랜드 마크와 같은 모양 — ● ▲ ■ ▬ ⊘ ◌.
+    색을 못 가려도 모양이 갈린다: 같은 색으로 칠했다고 치고 모양(칠해진 칸)끼리 견준다."""
+    masks = {}
+    for signal in Signal:
+        canvas = Canvas(40, 40, fonts, background="#ffffff", scale=2)
+        canvas.signal_mark(20, 20, 14, signal)
+        gray = canvas.image.convert("L")
+        masks[signal] = [v < 245 for v in gray.getdata()]
+    signals = list(Signal)
+    for i, a in enumerate(signals):
+        for b in signals[i + 1 :]:
+            pairs = list(zip(masks[a], masks[b], strict=True))
+            differ = sum(x != y for x, y in pairs)
+            union = sum(x or y for x, y in pairs)
+            assert differ > 0.12 * union, (a, b, differ, union)

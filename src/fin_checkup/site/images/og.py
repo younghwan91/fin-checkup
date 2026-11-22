@@ -112,8 +112,9 @@ def draw_og(card: OgCard, fonts: FontSet, scale: int = 2) -> Canvas:
     canvas = Canvas(WIDTH, HEIGHT, fonts, background=SURFACE_SUNK, scale=scale)
     content = WIDTH - MARGIN * 2
 
-    # 머리 — 도구 이름과 기준 연도
-    brand = canvas.text(MARGIN, 48, "fin-checkup", 26, bold=True, fill=INK)
+    # 머리 — 마크·도구 이름과 기준 연도
+    logo = canvas.logo(MARGIN, 42, 38)
+    brand = canvas.text(logo.x1 + 12, 48, "fin-checkup", 26, bold=True, fill=INK)
     canvas.text(brand.x1 + 12, 48, "재무제표 신호등", 26, fill=INK_MUTED)
     canvas.text(WIDTH - MARGIN, 48, f"{card.year} 사업연도", 26, fill=INK_MUTED, anchor="ra")
 

@@ -147,6 +147,6 @@
 |---|---|---|
 | B1 | 브랜드 마크 — 귀퉁이 접은 보고서 + 신호 모양 ●▲■(`src/fin_checkup/brand.py` 한 곳에서 SVG·PNG·ICO). `docs/brand/`(마크·워드마크 밝은/어두운, PNG 512·256·128, 브랜드 안내 — `scripts/brand_assets.py` 로 생성, `tests/test_brand.py` 가 어긋남을 막음) · 사이트 파비콘(다크 모드 대응 SVG)·머리글 마크 | ☑ |
 | B2 | README 배너(밝은/어두운 `<picture>`, `scripts/brand_images.py`) · 라이브 사이트 데모 GIF(`scripts/record_demo.py`, 초성 검색 → 한눈에 보기 → 지표 해설) · GitHub 소셜 미리보기 `docs/images/social-preview.png`(오너가 Settings 에서 올림) | ☑ |
-| B3 | 공유 카드(`/og/<코드>.png`)·카드뉴스 표지에 마크 | ☐ |
+| B3 | 공유 카드(`/og/<코드>.png`)·카드뉴스 모든 장 머리에 마크(`Canvas.logo`, `brand.draw_tight_mark`) · PNG 신호 기호를 사이트 모양 ● ▲ ■ ▬ ⊘ ◌ 로(`Canvas.signal_mark` — 원 여섯 개였다) | ☑ |
 
 마케팅 문안 초안은 `_workspace/marketing/` (gitignore).
