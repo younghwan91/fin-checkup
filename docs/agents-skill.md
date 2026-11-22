@@ -16,6 +16,7 @@
 ```
 
 스킬 `diagnose`·`compare` 와 MCP 서버 설정이 함께 들어온다. MCP 서버가 없거나 뜨지 않으면 스킬이 정적 JSON 을 읽는다.
+MCP 서버만 따로 붙이는 법(Claude Desktop·Cursor·Codex·VS Code 설정, 도구 목록, 문제 해결)은 [`agents.md`](agents.md).
 
 ## Codex · Cursor · VS Code(Copilot) — Agent Skills 표준
 

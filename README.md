@@ -67,7 +67,7 @@ curl -s https://younghwan91.github.io/fin-checkup/api/c/005930.json | jq '.metri
 [![fin-checkup 삼성전자 2025 재무 신호등](https://younghwan91.github.io/fin-checkup/badge/005930.svg)](https://younghwan91.github.io/fin-checkup/c/005930/)
 ```
 
-**에이전트** — Claude Code 에서 `/plugin marketplace add younghwan91/fin-checkup` → `/plugin install fin-checkup@fin-checkup` 하면 "삼성전자 재무 진단해줘" 에 답한다. Codex·Cursor·ChatGPT 는 [`docs/agents-skill.md`](docs/agents-skill.md).
+**에이전트** — Claude Code 에서 `/plugin marketplace add younghwan91/fin-checkup` → `/plugin install fin-checkup@fin-checkup` 하면 "삼성전자 재무 진단해줘" 에 답한다. Codex·Cursor·ChatGPT 는 [`docs/agents-skill.md`](docs/agents-skill.md). MCP 서버(`fin-checkup-mcp`)를 직접 붙이려면 [`docs/agents.md`](docs/agents.md).
 
 **기여** — 테스트는 `.env` 없이 돕니다(`uv run pytest -q`). 지표 해설·용어집·업종 설명 고치는 법과 넘지 않는 선은 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
