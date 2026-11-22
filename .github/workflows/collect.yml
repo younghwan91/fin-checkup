@@ -131,16 +131,17 @@ jobs:
           SNAPSHOT_NOTES: "Actions 증분 수집: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} (이전 스냅샷 ${{ steps.snapshot.outputs.tag }})"
         run: scripts/publish_snapshot.sh
 
-      # 스냅샷은 매번 전체다 — 최근 것만 있으면 된다. 만든 시각 기준 최근 7개를 남기고, 방금 올린 것은 절대 지우지 않는다.
+      # 스냅샷은 매번 전체다 — 최근 것만 있으면 된다. 올린 시각(publishedAt — createdAt 은 커밋 시각이다) 기준
+      # 최근 7개를 남기고, 방금 올린 것은 절대 지우지 않는다.
       - name: 옛 스냅샷 릴리스 정리 (최근 7개)
         if: steps.publish.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           NEW_TAG: ${{ steps.publish.outputs.tag }}
         run: |
-          gh release list --limit 200 --json tagName,isDraft,createdAt \
+          gh release list --limit 200 --json tagName,isDraft,publishedAt \
             --jq '[.[] | select(.isDraft | not) | select(.tagName | startswith("data-"))]
-                  | sort_by(.createdAt) | reverse | .[7:] | .[].tagName' |
+                  | sort_by(.publishedAt) | reverse | .[7:] | .[].tagName' |
           while read -r old; do
             if [ -z "$old" ] || [ "$old" = "$NEW_TAG" ]; then continue; fi
             echo "지운다: $old"

@@ -81,3 +81,14 @@ def test_pages_and_collect_share_the_snapshot_script() -> None:
     assert "scripts/fetch_snapshot.sh" in pages
     script = (ROOT / "scripts" / "fetch_snapshot.sh").read_text(encoding="utf-8")
     assert "fin_checkup.cli snapshot import" in script
+
+
+def test_snapshots_are_ordered_by_publish_time_not_commit_time() -> None:
+    """gh 의 createdAt 은 릴리스가 가리키는 커밋 시각이다 — 같은 main 커밋 위에 매일 올린 스냅샷은
+    createdAt 이 모두 같아서 '가장 최근' 이 아무것이나 되고, 정리 단계가 방금 것보다 옛것을 남길 수 있었다
+    (2026-11-22 data-20261122: createdAt 12:31:03 = 커밋 시각, publishedAt 12:37:23)."""
+    script = (ROOT / "scripts" / "fetch_snapshot.sh").read_text(encoding="utf-8")
+    prune = _steps()[_index(_steps(), "gh release delete")]["run"]
+    for text in (script, prune):
+        assert "sort_by(.publishedAt)" in text
+        assert "sort_by(.createdAt)" not in text
