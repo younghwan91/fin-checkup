@@ -32,7 +32,8 @@ ROWS = (18.0, 32.0, 46.0)
 MARK_X = 21.0
 #: 값 막대 (시작 x, 굵기, 줄마다 길이).
 BAR_X, BAR_H, BAR_LENGTHS = 31.0, 5.0, (17.0, 11.0, 14.0)
-#: 사이트 머리글처럼 여백 없이 쓸 때의 viewBox.
+#: 마크를 여백 없이 쓸 때의 영역 (x0, y0, x1, y1) — 사이트 머리글·공유 카드.
+TIGHT = (8.0, 3.0, 56.0, 61.0)
 TIGHT_VIEWBOX = "8 3 48 58"
 
 
@@ -240,3 +241,12 @@ def draw_mark(size: int, theme: str = "light", supersample: int = 8) -> Image.Im
             fill=pal.bar,
         )
     return image.resize((size, size), Image.Resampling.LANCZOS)
+
+
+def draw_tight_mark(height: int, theme: str = "light") -> Image.Image:
+    """여백(TIGHT 밖)을 잘라 낸 RGBA 마크 — 높이 height 픽셀."""
+    x0, y0, x1, y1 = TIGHT
+    full = round(height * GRID / (y1 - y0))
+    image = draw_mark(full, theme)
+    k = full / GRID
+    return image.crop((round(x0 * k), round(y0 * k), round(x1 * k), round(y0 * k) + height))

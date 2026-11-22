@@ -210,7 +210,8 @@ def footer_height(canvas: Canvas, deck: CardDeck) -> int:
 
 def _frame(canvas: Canvas, deck: CardDeck, page: int, pages: int, cover: bool = False) -> tuple[float, float]:
     """머리(도구 이름·쪽수·회사)와 바닥(출처·면책). 본문이 쓸 (위, 아래) y 를 돌려준다."""
-    brand = canvas.text(MARGIN, 60, "fin-checkup", 26, bold=True, fill=INK)
+    logo = canvas.logo(MARGIN, 54, 38)
+    brand = canvas.text(logo.x1 + 12, 60, "fin-checkup", 26, bold=True, fill=INK)
     canvas.text(brand.x1 + 12, 60, "재무제표 신호등", 26, fill=INK_MUTED)
     canvas.text(WIDTH - MARGIN, 60, f"{page} / {pages}", 26, fill=INK_MUTED, anchor="ra")
     top = 120.0

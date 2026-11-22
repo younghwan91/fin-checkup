@@ -65,6 +65,12 @@ def assert_card_rules(canvas, deck, fonts):
     assert f"출처: {SOURCE_NAME}" in text and "DART" in text, "모든 장에 출처"
     assert canvas.overflow(margin=24) == [], "판 밖으로 나간 글자·도형"
     assert canvas.collisions() == [], "서로 겹친 글자 (본문이 바닥글을 덮는 등)"
+    assert len(canvas.logos) == 1, "모든 장 머리에 브랜드 마크 하나"
+    logo = canvas.logos[0]
+    assert not any(
+        min(logo.x1, b.x1) > max(logo.x0, b.x0) and min(logo.y1, b.y1) > max(logo.y0, b.y0)
+        for _t, b in canvas.texts
+    ), "마크가 글자를 덮지 않는다"
     assert banned.find_outside_allowed(text, [deck.name]) == []
     for line, _box in canvas.texts:
         assert not missing_glyphs(line, fonts.font(24)), f"글꼴에 없는 글자(두부): {line!r}"

@@ -5,7 +5,7 @@
 그린 글자는 전부 `Canvas.texts` 에 (문자열, 상자)로 남는다. 테스트가 이것으로 '카드 밖으로 넘친 글자'
 와 '면책·출처가 실제로 찍혔는가' 를 본다 — 픽셀을 OCR 하지 않고.
 
-색만으로 말하지 않는다: `signal_mark` 는 모양도 다르다(⚪ 테두리 원, ⊘ 사선 원, ⚫ 진회색).
+색만으로 말하지 않는다: `signal_mark` 는 모양도 다르다(● ▲ ■ ▬ ⊘ ◌ — 사이트와 같다).
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageDraw, ImageFont
 
+from fin_checkup.brand import TIGHT, draw_tight_mark
 from fin_checkup.metrics.signals import Signal
 from fin_checkup.site.images.fonts import FontSet
 from fin_checkup.theme import BORDER, INK, SIGNAL_COLORS
@@ -132,6 +133,8 @@ class Canvas:
         self.texts: list[tuple[str, Box]] = []
         #: 그린 도형의 상자 (넘침 검사용).
         self.shapes: list[Box] = []
+        #: 브랜드 마크를 찍은 상자 (테스트가 자리·겹침을 본다).
+        self.logos: list[Box] = []
 
     @property
     def bounds(self) -> Box:
@@ -161,20 +164,47 @@ class Canvas:
     def line(self, x0: float, y0: float, x1: float, y1: float, fill: str, width: int = 1) -> None:
         self.draw.line(self._s(x0, y0, x1, y1), fill=fill, width=width * self.scale)
 
+    def logo(self, x: float, y: float, height: float) -> Box:
+        """브랜드 마크(`fin_checkup.brand`)를 (x, y) 왼쪽 위에 높이 height 로. 폭은 높이의 48/58."""
+        x0, y0, x1, y1 = TIGHT
+        box = Box(x, y, x + height * (x1 - x0) / (y1 - y0), y + height)
+        mark = draw_tight_mark(round(height * self.scale))
+        self.image.paste(mark, (round(x * self.scale), round(y * self.scale)), mark)
+        self.shapes.append(box)
+        self.logos.append(box)
+        return box
+
     def signal_mark(self, cx: float, cy: float, r: float, signal: Signal) -> Box:
-        """신호 기호를 도형으로 — 글꼴에 컬러 이모지가 없어서 🟢 를 글자로 못 찍는다."""
+        """신호 기호를 도형으로 — 글꼴에 컬러 이모지가 없어서 🟢 를 글자로 못 찍는다.
+
+        사이트(site.css `.fc-mark`)·브랜드 마크와 같은 모양: 정상 ●, 주의 ▲, 위험 ■, 측정값 ▬,
+        해당 없음 ⊘(사선 원), 데이터 없음 ◌(점선 빈 원). 색을 못 가려도 모양으로 갈린다."""
         color = SIGNAL_COLORS[signal]
         self.shapes.append(Box(cx - r, cy - r, cx + r, cy + r))
         x0, y0, x1, y1 = self._s(cx - r, cy - r, cx + r, cy + r)
         stroke = max(2, round(r * 0.22)) * self.scale
-        if signal is Signal.NEUTRAL:
-            self.draw.ellipse((x0, y0, x1, y1), fill="#ffffff", outline=color, width=stroke)
+        if signal is Signal.GREEN:
+            self.draw.ellipse((x0, y0, x1, y1), fill=color)
+        elif signal is Signal.YELLOW:
+            self.draw.polygon(self._s(cx, cy - r, cx + r, cy + r * 0.8, cx - r, cy + r * 0.8), fill=color)
+        elif signal is Signal.RED:
+            side = r * 0.86
+            self.draw.rounded_rectangle(
+                self._s(cx - side, cy - side, cx + side, cy + side), radius=r * 0.12 * self.scale, fill=color
+            )
+        elif signal is Signal.NEUTRAL:
+            half = r * 0.42
+            self.draw.rounded_rectangle(
+                self._s(cx - r, cy - half, cx + r, cy + half), radius=half * 0.5 * self.scale, fill=color
+            )
         elif signal is Signal.NOT_APPLICABLE:
             self.draw.ellipse((x0, y0, x1, y1), fill=None, outline=color, width=stroke)
             d = r * 0.62
             self.draw.line(self._s(cx - d, cy + d, cx + d, cy - d), fill=color, width=stroke)
-        else:
-            self.draw.ellipse((x0, y0, x1, y1), fill=color)
+        else:  # UNKNOWN — 점선 빈 원: 비어 있다는 뜻을 모양으로.
+            for k in range(10):
+                start = k * 36
+                self.draw.arc((x0, y0, x1, y1), start, start + 20, fill=color, width=stroke)
         return Box(cx - r, cy - r, cx + r, cy + r)
 
     # ── 글자 ─────────────────────────────────────────────
