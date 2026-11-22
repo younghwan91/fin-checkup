@@ -151,6 +151,26 @@ FIELD_SPECS: tuple[FieldSpec, ...] = (
 )
 
 
+#: 고객 돈 부채 — 은행·증권의 예수부채, 보험사의 보험계약부채·투자계약부채. 업종 판별 근거
+#: (`metrics.sector`): 부채 대부분이 이 줄이면 부채비율은 빚이 아니라 맡은 돈을 잰다.
+CUSTOMER_FUND_SPECS: tuple[FieldSpec, ...] = (
+    FieldSpec("deposits", BS, account_ids=("ifrs-full_DepositsFromCustomers",), account_names=("예수부채",)),
+    FieldSpec(
+        "insurance_contracts", BS,
+        account_ids=(
+            "ifrs-full_InsuranceContractsIssuedThatAreLiabilities",
+            "ifrs-full_InsuranceContractsThatAreLiabilities",
+        ),
+        account_names=("보험계약부채",),
+    ),
+    FieldSpec(
+        "investment_contracts", BS,
+        account_ids=("ifrs-full_InvestmentContractsLiabilities",),
+        account_names=("투자계약부채",),
+    ),
+)
+
+
 #: 유형자산 취득 합계 태그. 회사가 종류 한 줄('시설장치의 취득')에 붙이기도 해서 이름도 본다.
 PPE_PURCHASE_ID = "ifrs-full_PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities"
 #: 합계 줄의 이름(공백·앞 번호 제거 뒤 완전일치). '처분이익 조정' 같은 간접법 조정 항목은 CapEx가
@@ -418,6 +438,11 @@ def _interest_expense(
     return None, None
 
 
+def _customer_fund_liabilities(lines: list[AccountLine]) -> float | None:
+    found = [v for v in (_find(lines, spec) for spec in CUSTOMER_FUND_SPECS) if v is not None]
+    return sum(abs(v) for v in found) if found else None
+
+
 def _currency_of(lines: Iterable[AccountLine]) -> str:
     """계정 줄의 통화 최빈값. DART 에 USD·JPY·CNY 로 공시하는 기업이 24곳 있다 —
     KRW 로 두면 두산밥캣 자산 82억달러가 '82억원'으로 찍힌다."""
@@ -449,6 +474,7 @@ def _normalize(raw: RawStatements) -> Financials:
     values["interest_expense"], source = _interest_expense(raw.lines, values["interest_expense"])
     values["trade_receivables"], receivable_source = _trade_receivables(raw.lines)
     values["capex"], capex_source = _capex(raw.lines)
+    values["customer_fund_liabilities"] = _customer_fund_liabilities(raw.lines)
     return Financials(
         corp_code=raw.corp_code,
         bsns_year=raw.bsns_year,

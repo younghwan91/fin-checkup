@@ -252,6 +252,7 @@ class CheckupService:
         sector = sector_for(
             company.industry_code if company else None,
             company.corp_name if company else None,
+            latest,
         )
 
         result = checkup(latest, prior, sector=sector)
@@ -313,7 +314,8 @@ class CheckupService:
         if company is None:
             return {}
 
-        sector = sector_for(company.industry_code, company.corp_name)
+        # 판정한 업종 그대로 — 64 는 재무제표를 봐야 가를 수 있다(`sector_for`).
+        sector = result.sector
         stats: dict[str, PeerStat] = {}
 
         group = peer_group_for(company.industry_code)
@@ -386,7 +388,7 @@ class CheckupService:
             # 대조군 회사는 자기 업종 기준으로 잰다(backfill 과 같다). 보는 회사의 기준을 들이대면
             # 같은 묶음의 증권사 ⊘ 값이 보험사 대조군에 그대로 섞인다.
             peer = self.cache.get_company(code)
-            own = sector_for(peer.industry_code, peer.corp_name) if peer else sector
+            own = sector_for(peer.industry_code, peer.corp_name, fin) if peer else sector
             for metric in checkup(fin, sector=own).metrics:
                 if metric.value is not None and _comparable(metric, fin.currency):
                     values.setdefault(metric.key, []).append(metric.value)
@@ -408,14 +410,15 @@ class CheckupService:
             next_statements = self.cache.get_statements_bulk(chunk, bsns_year + 1)
             for code, raw in statements.items():
                 company = self.cache.get_company(code)
-                sector = sector_for(
-                    company.industry_code if company else None,
-                    company.corp_name if company else None,
-                )
                 known = self._marked_year(
                     code, bsns_year, _neighbours(code, bsns_year, raw, prior_statements, next_statements)
                 )
                 fin, prior = known[bsns_year], known.get(bsns_year - 1)
+                sector = sector_for(
+                    company.industry_code if company else None,
+                    company.corp_name if company else None,
+                    fin,
+                )
                 result = checkup(fin, prior, sector=sector)
                 values = {
                     m.key: m.value
