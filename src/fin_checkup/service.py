@@ -11,10 +11,12 @@ import logging
 from dataclasses import dataclass, field
 from datetime import timedelta
 
+from fin_checkup.clock import kst_today
 from fin_checkup.config import Settings
 from fin_checkup.config import settings as default_settings
 from fin_checkup.dart.client import DartClient
 from fin_checkup.dart.normalize import normalize_statements
+from fin_checkup.fiscal import miss_ttl_days
 from fin_checkup.metrics.engine import MONEY, CheckupResult, checkup, comparison_base
 from fin_checkup.metrics.peers import (
     MIN_PEERS,
@@ -50,10 +52,18 @@ class Checkup:
     deltas: dict[str, SelfDelta] = field(default_factory=dict)
 
 
+class CallBudgetExhausted(RuntimeError):
+    """이번 실행에 허락한 DART 호출 수(`CheckupService.call_limit`)를 다 썼다. 요청은 보내지 않았다."""
+
+
 class CheckupService:
     def __init__(self, cache: Cache, settings: Settings | None = None) -> None:
         self.cache = cache
         self.settings = settings or default_settings
+        #: 이 서비스가 보낸 DART 요청 수 (재시도 포함). 증분 수집이 예산을 센다.
+        self.calls_made = 0
+        #: 정하면 이 수를 넘는 요청은 보내기 전에 `CallBudgetExhausted` 로 멈춘다.
+        self.call_limit: int | None = None
 
     def _client(self) -> DartClient | None:
         if not self.settings.has_api_key:
@@ -61,7 +71,13 @@ class CheckupService:
         return DartClient(settings=self.settings, on_call=self._record_call)
 
     def _record_call(self, endpoint: str) -> None:
-        """DART 호출을 캐시에 기록한다. 실패해도 조회를 막지는 않는다."""
+        """DART 호출을 세고 캐시에 기록한다. 기록이 실패해도 조회를 막지는 않는다.
+
+        DartClient 가 요청을 보내기 **전에** 부른다 — 여기서 올린 예외는 요청을 막는다.
+        """
+        if self.call_limit is not None and self.calls_made >= self.call_limit:
+            raise CallBudgetExhausted(f"DART 호출 예산 {self.call_limit:,}건을 다 썼다")
+        self.calls_made += 1
         try:
             self.cache.record_dart_call(endpoint, today_key())
         except Exception:  # noqa: BLE001
@@ -70,6 +86,13 @@ class CheckupService:
     def dart_budget(self) -> tuple[int, int]:
         """(오늘 사용한 호출 수, 일별 허용량). 허용량은 설정값이다."""
         return self.cache.dart_calls_today(today_key()), self.settings.dart_daily_quota
+
+    def miss_ttl(self, today=None) -> timedelta:
+        """빈 응답 기록을 믿는 기간. 사업보고서 시즌엔 짧다 (`fiscal.miss_ttl_days`)."""
+        days = miss_ttl_days(
+            today or kst_today(), self.settings.miss_ttl_days, self.settings.miss_ttl_season_days
+        )
+        return timedelta(days=days)
 
     # ------------------------------------------------------------------
     # corp_code
@@ -110,8 +133,12 @@ class CheckupService:
         bsns_year: int,
         reprt_code: ReportCode = ReportCode.ANNUAL,
         allow_fetch: bool = True,
+        miss_ttl: timedelta | None = None,
     ) -> Financials | None:
-        """캐시 우선. 없으면 DART에서 받아 캐시에 넣고 정규화해 반환."""
+        """캐시 우선. 없으면 DART에서 받아 캐시에 넣고 정규화해 반환.
+
+        빈 응답 기록이 `miss_ttl`(기본 `self.miss_ttl()`) 안이면 그 구분(CFS/OFS)은 다시 묻지 않는다.
+        """
         raw = self.cache.get_statements(corp_code, bsns_year, reprt_code)
         if raw is not None:
             return normalize_statements(raw)
@@ -122,9 +149,10 @@ class CheckupService:
         if client is None:
             return None
 
+        ttl = miss_ttl if miss_ttl is not None else self.miss_ttl()
         async with client:
             for fs_div in (FsDiv.CFS, FsDiv.OFS):
-                if self.cache.is_known_miss(corp_code, bsns_year, reprt_code, fs_div):
+                if self.cache.is_known_miss(corp_code, bsns_year, reprt_code, fs_div, ttl=ttl):
                     continue
                 fetched = await client.fetch_statements(corp_code, bsns_year, reprt_code, fs_div)
                 if fetched is None:

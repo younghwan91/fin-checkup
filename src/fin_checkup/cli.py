@@ -70,44 +70,50 @@ async def cmd_sync(args: argparse.Namespace) -> int:
 
 
 async def cmd_collect(args: argparse.Namespace) -> int:
-    """업종 비교용으로 여러 기업의 재무를 미리 캐시에 채운다.
+    """상장사 중 재무가 없는 (회사, 연도)만 호출 예산 안에서 받는다 (collect.py).
 
-    기업 1곳당 호출은 기업개황 1회 + 재무제표 1~2회다. DART 일별 허용량이 있으니
-    --limit으로 나눠서 돌리는 걸 전제로 만들었다.
+    예산·일별 허용량(020)·시간에 걸려 멈춰도 받은 데까지는 캐시에 남고 0 으로 끝난다 — 다음 실행이
+    이어받는다. 마지막 줄 `collect-summary {...}` 와 --summary-json 은 워크플로가 읽는다.
     """
+    import json
+
+    from fin_checkup.collect import STOP_ERRORS, collect
+
     if not settings.has_api_key:
         print("DART_API_KEY가 없습니다.")
         return 1
 
     with Cache(settings.fin_checkup_db_path) as cache:
-        service = CheckupService(cache)
-        await service.ensure_corp_codes()
-
-        targets = (
-            service.search(args.query) if args.query else cache.search_by_name("", limit=args.limit)
+        summary = await collect(
+            cache,
+            settings,
+            budget=args.budget,
+            years=args.years,
+            max_seconds=args.max_minutes * 60 if args.max_minutes else None,
+            limit=args.limit,
+            progress=lambda line: print(line, flush=True),
         )
-        if not targets:
-            print("대상 기업이 없습니다. 먼저 sync를 실행하세요.")
-            return 1
 
-        done = skipped = 0
-        for i, corp in enumerate(targets, start=1):
-            if cache.get_statements(corp.corp_code, args.year) is not None:
-                skipped += 1
-                continue
-            try:
-                fin = await service.get_financials(corp.corp_code, args.year)
-                await service.ensure_company(corp.corp_code)
-            except RateLimitExceeded:
-                # 오늘은 더 받을 수 없다. 받은 것까지는 캐시에 남았으니 내일 이어서 받는다.
-                print(f"\n[{i}/{len(targets)}] DART 일별 호출 허용량을 넘었다. 여기서 멈춘다.")
-                break
-            done += 1
-            status = "○" if fin is None else "●"
-            print(f"[{i}/{len(targets)}] {status} {corp.corp_name}", flush=True)
-
-        print(f"\n수집 {done}건, 캐시에 이미 있어 건너뜀 {skipped}건")
-    return 0
+    reasons = {
+        "budget": "호출 예산에 닿아 멈췄다",
+        "quota": "DART 일별 호출 허용량(020)을 넘어 멈췄다",
+        "time": "시간 제한에 닿아 멈췄다",
+        "errors": "오류가 이어져 멈췄다",
+    }
+    print(
+        f"\n수집 {summary.fetched:,} · 없음 {summary.empty:,} · 건너뜀(빈 응답 기록) {summary.skipped:,} · "
+        f"실패 {summary.failed:,} · 기업개황 {summary.companies:,} · 남음 {summary.remaining:,} · "
+        f"호출 {summary.calls:,}/{summary.budget:,}"
+    )
+    if summary.stopped:
+        print(f"{reasons[summary.stopped]} — 받은 것은 캐시에 남았고, 다음 실행이 이어받는다.")
+    data = summary.to_dict()
+    line = json.dumps(data, ensure_ascii=False)
+    if args.summary_json:
+        Path(args.summary_json).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.summary_json).write_text(line + "\n", encoding="utf-8")
+    print(f"collect-summary {line}", flush=True)
+    return 1 if summary.stopped == STOP_ERRORS else 0
 
 
 async def cmd_checkup(args: argparse.Namespace) -> int:
@@ -693,10 +699,22 @@ def main(argv: list[str] | None = None) -> int:
     p_sync.add_argument("--force", action="store_true", help="TTL을 무시하고 강제 갱신")
     p_sync.set_defaults(func=cmd_sync)
 
-    p_collect = sub.add_parser("collect", help="업종 비교용으로 여러 기업 재무를 미리 수집")
-    p_collect.add_argument("--year", type=int, default=default_fiscal_year(), help="수집할 사업연도")
-    p_collect.add_argument("--limit", type=int, default=50, help="한 번에 수집할 기업 수")
-    p_collect.add_argument("--query", default="", help="특정 이름으로 한정 (예: 삼성)")
+    p_collect = sub.add_parser(
+        "collect", help="상장사 중 재무가 없는 (회사, 연도)만 호출 예산 안에서 받기 (증분)"
+    )
+    p_collect.add_argument(
+        "--budget", type=int, default=2000,
+        help="이번 실행의 최대 DART 호출 수 (오늘 남은 일별 허용량이 더 적으면 그쪽)",
+    )
+    p_collect.add_argument(
+        "--years", type=int, nargs="+", default=None,
+        help="사업연도 (기본: 새 보고서가 들어올 해와 그 전 해 — fiscal.collect_years)",
+    )
+    p_collect.add_argument("--limit", type=int, default=0, help="상장사 앞에서 N곳만 (0이면 전체)")
+    p_collect.add_argument(
+        "--max-minutes", type=float, default=0, help="이 시간이 지나면 멈춘다 (0이면 제한 없음)"
+    )
+    p_collect.add_argument("--summary-json", default="", help="결과 요약 JSON 을 쓸 파일")
     p_collect.set_defaults(func=cmd_collect)
 
     p_check = sub.add_parser("checkup", help="종목코드 또는 회사명으로 건강검진")

@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     fin_checkup_db_path: Path = Path("data/fin_checkup.duckdb")
     # corp_code 매핑 갱신 주기(일)
     corp_code_ttl_days: int = 7
+    # 빈 응답(fetch_misses)을 다시 묻지 않고 믿는 기간(일). 평소 / 사업보고서 시즌(3/20~4/30, fiscal.py)
+    miss_ttl_days: int = 30
+    miss_ttl_season_days: int = 3
 
     # 위험 공시 알림 (Phase 1.5)
     telegram_bot_token: str = ""
