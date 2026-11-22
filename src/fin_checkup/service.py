@@ -29,7 +29,8 @@ from fin_checkup.metrics.peers import (
 from fin_checkup.metrics.redflags import RedFlag, detect_red_flags
 from fin_checkup.metrics.sector import Sector, peer_group_for, sector_for
 from fin_checkup.metrics.signals import Signal
-from fin_checkup.models import Company, CorpCode, Financials, FsDiv, ReportCode
+from fin_checkup.metrics.units import mark_unit_suspects, pair_scale
+from fin_checkup.models import Company, CorpCode, Financials, FsDiv, RawStatements, ReportCode
 from fin_checkup.storage import Cache, today_key
 
 logger = logging.getLogger(__name__)
@@ -169,15 +170,45 @@ class CheckupService:
         years: int = 5,
         allow_fetch: bool = True,
     ) -> list[Financials]:
-        """최근 N개 사업연도의 재무를 연도 오름차순으로."""
+        """최근 N개 사업연도의 재무를 연도 오름차순으로.
+
+        단위 오류(×1000) 의심 연도에는 `unit_suspect` 를 단다(`metrics.units`). 가르려면 앞뒤 보고서가
+        필요해 범위 밖 두 해씩을 캐시에서만 더 읽는다 — DART 는 부르지 않는다.
+        """
         # DART 전체 재무제표는 2015 사업연도부터 제공된다.
         start = max(2015, end_year - years + 1)
-        collected: list[Financials] = []
+        collected: dict[int, Financials] = {}
         for year in range(start, end_year + 1):
             fin = await self.get_financials(corp_code, year, allow_fetch=allow_fetch)
             if fin is not None:
-                collected.append(fin)
-        return collected
+                collected[year] = fin
+        context = self._cached_reports(corp_code, [*range(start - 2, start), end_year + 1, end_year + 2])
+        marked = mark_unit_suspects({**context, **collected})
+        return [marked[year] for year in sorted(collected)]
+
+    def _cached_reports(self, corp_code: str, years: list[int]) -> dict[int, Financials]:
+        """캐시에 있는 해의 사업보고서만 (DART 호출 없음)."""
+        found: dict[int, Financials] = {}
+        for year in years:
+            raw = self.cache.get_statements(corp_code, year)
+            if raw is not None:
+                found[year] = normalize_statements(raw)
+        return found
+
+    def _marked_year(
+        self, corp_code: str, year: int, known: dict[int, Financials]
+    ) -> dict[int, Financials]:
+        """대조군·백필용: 한 회사의 그해 앞뒤 보고서로 단위 오류 의심을 단다.
+
+        앞뒤 한 해씩은 호출자가 한꺼번에 읽어 온다(`known`). 1,000배 쌍이 보일 때만(드물다 — 실데이터
+        12,903 회사-연도 중 2) 어느 쪽인지 가르려고 두 해 밖을 더 읽는다.
+        """
+        if not any(
+            pair_scale(known.get(y), known.get(y + 1)) not in (None, 1.0) for y in (year - 1, year)
+        ):
+            return known
+        extra = self._cached_reports(corp_code, [y for y in (year - 2, year + 2) if y not in known])
+        return mark_unit_suspects({**known, **extra})
 
     async def ensure_company(self, corp_code: str, allow_fetch: bool = True) -> Company | None:
         """기업개황을 캐시 우선으로 확보한다. 업종 비교에 industry_code가 필요하다."""
@@ -345,10 +376,13 @@ class CheckupService:
             return precomputed
 
         values: dict[str, list[float]] = {}
+        before = self.cache.get_statements_bulk(corp_codes, bsns_year - 1)
+        after = self.cache.get_statements_bulk(corp_codes, bsns_year + 1)
         for code, raw in self.cache.get_statements_bulk(corp_codes, bsns_year).items():
             if code == exclude:
                 continue
-            fin = normalize_statements(raw)
+            known = _neighbours(code, bsns_year, raw, before, after)
+            fin = self._marked_year(code, bsns_year, known)[bsns_year]
             # 대조군 회사는 자기 업종 기준으로 잰다(backfill 과 같다). 보는 회사의 기준을 들이대면
             # 같은 묶음의 증권사 ⊘ 값이 보험사 대조군에 그대로 섞인다.
             peer = self.cache.get_company(code)
@@ -370,25 +404,40 @@ class CheckupService:
             chunk = corp_codes[start : start + batch]
             statements = self.cache.get_statements_bulk(chunk, bsns_year)
             prior_statements = self.cache.get_statements_bulk(chunk, bsns_year - 1)
+            # 다음 해 보고서의 전기 열과 견줘 단위 오류(×1000) 의심 연도를 대조군에서 뺀다.
+            next_statements = self.cache.get_statements_bulk(chunk, bsns_year + 1)
             for code, raw in statements.items():
                 company = self.cache.get_company(code)
                 sector = sector_for(
                     company.industry_code if company else None,
                     company.corp_name if company else None,
                 )
-                prior_raw = prior_statements.get(code)
-                prior = normalize_statements(prior_raw) if prior_raw is not None else None
-                fin = normalize_statements(raw)
+                known = self._marked_year(
+                    code, bsns_year, _neighbours(code, bsns_year, raw, prior_statements, next_statements)
+                )
+                fin, prior = known[bsns_year], known.get(bsns_year - 1)
                 result = checkup(fin, prior, sector=sector)
                 values = {
                     m.key: m.value
                     for m in result.metrics
                     if m.value is not None and _comparable(m, fin.currency)
                 }
+                # 값이 하나도 없어도 저장한다 — 지난 계산의 행을 지워야 한다(단위 오류 의심 연도는 전부 ⚫).
+                self.cache.save_metric_values(code, bsns_year, values)
                 if values:
-                    self.cache.save_metric_values(code, bsns_year, values)
                     done += 1
         return done
+
+
+def _neighbours(
+    code: str, year: int, raw: RawStatements, before: dict, after: dict
+) -> dict[int, Financials]:
+    """그해와, 한꺼번에 읽어 둔 앞뒤 해 보고서(있으면)를 정규화한 것."""
+    known = {year: normalize_statements(raw)}
+    for other, bulk in ((year - 1, before), (year + 1, after)):
+        if code in bulk:
+            known[other] = normalize_statements(bulk[code])
+    return known
 
 
 def _comparable(metric, currency: str) -> bool:
