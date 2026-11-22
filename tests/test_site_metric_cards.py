@@ -75,3 +75,22 @@ def test_browser_phone_cards_stay_short_and_open_on_tap(out):
         assert card.locator("dl.fc-basis-list").is_visible()
         card.locator("details.fc-peer summary").click()
         assert svg.is_visible()
+
+
+def test_last_year_row_separates_change_from_evaluation(out):
+    """"작년 118.70% ↑ 악화" 는 화살표(값이 올랐다)와 낱말(나빠졌다)이 반대로 읽혔다.
+
+    카드에는 값의 움직임(27.93% → 29.94% · 2.01%p 높아짐)과 평가(…나빠진 쪽)를 줄을 나눠 적는다.
+    """
+    rows = [
+        re.search(r'<dt>작년 대비</dt><dd class="fc-delta">(.*?)</dd>', c, re.S)
+        for c in cards(out)
+    ]
+    rows = [r.group(1) for r in rows if r]
+    assert rows, "시드에 작년 대비가 있는 카드가 없다"
+    for row in rows:
+        for contradicting in ("↑", "↓", "개선", "악화"):
+            assert contradicting not in row, row
+        if "작년과 같음" not in row:
+            assert re.search(r"→ .*?(높아짐|낮아짐|늘어남|줄어듦)", row), row
+    assert any('<span class="fc-delta-eval">' in r and "쪽" in r for r in rows), "평가 줄이 없다"

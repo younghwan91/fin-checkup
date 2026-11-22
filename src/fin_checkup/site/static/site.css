@@ -296,6 +296,9 @@ h3 { font-size: .9rem; color: var(--ink-muted); margin: 1.2rem 0 .5rem; letter-s
 }
 .fc-basis-list dt { font-weight: 600; }
 .fc-basis-list dd { margin: 0; }
+/* 작년 대비: 값의 움직임(27.93% → 29.94% · 2.01%p 높아짐)과 평가(…나빠진 쪽)를 줄을 나눠 따로. */
+.fc-delta-values { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fc-delta-eval { display: block; }
 .fc-note { margin: .4rem 0 0; font-size: .82rem; color: var(--ink-muted); }
 .fc-note b { color: var(--ink); }
 

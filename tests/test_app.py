@@ -279,4 +279,7 @@ def test_cards_show_change_from_last_year(db_with_peers):
     app.sidebar.text_input[0].set_value("005930").run()
     body = " ".join(str(e.value) for e in app.markdown)
     assert "작년" in body
-    assert "개선" in body or "악화" in body
+    # 값의 움직임(높아짐·낮아짐)과 평가(좋아진·나빠진 쪽)를 따로 — "↑ 악화" 처럼 서로 반대로 읽히지 않게.
+    assert "→ 올해" in body
+    assert "좋아진 쪽" in body or "나빠진 쪽" in body
+    assert "↑" not in body and "↓" not in body
