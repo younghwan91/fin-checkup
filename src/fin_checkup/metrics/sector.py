@@ -15,12 +15,20 @@ from enum import Enum
 #: 앞 두 자리로 가른다.
 FINANCIAL_PREFIXES = frozenset({"64", "65", "66"})
 REAL_ESTATE_PREFIXES = frozenset({"68"})
+#: 금융업 안에서 '매출' 이 없는 업종 — 은행·저축은행(KSIC 641), 증권·선물 중개업(6612).
+#: 은행은 매출 줄 자체가 없고(2023~2025 은행 15 회사-연도 중 12), 증권사가 적는 '영업수익' 은
+#: 금융상품 평가·처분이익을 손실과 따로 총액으로 담는다(미래에셋증권 2024: 22.2조 중 63%).
+BANKING_PREFIXES = ("641", "6612")
+#: 세 자리 661(금융 지원 서비스업)은 증권사(다올투자증권)도 PG사·기업인수목적회사도 쓴다.
+SECURITIES_THREE_DIGIT_CODE = "661"
 
 
 class Sector(str, Enum):
     GENERAL = "general"
-    #: 은행·보험·금융지주·증권 (KSIC 64~66)
+    #: 보험·카드·캐피탈·신탁·투자 등 (KSIC 64~66 중 아래 BANKING 을 뺀 곳)
     FINANCIAL = "financial"
+    #: 은행·증권·금융지주 — 금융업 규칙에 더해 매출 기반 지표(이익률·매출 증가율)도 판정하지 않는다.
+    BANKING = "banking"
     #: 부동산업 (KSIC 68) — 재고자산이 분양용 토지·건물이라 회전율 해석이 다르다.
     REAL_ESTATE = "real_estate"
 
@@ -29,8 +37,14 @@ class Sector(str, Enum):
         return {
             "general": "일반",
             "financial": "금융업",
+            "banking": "은행·증권·금융지주",
             "real_estate": "부동산업",
         }[self.value]
+
+    @property
+    def is_financial(self) -> bool:
+        """금융업 규칙(부채비율 ⊘·금융 ROA 밴드·좀비 판정 제외)을 받는 업종인가."""
+        return self in (Sector.FINANCIAL, Sector.BANKING)
 
 
 #: 업종 비교를 묶는 단위. KSIC 앞 두 자리(중분류)를 쓴다.
@@ -57,8 +71,12 @@ _FINANCIAL_NAME_HINTS = ("금융", "은행", "증권", "보험", "캐피탈", "�
 _FINANCIAL_HOLDINGS = frozenset({"신한지주", "신한금융지주"})
 
 
+def _bare_name(corp_name: str | None) -> str:
+    return "".join((corp_name or "").split()).replace("(주)", "").replace("주식회사", "")
+
+
 def _is_financial_holding(corp_name: str | None) -> bool:
-    name = "".join((corp_name or "").split()).replace("(주)", "").replace("주식회사", "")
+    name = _bare_name(corp_name)
     if not name:
         return False
     return name in _FINANCIAL_HOLDINGS or any(hint in name for hint in _FINANCIAL_NAME_HINTS)
@@ -67,13 +85,19 @@ def _is_financial_holding(corp_name: str | None) -> bool:
 def sector_for(industry_code: str | None, corp_name: str | None = None) -> Sector:
     """DART 업종코드로 업종을 가른다. 코드가 없으면 일반으로 본다.
 
-    64992(지주회사)만은 코드로 가를 수 없어 회사명을 함께 본다.
+    64992(지주회사)와 세 자리 661 은 코드로 가를 수 없어 회사명을 함께 본다. 금융지주는 은행·증권과
+    같은 기준이다 — 은행 지주는 매출 줄이 없고(KB·신한·하나·우리·BNK·JB·iM), 증권 지주(한국투자·메리츠)의
+    영업수익은 평가·처분이익 총액이다.
     """
     code = (industry_code or "").strip()
     if len(code) < 2:
         return Sector.GENERAL
     if code == HOLDING_COMPANY_CODE:
-        return Sector.FINANCIAL if _is_financial_holding(corp_name) else Sector.GENERAL
+        return Sector.BANKING if _is_financial_holding(corp_name) else Sector.GENERAL
+    if code.startswith(BANKING_PREFIXES):
+        return Sector.BANKING
+    if code == SECURITIES_THREE_DIGIT_CODE and _bare_name(corp_name).endswith("증권"):
+        return Sector.BANKING
     prefix = code[:2]
     if prefix in FINANCIAL_PREFIXES:
         return Sector.FINANCIAL

@@ -1,10 +1,10 @@
 {#
   업종별 읽는 법 `/learn/sectors/`. 넘길 값: why, how, blocks(learn_sectors.SectorBlock 목록), holding, holding_group,
-  general, metric_path, financial. 업종이 좋다·나쁘다를 말하지 않는다 — 자가 다르다는 것까지.
+  general, metric_path. 업종이 좋다·나쁘다를 말하지 않는다 — 자가 다르다는 것까지.
 #}
 {% extends "base.html" %}
 {% from "_signal.html" import mark, badge %}
-{% block title %}업종별 읽는 법 — 은행·보험·지주회사는 왜 ⊘ 인가 · fin-checkup{% endblock %}
+{% block title %}업종별 읽는 법 — 은행·증권·보험·지주회사는 왜 ⊘ 인가 · fin-checkup{% endblock %}
 {% block description %}은행·보험·증권·금융지주와 부동산 회사에는 왜 일부 재무 지표로 판정하지 않는지(⊘), 그 대신 무엇을 보는지, 지주회사는 어떻게 가르는지.{% endblock %}
 {% block main %}
 <article class="fc-learn fc-explainer">
@@ -49,7 +49,7 @@
     </dl>
     {% endif %}
 
-    <p>나머지 {{ b.same_as_general | length }}개({{ b.same_as_general | join(", ") }})는 일반 기준 그대로 판정해요.{% if sector is sameas financial %} 위험 신호 중 '이자보상배율 연속 1 미만'도 금융업에는 적용하지 않아요.{% endif %}</p>
+    <p>나머지 {{ b.same_as_general | length }}개({{ b.same_as_general | join(", ") }})는 일반 기준 그대로 판정해요.{% if sector.is_financial %} 위험 신호 중 '이자보상배율 연속 1 미만'도 {{ sector.label }}에는 적용하지 않아요.{% endif %}</p>
 
     {% if b.groups %}
     <h3>업종 페이지에서 보기</h3>

@@ -25,7 +25,7 @@ AI 에이전트용 안내는 [`/llms.txt`](https://younghwan91.github.io/fin-che
 | `schema_version` · `disclaimer` · `built_on` · `fiscal_year` | 위와 같다 |
 | `summary_ko` | 측정 결과를 평이한 한국어 사실 문단으로 — 어느 보고서로 쟀는지, 신호 개수, 🔴·🟡 구간 지표와 값, ⊘·⚫ 지표, 위험 신호. 평가·권유는 없다 (`explain/summary.py`) |
 | `agent_guidance` | AI 에이전트가 이 값을 사람에게 전하는 법 — 고정 문장(영어), 모든 회사 같음 (`explain/agents.py`) |
-| `company` | `name` · `stock_code` · `corp_code` · `market` · `industry_code`(KSIC) · `peer_group`(KSIC 앞 두 자리, 업종 비교 단위) · `sector`(`general`·`financial`·`real_estate`) · `sector_label` · `page` |
+| `company` | `name` · `stock_code` · `corp_code` · `market` · `industry_code`(KSIC) · `peer_group`(KSIC 앞 두 자리, 업종 비교 단위) · `sector`(`general`·`financial`·`banking`·`real_estate` — `banking` 은 은행·증권·금융지주, 2026-11 추가) · `sector_label` · `page` |
 | `report` | `reprt_code`(`11011`=사업보고서) · `label` · `fs_div`(`CFS` 연결 / `OFS` 개별) |
 | `currency` · `years` | 금액 통화 · 계산에 쓴 사업연도들 |
 | `metrics[]` | 지표 17개, 엔진 정의 순서 (아래) |

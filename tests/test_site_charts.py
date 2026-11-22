@@ -200,7 +200,7 @@ async def test_company_page_has_trend_section_with_table_fallback(cache, tmp_pat
     assert "<details" in html and "표로 보기" in html
     assert "⚫ 데이터 없음" in html
     kb = (out / "c" / KB.stock_code / "index.html").read_text(encoding="utf-8")
-    assert kb.count('class="fc-ch fc-ch-trend"') == 5  # 금융지주: 부채비율·유동비율 ⊘ 은 그리지 않는다
+    assert kb.count('class="fc-ch fc-ch-trend"') == 4  # 금융지주: 영업이익률·부채비율·유동비율 ⊘ 은 안 그린다
 
 
 # ── 동종업계 분포 ─────────────────────────────────────────────────

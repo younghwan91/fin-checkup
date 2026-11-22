@@ -349,7 +349,11 @@ class CheckupService:
             if code == exclude:
                 continue
             fin = normalize_statements(raw)
-            for metric in checkup(fin, sector=sector).metrics:
+            # 대조군 회사는 자기 업종 기준으로 잰다(backfill 과 같다). 보는 회사의 기준을 들이대면
+            # 같은 묶음의 증권사 ⊘ 값이 보험사 대조군에 그대로 섞인다.
+            peer = self.cache.get_company(code)
+            own = sector_for(peer.industry_code, peer.corp_name) if peer else sector
+            for metric in checkup(fin, sector=own).metrics:
                 if metric.value is not None and _comparable(metric, fin.currency):
                     values.setdefault(metric.key, []).append(metric.value)
         return values
@@ -392,8 +396,12 @@ def _comparable(metric, currency: str) -> bool:
 
     대체 계정으로 낸 값(금융원가 이자보상배율)은 대조군에 넣지도, 대조군에 견주지도 않는다.
     2024 상장사 94% 가 금융원가로 계산되던 때의 분포는 외환손실 크기의 분포였다.
+
+    ⊘(그 업종엔 뜻이 없는 값)도 같다 — 은행 부채비율 1,000%·증권사 영업이익률(영업수익이 평가·처분이익
+    총액)이 같은 묶음(64·66)이나 시장 전체 분포에 섞이면 다른 회사의 대조군이 거짓말을 한다. 사이트의 업종
+    분포(`site.groups`)는 처음부터 ⊘ 를 뺐다.
     """
-    if metric.proxy:
+    if metric.proxy or metric.signal is Signal.NOT_APPLICABLE:
         return False
     return metric.unit != MONEY or currency == "KRW"
 

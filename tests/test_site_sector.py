@@ -136,7 +136,7 @@ async def test_missing_values_are_left_out_not_counted_as_zero(out):
 async def test_tiny_group_says_so_and_shows_no_distribution(out):
     text = read(out, "s", "64", "index.html")
     assert "2곳뿐이라 업종 분포를 내지 않습니다" in text
-    assert "일반·금융업 기준으로 판정" in text
+    assert "일반·은행·증권·금융지주 기준으로 판정" in text
     assert 'id="distribution"' not in text
     assert "BIS" in section(text, "about"), "금융업 ⊘ 지표의 대신 볼 것"
     assert peer_group_info("64").mixed_note in text
@@ -161,9 +161,9 @@ async def test_mixed_group_shows_the_thresholds_of_every_sector_used(tmp_path):
         entries, _ = await collect_companies(cache, 2024)
     group64 = [e for e in entries if e.stock_code in (KB.stock_code, HOLDING.stock_code)]
     sectors = member_sectors(group64)
-    assert sectors == [Sector.GENERAL, Sector.FINANCIAL]
+    assert sectors == [Sector.GENERAL, Sector.BANKING]
     debt = next(b for b in metric_blocks(group64, sectors) if b.dist.key == "debt_ratio")
-    assert [t.sector_label for t in debt.thresholds] == ["일반", "금융업"]
+    assert [t.sector_label for t in debt.thresholds] == ["일반", "은행·증권·금융지주"]
     assert "⊘" in debt.thresholds[1].text and "이하" in debt.thresholds[0].text
     assert debt.dist.count == 1, "비금융 지주의 부채비율만 분포에 든다"
 

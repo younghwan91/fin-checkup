@@ -43,7 +43,7 @@ def quantile(values: list[float], pct: float) -> float:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--year", type=int, default=default_fiscal_year())
-    parser.add_argument("--sector", choices=["all", "general", "financial"], default="general")
+    parser.add_argument("--sector", choices=["all", "general", "financial", "banking"], default="general")
     args = parser.parse_args()
 
     with Cache(settings.fin_checkup_db_path, read_only=True) as cache:

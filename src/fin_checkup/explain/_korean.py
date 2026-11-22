@@ -62,3 +62,11 @@ def if_(text: str) -> str:
 def is_(text: str) -> str:
     """'정상' → '정상이에요', '주의' → '주의예요'."""
     return text + ("이에요" if has_final_consonant(text) else "예요")
+
+
+def ro(text: str) -> str:
+    """'금융업' → '금융업으로', '은행·증권·금융지주' → '은행·증권·금융지주로'. ㄹ 받침은 '로'."""
+    word = _TRAILING_PAREN.sub("", text).rstrip()
+    last = word[-1:] if word else ""
+    rieul = last in "178" or ("가" <= last <= "힣" and (ord(last) - 0xAC00) % 28 == 8)  # 일·칠·팔, ㄹ 받침
+    return text + ("으로" if has_final_consonant(text) and not rieul else "로")

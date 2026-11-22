@@ -184,7 +184,21 @@ def _turnaround_rules(noun: str) -> tuple[SpecialRule, ...]:
     )
 
 
-_FINANCIAL = Sector.FINANCIAL
+def _financial(why: str, instead: str) -> tuple[SectorCaveat, ...]:
+    """금융업 규칙은 은행·증권·금융지주에도 그대로 적용된다(engine.BANKING_NOT_APPLICABLE ⊃ 금융업)."""
+    return tuple(SectorCaveat(s, why=why, instead=instead) for s in (Sector.FINANCIAL, Sector.BANKING))
+
+
+#: 은행·증권·금융지주의 매출 기반 지표(engine.NO_SALES_REASON).
+_NO_SALES = SectorCaveat(
+    Sector.BANKING,
+    why=(
+        "은행·금융지주에는 '매출' 개념이 없어 매출 기반 지표가 뜻이 없어요. 증권사가 적는 영업수익도 "
+        "주식·채권·파생상품을 사고팔거나 평가해서 생긴 이익을 손실과 따로 총액으로 담아서(2024 미래에셋증권은 "
+        "영업수익 22.2조 원의 63%) 매출이 아니에요."
+    ),
+    instead="이 페이지의 ROE·ROA, 사업보고서의 순이자마진(NIM)·영업이익경비율(CIR)",
+)
 
 _ENTRIES: tuple[MetricExplainer, ...] = (
     # ── 수익성 ─────────────────────────────────────────────────
@@ -201,6 +215,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "업종마다 보통 수준이 크게 달라요. 유통처럼 많이 팔고 적게 남기는 업종은 원래 낮아요. 같은 업종 중앙값과 함께 보세요.",
             "한 해 숫자만으로는 일시적인 변화인지 알 수 없어요. 몇 해 흐름을 같이 보세요.",
         ),
+        sector_caveats=(_NO_SALES,),
     ),
     MetricExplainer(
         key="net_margin",
@@ -215,6 +230,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "건물·땅·자회사 지분을 팔아 생긴 이익처럼 한 번뿐인 이익(일회성 이익)이 섞이면 크게 뛰어요. 영업이익률과 차이가 크면 그 이유를 공시에서 확인해 보세요.",
             "연결재무제표가 있으면 연결 당기순이익을 써서, 자회사의 다른 주주 몫(비지배지분)까지 들어가 있어요.",
         ),
+        sector_caveats=(_NO_SALES,),
     ),
     MetricExplainer(
         key="roe",
@@ -264,8 +280,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "항공·해운처럼 리스가 많은 업종은 높게 나오기 쉬워요. 그래도 실제로 갚아야 하는 돈이라 일부러 ⊘로 빼지 않았어요.",
         ),
         sector_caveats=(
-            SectorCaveat(
-                _FINANCIAL,
+            *_financial(
                 why="은행은 고객 예금이, 보험사는 보험금을 줄 준비금이 부채로 잡혀서 1,000%가 넘는 게 보통이에요.",
                 instead="은행은 BIS 자기자본비율, 보험사는 지급여력비율(K-ICS)",
             ),
@@ -292,8 +307,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "건설·조선처럼 미리 받은 대금이 유동부채로 잡히는 업종은 낮게 나오기도 해요.",
         ),
         sector_caveats=(
-            SectorCaveat(
-                _FINANCIAL,
+            *_financial(
                 why="금융회사 재무상태표는 유동·비유동을 나누지 않아서 이 비율을 만들 수 없어요.",
                 instead="은행은 감독 규제 지표인 유동성커버리지비율(LCR) 같은 별도 유동성 지표",
             ),
@@ -312,8 +326,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "한 해만 1 미만이면 일시적일 수 있어요. 여러 해 연속인지는 위험 신호에서 따로 봐요.",
         ),
         sector_caveats=(
-            SectorCaveat(
-                _FINANCIAL,
+            *_financial(
                 why="금융회사에게 이자는 빌린 돈의 값이 아니라 장사의 원가(예금 이자 등)라서 1 미만이 흔하고, 갚을 능력을 나타내지 않아요.",
                 instead="BIS 자기자본비율 같은 규제 자본비율, 그리고 이자 장사의 수익성을 보는 순이자마진(NIM)",
             ),
@@ -354,8 +367,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "부채비율과 같은 이야기를 다른 쪽에서 본 거예요. 자기자본비율 50%는 부채비율 100%와 같아요.",
         ),
         sector_caveats=(
-            SectorCaveat(
-                _FINANCIAL,
+            *_financial(
                 why="남의 돈(예금·보험료)으로 영업하는 업종이라 한 자릿수가 보통이에요.",
                 instead="BIS 자기자본비율·지급여력비율(K-ICS) 같은 규제 자본비율",
             ),
@@ -372,6 +384,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "다른 회사를 사들이거나 사업을 떼어 내면 본업과 상관없이 크게 움직여요.",
             "작년 재무가 없으면 계산하지 않아요(⚫).",
         ),
+        sector_caveats=(_NO_SALES,),
         special_rules=(
             SpecialRule(
                 "작년 매출액이 0이면 증가율을 낼 수 없어 비워 둬요.",
@@ -463,8 +476,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
         basis="유통처럼 자산이 적고 많이 파는 업종과 공장이 큰 업종의 차이가 너무 커서 정해진 경계값이 없어요.",
         pitfalls=("다른 업종 회사와 견주면 뜻이 없어요. 같은 업종이나 같은 회사의 과거와 견주세요.",),
         sector_caveats=(
-            SectorCaveat(
-                _FINANCIAL,
+            *_financial(
                 why="금융회사는 큰 자산(대출·투자)이 영업의 결과가 아니라 영업의 전제라서 회전율이 뜻을 잃어요.",
                 instead="금융업 기준 경계값을 쓰는 ROA (총자산이익률)",
             ),
@@ -481,8 +493,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "연말 재고 하나로 나눠요. 연말에 재고가 일시적으로 많거나 적으면 흔들려요.",
         ),
         sector_caveats=(
-            SectorCaveat(
-                _FINANCIAL,
+            *_financial(
                 why="금융회사에는 재고자산이 없어요.",
                 instead="ROA·ROE 같은 수익성 지표",
             ),
@@ -511,8 +522,7 @@ _ENTRIES: tuple[MetricExplainer, ...] = (
             "연말 잔액 하나로 나눠요. 연말에 매출이 몰리는 회사는 낮게 나올 수 있어요.",
         ),
         sector_caveats=(
-            SectorCaveat(
-                _FINANCIAL,
+            *_financial(
                 why="금융회사는 매출채권 대신 대출채권으로 영업해요.",
                 instead="대출의 건전성을 보는 고정이하여신비율(부실채권 비율)",
             ),
