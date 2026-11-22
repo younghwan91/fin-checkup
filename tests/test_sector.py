@@ -307,3 +307,66 @@ def test_holding_company_margin_above_100_percent_is_still_judged():
                   total_liabilities=1000, total_equity=4000)
     margin = checkup(holding, sector=sector_for("64992", "주식회사 엘엑스홀딩스")).by_key("operating_margin")
     assert margin.signal is Signal.GREEN and margin.value == pytest.approx(384)
+
+
+# ── '기타 금융업'(649·64999)은 재무제표로 가른다 (Q17) ─────────────────
+
+#: (주)효성 2025 연결처럼 유동·비유동을 나눠 적고 부채가 차입금·매입채무인 비금융 지주.
+CLASSIFIED = dict(
+    total_assets=5_000, total_liabilities=2_500, total_equity=2_500,
+    current_assets=2_000, current_liabilities=1_800,
+)
+#: 캐피탈·은행처럼 유동성 순서로 적어 유동자산·유동부채 줄이 없는 재무상태표.
+LIQUIDITY_ORDER = dict(total_assets=5_000, total_liabilities=4_400, total_equity=600)
+
+
+@pytest.mark.parametrize(
+    ("code", "corp_name"),
+    [
+        ("649", "(주)효성"),
+        ("649", "에이치디씨(주)"),
+        ("649", "(주)오리온홀딩스"),
+        ("64999", "(주)에이치에스효성"),
+        ("649", "해성산업(주)"),  # 이름에 '홀딩스'·'지주' 가 없다
+    ],
+)
+def test_non_financial_holding_with_a_classified_balance_sheet_is_general(code, corp_name):
+    """KSIC 를 '기타 금융업' 으로만 적은 비금융 지주(2025 상장 10곳)가 접두 64 로 금융업이 돼 부채비율·
+    이자보상배율이 ⊘ 였다 — 64992 비금융 지주를 일반으로 둔 판단(Q13)과 어긋난다."""
+    sector = sector_for(code, corp_name, fin(**CLASSIFIED))
+    assert sector is Sector.GENERAL
+    assert checkup(fin(**CLASSIFIED), sector=sector).by_key("debt_ratio").signal is not Signal.NOT_APPLICABLE
+
+
+@pytest.mark.parametrize("code", ["649", "64911", "64913", "642", "64209"])
+def test_liquidity_order_balance_sheet_keeps_64_financial(code):
+    """캐피탈·카드·신탁·일부 창업투자사는 유동·비유동 구분 없이 적는다 — 금융회사의 재무상태표다."""
+    assert sector_for(code, "한국캐피탈(주)", fin(**LIQUIDITY_ORDER)) is Sector.FINANCIAL
+
+
+def test_classified_balance_sheet_mostly_customer_funds_stays_financial():
+    """유동·비유동을 나눠 적어도 부채 대부분이 예금·보험계약이면 부채비율은 빚이 아니라 맡은 돈을 잰다."""
+    funds = fin(**CLASSIFIED, customer_fund_liabilities=1_300)  # 부채 2,500 의 52%
+    assert sector_for("649", "가상금융", funds) is Sector.FINANCIAL
+    small = fin(**CLASSIFIED, customer_fund_liabilities=300)  # 12% — 그룹의 작은 금융 자회사
+    assert sector_for("649", "가상지주", small) is Sector.GENERAL
+
+
+def test_without_statements_64_falls_back_to_the_prefix():
+    assert sector_for("649", "(주)효성") is Sector.FINANCIAL
+
+
+@pytest.mark.parametrize(
+    ("code", "corp_name", "expected"),
+    [
+        ("64121", "주식회사 카카오뱅크", Sector.BANKING),   # 은행은 코드로 정해진다
+        ("64992", "(주)KB금융지주", Sector.BANKING),        # 지주회사는 이름 규칙 그대로 (Q13)
+        ("64992", "(주)LG", Sector.GENERAL),
+        ("65110", "삼성생명보험(주)", Sector.FINANCIAL),    # 65·66 은 접두 그대로
+        ("66199", "주식회사 카카오페이", Sector.FINANCIAL),
+        ("66121", "미래에셋증권(주)", Sector.BANKING),
+    ],
+)
+def test_statement_check_only_applies_to_the_rest_of_64(code, corp_name, expected):
+    for shape in (CLASSIFIED, LIQUIDITY_ORDER):
+        assert sector_for(code, corp_name, fin(**shape)) is expected

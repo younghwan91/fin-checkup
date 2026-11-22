@@ -243,6 +243,9 @@ class Financials(BaseModel):
     #: trade_receivables 의 출처. 값이 없으면 None.
     trade_receivables_source: ReceivableSource | None = None
     capital_stock: float | None = None  # 자본금 — 자본잠식률 계산에 필요
+    #: 고객 돈 부채 — 예수부채·보험계약부채·투자계약부채의 합. 금융회사 재무상태표인지 가르는 근거
+    #: (`metrics.sector`)라 지표가 아니다. 셋 다 못 찾으면 None.
+    customer_fund_liabilities: float | None = Field(default=None, exclude=True, repr=False)
 
     # 손익계산서
     revenue: float | None = None

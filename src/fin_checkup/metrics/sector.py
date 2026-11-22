@@ -10,6 +10,10 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from fin_checkup.models import Financials
 
 #: DART induty_code는 통계청 표준산업분류(KSIC)다. 5자리(64992)와 3자리(264)가 섞여 있어
 #: 앞 두 자리로 가른다.
@@ -82,12 +86,44 @@ def _is_financial_holding(corp_name: str | None) -> bool:
     return name in _FINANCIAL_HOLDINGS or any(hint in name for hint in _FINANCIAL_NAME_HINTS)
 
 
-def sector_for(industry_code: str | None, corp_name: str | None = None) -> Sector:
+#: 재무제표로 금융업 여부를 가르는 접두. KSIC 64 의 '기타 금융업'(세 자리 649·64999)에는 비금융 지주
+#: ((주)효성·에이치디씨·오리온홀딩스 등 2025 상장 10곳)가 창업투자·캐피탈·기업인수목적회사와 함께 있다.
+#: 이름으로는 못 가른다 — 지주회사라는 말이 이름에 없는 곳(효성·해성산업)이 있고, '인베스트'(경동인베스트)는
+#: 창업투자사도 쓴다. 65(보험)·66(증권·금융 지원 서비스)은 접두 그대로 둔다.
+STATEMENT_CHECKED_PREFIX = "64"
+
+
+def has_financial_statements(fin: Financials) -> bool:
+    """재무제표가 금융회사의 모양인가.
+
+    금융회사는 재무상태표를 유동·비유동으로 나누지 않고 유동성 순서로 적는다(K-IFRS 1001 문단 60) —
+    유동자산·유동부채 줄이 둘 다 없다. 나눠 적었어도 부채의 절반 이상이 고객 돈(예수부채·보험계약부채·
+    투자계약부채)이면 부채비율이 빚이 아니라 맡은 돈을 재므로 금융회사다. 비금융 지주의 연결재무제표는
+    유동·비유동으로 나뉘고 부채가 차입금·매입채무라 둘 다 아니다.
+    """
+    if fin.current_assets is None and fin.current_liabilities is None:
+        return True
+    funds = fin.customer_fund_liabilities
+    if not funds:
+        return False
+    if not fin.total_liabilities:
+        return True
+    return funds * 2 >= abs(fin.total_liabilities)
+
+
+def sector_for(
+    industry_code: str | None,
+    corp_name: str | None = None,
+    statements: Financials | None = None,
+) -> Sector:
     """DART 업종코드로 업종을 가른다. 코드가 없으면 일반으로 본다.
 
     64992(지주회사)와 세 자리 661 은 코드로 가를 수 없어 회사명을 함께 본다. 금융지주는 은행·증권과
     같은 기준이다 — 은행 지주는 매출 줄이 없고(KB·신한·하나·우리·BNK·JB·iM), 증권 지주(한국투자·메리츠)의
     영업수익은 평가·처분이익 총액이다.
+
+    그 밖의 64 는 판정할 재무제표(`statements`)가 금융회사의 모양일 때만 금융업이다
+    (`has_financial_statements`). 재무제표를 모르면 접두대로 금융업으로 둔다.
     """
     code = (industry_code or "").strip()
     if len(code) < 2:
@@ -99,6 +135,12 @@ def sector_for(industry_code: str | None, corp_name: str | None = None) -> Secto
     if code == SECURITIES_THREE_DIGIT_CODE and _bare_name(corp_name).endswith("증권"):
         return Sector.BANKING
     prefix = code[:2]
+    if (
+        prefix == STATEMENT_CHECKED_PREFIX
+        and statements is not None
+        and not has_financial_statements(statements)
+    ):
+        return Sector.GENERAL
     if prefix in FINANCIAL_PREFIXES:
         return Sector.FINANCIAL
     if prefix in REAL_ESTATE_PREFIXES:

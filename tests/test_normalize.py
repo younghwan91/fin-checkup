@@ -538,3 +538,28 @@ def test_comparative_period_comes_from_the_prior_year_column():
 def test_report_without_a_prior_year_column_has_no_comparative():
     fin = normalize_statements(raw(line("IS", "ifrs-full_Revenue", "매출액", 100.0)))
     assert fin.comparative is None
+
+
+# ── 고객 돈 부채 (업종 판별 근거, Q17) ─────────────────────────────
+
+
+def test_customer_fund_liabilities_sum_deposits_and_insurance_contracts():
+    from fin_checkup.dart.normalize import normalize_statements
+    from fin_checkup.models import AccountLine, FsDiv, RawStatements, ReportCode
+
+    def line(account_id, name, amount):
+        return AccountLine(sj_div="BS", account_id=account_id, account_nm=name, thstrm_amount=amount)
+
+    raw = RawStatements(
+        corp_code="1", bsns_year=2025, reprt_code=ReportCode.ANNUAL, fs_div=FsDiv.CFS,
+        lines=[
+            line("ifrs-full_DepositsFromCustomers", "예수부채", 500.0),
+            line("ifrs-full_InsuranceContractsIssuedThatAreLiabilities", "보험계약부채", 300.0),
+            line("-표준계정코드 미사용-", "투자계약부채", 20.0),
+            line("ifrs-full_Liabilities", "부채총계", 1000.0),
+        ],
+    )
+    assert normalize_statements(raw).customer_fund_liabilities == 820.0
+    plain = raw.model_copy(update={"lines": raw.lines[-1:]})
+    assert normalize_statements(plain).customer_fund_liabilities is None
+    assert "customer_fund_liabilities" not in normalize_statements(raw).model_dump()

@@ -77,6 +77,7 @@ def main() -> int:
             sector = sector_for(
                 company.industry_code if company else None,
                 company.corp_name if company else None,
+                fin,
             )
             by_sector[sector.value] += 1
 

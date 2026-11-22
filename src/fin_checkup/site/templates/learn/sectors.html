@@ -16,7 +16,9 @@
 
   <section class="fc-section" id="how" aria-labelledby="how-title">
     <h2 id="how-title">업종은 어떻게 정하나요</h2>
-    <p>{{ how | marks }}</p>
+    {% for line in how %}
+    <p>{{ line | marks }}</p>
+    {% endfor %}
     <p>업종 비교(분포·중앙값)는 이와 별개로 업종코드 앞 두 자리 묶음으로 해요. 묶음마다의 분포는 <a href="{{ url('s/') }}">업종 목록</a>에서 볼 수 있어요.</p>
   </section>
 

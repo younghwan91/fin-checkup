@@ -533,3 +533,47 @@ async def test_not_applicable_values_stay_out_of_peer_pools(service, cache):
     assert result is not None
     assert result.result.by_key("operating_margin").signal.value != "not_applicable"
     assert "operating_margin" not in result.peers
+
+
+# ── '기타 금융업'(649) 비금융 지주는 재무제표로 일반 기준 (Q17) ─────────
+
+
+def _classified(year: int, revenue: float) -> RawStatements:
+    raw = statements(year, revenue)
+    extra = [
+        AccountLine(sj_div="BS", account_id="ifrs-full_CurrentAssets",
+                    account_nm="유동자산", thstrm_amount=3000.0, ord=6),
+        AccountLine(sj_div="BS", account_id="ifrs-full_CurrentLiabilities",
+                    account_nm="유동부채", thstrm_amount=2000.0, ord=7),
+    ]
+    return raw.model_copy(update={"lines": [*raw.lines, *extra]})
+
+
+async def test_649_holding_is_judged_on_its_statements_everywhere(service, cache):
+    """화면(run)·대조군 값(backfill)이 같은 근거로 업종을 가른다 — 회사 정보만 보던 자리가 남으면
+    같은 회사가 화면에선 일반, 대조군에선 금융업이 된다."""
+    from fin_checkup.metrics.sector import Sector
+    from fin_checkup.models import Company
+
+    cache.save_company(Company(corp_code="00126380", corp_name="(주)효성", industry_code="649"))
+    cache.save_statements(_classified(2023, 1000.0))
+    cache.save_statements(_classified(2024, 1200.0))
+    result = await service.run(SAMSUNG, end_year=2024, allow_fetch=False)
+    assert result is not None and result.result.sector is Sector.GENERAL
+    assert result.result.by_key("debt_ratio").signal.value != "not_applicable"
+    assert "debt_ratio" in result.deltas
+
+    service.backfill_metric_values(2024)
+    stored = cache.peer_metric_values(["00126380"], 2024)
+    assert "debt_ratio" in stored and "current_ratio" in stored
+
+
+async def test_649_without_a_current_split_stays_financial(service, cache):
+    from fin_checkup.metrics.sector import Sector
+    from fin_checkup.models import Company
+
+    cache.save_company(Company(corp_code="00126380", corp_name="한국캐피탈(주)", industry_code="649"))
+    cache.save_statements(statements(2024, 1200.0))
+    result = await service.run(SAMSUNG, end_year=2024, allow_fetch=False)
+    assert result is not None and result.result.sector is Sector.FINANCIAL
+    assert result.result.by_key("debt_ratio").signal.value == "not_applicable"

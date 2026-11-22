@@ -85,9 +85,8 @@ def main() -> int:
             if raw is None:
                 continue
 
-            result = checkup(
-                normalize_statements(raw), sector=sector_for(company.industry_code, company.corp_name)
-            )
+            fin = normalize_statements(raw)
+            result = checkup(fin, sector=sector_for(company.industry_code, company.corp_name, fin))
             market_total += 1
             for m in result.metrics:
                 if m.signal is Signal.RED:
