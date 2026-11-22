@@ -51,7 +51,7 @@ claude plugin install fin-checkup@fin-checkup
 claude mcp add fin-checkup -- uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp
 ```
 
-[uv](https://docs.astral.sh/uv/getting-started/installation/) 와 git 이 있으면 됩니다. 클라이언트별 설정·도구 목록은 [`docs/agents.md`](docs/agents.md), Codex·Cursor 용 스킬은 [`docs/agents-skill.md`](docs/agents-skill.md).
+[uv](https://docs.astral.sh/uv/getting-started/installation/) 와 git 이 있으면 됩니다. 클라이언트별 설정·도구 목록은 [`docs/agents.md`](docs/agents.md), Codex·Cursor 용 스킬은 [`docs/agents-skill.md`](docs/agents-skill.md). 설치가 어렵다면 에이전트에게 *"fin-checkup 설치해줘"* 라고 하세요 — 설치와 (원할 때) DART 키 발급까지 안내합니다.
 
 <details>
 <summary>실제 답 (에코프로, 2025 사업연도) 일부</summary>

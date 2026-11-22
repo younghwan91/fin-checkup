@@ -50,6 +50,17 @@ DIAGNOSE_TRIGGERS = (
     "diagnose",
 )
 COMPARE_TRIGGERS = ("비교", "compare", "fin-checkup")
+SETUP_TRIGGERS = (
+    "설치",
+    "설치해줘",
+    "세팅",
+    "연결",
+    "DART 키",
+    "API 키",
+    "인증키",
+    "set up fin-checkup",
+    "install",
+)
 
 #: Agent Skills 표준과 claude.ai 가 받아 주는 frontmatter 키 — 이 밖의 키는 다른 에이전트에서 거부된다.
 PORTABLE_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
@@ -139,7 +150,7 @@ def test_frontmatter_follows_agent_skills_standard(skill):
 
 @pytest.mark.parametrize(
     ("name", "triggers"),
-    [("diagnose", DIAGNOSE_TRIGGERS), ("compare", COMPARE_TRIGGERS)],
+    [("diagnose", DIAGNOSE_TRIGGERS), ("compare", COMPARE_TRIGGERS), ("setup", SETUP_TRIGGERS)],
 )
 def test_description_carries_trigger_phrases(name, triggers):
     meta, _ = split_skill(PLUGIN / "skills" / name / "SKILL.md")
@@ -190,6 +201,26 @@ def test_compare_does_not_pick_a_winner():
     assert "compare_companies" in body
     assert f"{SITE}/compare/?c=" in body
     assert "순위" in body  # "순위를 매기지 않는다" 규칙이 적혀 있다
+
+
+def test_setup_never_takes_the_key_through_chat_and_asks_before_installing():
+    from fin_checkup import onboarding
+
+    _, body = split_skill(PLUGIN / "skills" / "setup" / "SKILL.md")
+    rules = outside_quotes(body)
+    assert "채팅으로 받지 않는다" in rules
+    assert "cat" in rules and ".env" in rules and "커밋하지 않는다" in rules
+    assert "물은 뒤" in rules  # uv 설치·설정 파일 수정 전에 묻는다
+    # 사용자가 직접 돌릴 명령은 CLI 와 같은 글자 — 복사해 붙여도 그대로 돈다.
+    commands = (onboarding.SETUP_ANYWHERE, onboarding.SETUP_IN_REPO, onboarding.UV_INSTALL["macos_linux"])
+    for command in commands:
+        assert command in body, command
+    assert f"! {onboarding.SETUP_ANYWHERE} --from-clipboard" in body
+    assert onboarding.KEY_APPLY_URL in body
+    for tool in ("setup_status", "setup_guide", "diagnose_company"):
+        assert tool in body
+    assert "dart-live" in body
+    assert "claude mcp add fin-checkup --scope user -- uvx --from" in body
 
 
 # ── 다른 에이전트 (Agent Skills 표준 경로 · AGENTS.md · 채팅 지침) ──────────

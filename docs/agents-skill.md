@@ -15,12 +15,12 @@
 /plugin install fin-checkup@fin-checkup
 ```
 
-스킬 `diagnose`·`compare` 와 MCP 서버 설정이 함께 들어온다. MCP 서버가 없거나 뜨지 않으면 스킬이 정적 JSON 을 읽는다.
+스킬 `diagnose`·`compare`·`setup`(설치·DART 키 안내) 과 MCP 서버 설정이 함께 들어온다. MCP 서버가 없거나 뜨지 않으면 스킬이 정적 JSON 을 읽는다.
 MCP 서버만 따로 붙이는 법(Claude Desktop·Cursor·Codex·VS Code 설정, 도구 목록, 문제 해결)은 [`agents.md`](agents.md).
 
 ## Codex · Cursor · VS Code(Copilot) — Agent Skills 표준
 
-같은 스킬의 사본이 [`.agents/skills/`](../.agents/skills/) 에 있다(`fin-checkup-diagnose`·`fin-checkup-compare`,
+같은 스킬의 사본이 [`.agents/skills/`](../.agents/skills/) 에 있다(`fin-checkup-diagnose`·`fin-checkup-compare`·`fin-checkup-setup`,
 심볼릭 링크 없음). 세 도구 모두 프로젝트의 `.agents/skills/<이름>/SKILL.md` 를 읽는다.
 
 - 이 저장소 안에서 일하면 그대로 잡힌다. 루트 [`AGENTS.md`](../AGENTS.md) 도 같은 스킬을 가리킨다.

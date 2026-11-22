@@ -52,7 +52,7 @@ claude plugin install fin-checkup@fin-checkup
 claude mcp add fin-checkup -- uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp
 ```
 
-Needs [uv](https://docs.astral.sh/uv/getting-started/installation/) and git. Per-client setup and the tool list: [`docs/agents.md`](docs/agents.md) (Korean). Answers come in Korean by default with formulas, thresholds and the disclaimer; ask "is it a buy?" and the agent declines and shows the facts instead.
+Needs [uv](https://docs.astral.sh/uv/getting-started/installation/) and git. Per-client setup and the tool list: [`docs/agents.md`](docs/agents.md) (Korean). Answers come in Korean by default with formulas, thresholds and the disclaimer; ask "is it a buy?" and the agent declines and shows the facts instead. If installing feels hard, just tell your agent *"set up fin-checkup"* — it walks you through installation and, if you want, getting your own DART API key.
 
 > Data flow: DART → collection and a public snapshot → a static site rebuilt daily at 07:00 KST → browsers and agents read only that site. Financial statements refresh each filing season; risk disclosures daily.
 

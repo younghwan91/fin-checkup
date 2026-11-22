@@ -92,6 +92,36 @@ uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" f
   --transport streamable-http --port 8000      # → http://127.0.0.1:8000/mcp
 ```
 
+## 설치·키 발급을 에이전트에게 맡기기
+
+플러그인을 넣은 Claude Code 에서 *"fin-checkup 설치해줘"*, *"DART 키 받는 거 도와줘"*, *"set up fin-checkup"* 이라고 하면
+`setup` 스킬([`plugins/fin-checkup/skills/setup/SKILL.md`](../plugins/fin-checkup/skills/setup/SKILL.md))이 순서대로 안내합니다.
+Codex·Cursor·VS Code 는 같은 내용의 [`.agents/skills/fin-checkup-setup/SKILL.md`](../.agents/skills/fin-checkup-setup/SKILL.md),
+MCP 만 붙인 클라이언트는 도구 `setup_guide(client, want_key)` 를 씁니다.
+
+1. OS·클라이언트를 확인하고 `uv` 가 없으면 공식 설치 명령을 보여 준 뒤 **물어보고** 설치합니다.
+2. MCP 서버를 연결합니다 — Claude Code 는 `claude mcp add …`, 다른 클라이언트는 설정 파일을 고칠 diff 를 보여 주고 물은 뒤.
+3. `setup_status()` 와 시험 진단(`diagnose_company("005930")`)으로 확인합니다.
+4. 원하면 OpenDART 인증키 받는 법을 안내합니다(무료, 개인은 신청 즉시 발급, 하루 약 20,000건, 본인만 사용).
+   **키는 사용자가 직접 넣습니다** — 에이전트는 키를 채팅으로 받지 않습니다:
+
+```bash
+uvx --from "fin-checkup @ git+https://github.com/younghwan91/fin-checkup" fin-checkup setup                   # 보이지 않는 입력창(getpass)
+uvx --from "fin-checkup @ git+https://github.com/younghwan91/fin-checkup" fin-checkup setup --from-clipboard  # 입력창이 없는 곳(Claude Code 의 `!`) — 복사한 키를 곧장 파일로
+uvx --from "fin-checkup @ git+https://github.com/younghwan91/fin-checkup" fin-checkup setup --check           # 점검: 키 설정됨/없음 · 유효/무효, 사이트 연결 (비밀 값 없음)
+```
+
+   저장소를 받았다면 그 폴더에서 `uv run python -m fin_checkup.cli setup`. 키는 DART 한 번(기업개황)으로 확인한 뒤
+   사용자 설정 파일(`~/.config/fin-checkup/.env`, Windows `%APPDATA%\fin-checkup\.env`, 권한 600)에 들어가고 — 작업 폴더에
+   `.env` 가 있으면 그 파일 — 화면·로그에는 "유효/무효/한도" 만 나옵니다.
+5. MCP 서버가 그 파일을 읽으므로 클라이언트 설정에 키를 넣을 필요가 없습니다. 클라이언트를 다시 시작한 뒤
+   `setup_status(check_key=true)` 가 `"ok"` 면, 사이트에 없는 사업연도(`diagnose_company("005930", year=2020)`)가
+   `source: "dart-live"` 로 옵니다.
+
+에이전트가 지키는 것: 키를 채팅·명령줄 인자·출력에 넣지 않고, `.env` 를 열어 보거나 커밋하지 않으며, 설치·설정 파일 수정은
+먼저 묻습니다. 클라이언트 설정의 `env` 로 넘기고 싶다면 `setup_guide(client, want_key=true)` 의 `env_alternative` 를
+사용자가 직접 채웁니다(VS Code 는 비밀번호 입력칸으로 묻는 `inputs`).
+
 ## 도구
 
 | 도구 | 하는 일 |
