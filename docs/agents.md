@@ -197,7 +197,7 @@ fin-checkup 은 측정 도구입니다. 종목 추천이나 투자 판단은 하
 | `FIN_CHECKUP_MCP_TTL` | `600` | 캐시를 다시 확인하기까지 초 (사이트의 `max-age` 와 같다). 지나면 ETag 로 재검증 |
 
 클라이언트 설정에 넣을 땐 `"env": {"FIN_CHECKUP_MCP_SOURCE": "local", "FIN_CHECKUP_DB_PATH": "/절대/경로.duckdb"}` 처럼
-(Codex 는 `env = { ... }`). 로컬 모드는 저장소를 받아 데이터를 모은 사람용입니다 — [README](../README.md#개발자라면).
+(Codex 는 `env = { ... }`). 로컬 모드는 저장소를 받아 데이터를 모은 사람용입니다 — [상세 안내](guide.md#개발자라면).
 
 ## 문제 해결
 

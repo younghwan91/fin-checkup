@@ -56,7 +56,7 @@ uv run streamlit run src/fin_checkup/app.py
 
 - 커밋 신원은 레포 git 설정(`48156556+younghwan91@users.noreply.github.com`) 그대로. `git -c user.email=...`
   금지 — `commit-identity.yml` 이 거부한다.
-- 커밋 메시지는 한국어 Conventional Commits(`fix(alerts): ...`), 본문엔 실패 시나리오(왜 문제였나). 수정 묶음당 커밋 하나.
+- 커밋 메시지는 영문 Conventional Commits(`fix(alerts): ...`), 본문엔 실패 시나리오(왜 문제였나). 수정 묶음당 커밋 하나.
 - **공개 레포의 히스토리 재작성은 아무것도 지우지 않는다** — force push 뒤에도 GitHub API 로 옛 SHA 가 열린다
   (2026-08-16 실측). 민감한 것을 올렸으면 레포 교체(rename → 새 레포)뿐. 공개 전 점검은 워킹트리가 아니라 히스토리
   기준. 되돌릴 수 없는 행동 전엔 백업을 홈 디렉터리에.
