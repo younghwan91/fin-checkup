@@ -133,3 +133,20 @@ def test_site_css_logo_colors_are_the_brand_palette():
     light, dark = css_themes()
     for theme, pal in ((light, brand.LIGHT), (dark, brand.DARK)):
         assert (theme["logo-sheet"], theme["logo-fold"], theme["logo-bar"]) == (pal.sheet, pal.fold, pal.bar)
+
+
+def test_social_preview_quotes_the_readme_pitch_and_fits_github():
+    """소셜 미리보기의 한 줄 소개는 README 첫 줄 그대로 — 따로 지어 쓰면 README·레포 설명과 갈린다."""
+    import importlib.util
+    import struct
+
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("brand_images", root / "scripts" / "brand_images.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    html = mod.social_html()
+    for name in ("README.md", "README.en.md"):
+        assert mod.readme_pitch((root / name).read_text("utf-8")) in html
+    png = root / "docs" / "images" / "social-preview.png"
+    assert struct.unpack(">II", png.read_bytes()[16:24]) == (1280, 640)
+    assert png.stat().st_size < 1_000_000

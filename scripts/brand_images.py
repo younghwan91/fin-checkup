@@ -14,11 +14,13 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 from fin_checkup import brand
 
-OUT = Path(__file__).resolve().parents[1] / "docs" / "images"
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "docs" / "images"
 SITE = "younghwan91.github.io/fin-checkup"
 
 TEXT = {
@@ -129,20 +131,30 @@ def banner_html(lang: str, theme: str) -> str:
 <p class="foot">{t["foot"]}</p></div></body></html>"""
 
 
+def readme_pitch(readme: str) -> str:
+    """README 제목(# fin-checkup) 아래 첫 굵은 줄 — 소셜 미리보기는 이 한 줄 소개를 그대로 싣는다."""
+    m = re.search(r"^# fin-checkup\s*$.*?^\*\*(.+?)\*\*\s*$", readme, re.M | re.S)
+    if not m:
+        raise SystemExit("README 제목 아래 굵은 한 줄 소개를 못 찾았다")
+    return m.group(1)
+
+
 def social_html() -> str:
-    t, en, c = TEXT["ko"], TEXT["en"], COLORS["light"]
+    t, c = TEXT["ko"], COLORS["light"]
+    ko = readme_pitch((ROOT / "README.md").read_text("utf-8"))
+    en = readme_pitch((ROOT / "README.en.md").read_text("utf-8"))
     return f"""<!doctype html><html><head><meta charset="utf-8"><style>{_css(c)}
 .frame {{ width: 1280px; height: 640px; padding: 0 88px; }}
 .row {{ display: flex; align-items: center; justify-content: space-between; gap: 56px; }}
 .name {{ font-size: 76px; }} .tag {{ font-size: 28px; }}
-.headline {{ font-size: 32px; margin-top: 40px; }}
-.en {{ color: {c["muted"]}; font-size: 22px; margin-top: 14px; line-height: 1.45; max-width: 620px; }}
+.headline {{ font-size: 42px; font-weight: 700; margin-top: 40px; }}
+.en {{ color: {c["muted"]}; font-size: 24px; margin-top: 14px; line-height: 1.45; max-width: 620px; }}
 .foot {{ position: absolute; left: 88px; right: 88px; bottom: 40px; display: flex; justify-content: space-between; }}
 .url {{ color: {c["ink"]}; font-weight: 500; }}
 </style></head><body><div class="frame"><div class="row"><div>
 <div class="brand">{_mark("light", 140)}<div><div class="name">fin-checkup</div><div class="tag">{t["tagline"]}</div></div></div>
-<p class="headline">{t["headline"]}</p>
-<p class="en">{en["headline"].replace("<br>", " ")}</p></div>{_legend(t)}</div>
+<p class="headline">{ko}</p>
+<p class="en">{en}</p></div>{_legend(t)}</div>
 <p class="foot"><span>{t["foot"]}</span><span class="url">{SITE}</span></p></div></body></html>"""
 
 
