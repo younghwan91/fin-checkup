@@ -22,6 +22,19 @@ Enter a company name to see 17 profitability, stability, and growth ratios as �
 
 ## Quick start
 
+The three fastest ways to plug it into an AI tool. No key or sign-up — it reads the public site data.
+
+| Tool | One-line start |
+|---|---|
+| Claude Desktop | Download [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/latest/download/fin-checkup.mcpb) and double-click it |
+| Claude Code | Run the two lines below, then ask "diagnose 005930" in a new session |
+| Cursor · VS Code · Codex (any MCP client) | `uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp` |
+
+```bash
+claude plugin marketplace add younghwan91/fin-checkup
+claude plugin install fin-checkup@fin-checkup
+```
+
 - **Browse in your browser**: Search by company name or Korean initial consonants (`ㅅㅅㅈㅈ`) on the [site](https://younghwan91.github.io/fin-checkup/).
 - **Ask your AI**: Paste the prompt below into ChatGPT or Claude for a table of ratios and thresholds.
 - **Run from the terminal**: Developers can run the CLI locally (see [developer guide](docs/guide.md#개발자라면) for CLI, static JSON, and badges).
@@ -61,12 +74,7 @@ Outputs 17 traffic-light ratios with formulas, thresholds, and industry medians 
 Read https://younghwan91.github.io/fin-checkup/llms.txt and follow it to diagnose Samsung Electronics' (005930) financials
 ```
 
-**2) Claude Code** — run these two commands, then ask *"diagnose 005930"* in a new session.
-
-```bash
-claude plugin marketplace add younghwan91/fin-checkup
-claude plugin install fin-checkup@fin-checkup
-```
+**2) Claude Code** — run the two commands in [Quick start](#quick-start), then ask *"diagnose 005930"* in a new session.
 
 **3) Cursor · VS Code · Claude Desktop · Codex (MCP server)** — [![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=fin-checkup&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJmaW4tY2hlY2t1cFttY3BdIEAgZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS95b3VuZ2h3YW45MS9maW4tY2hlY2t1cCIsImZpbi1jaGVja3VwLW1jcCJdfQ%3D%3D) [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22fin-checkup%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22fin-checkup%5Bmcp%5D%20%40%20git%2Bhttps%3A%2F%2Fgithub.com%2Fyounghwan91%2Ffin-checkup%22%2C%22fin-checkup-mcp%22%5D%7D)
 
@@ -89,6 +97,16 @@ claude plugin install fin-checkup@fin-checkup
 출처: https://younghwan91.github.io/fin-checkup/c/086520/ · DART
 ```
 </details>
+
+## Works well with
+
+Other Korean-market tools by the same author. fin-checkup covers financial statements; these cover orders, market flows and raw data.
+
+| Repo | What it does |
+|---|---|
+| [kiwoom-client](https://github.com/younghwan91/kiwoom-client) | Kiwoom REST API for Python and AI agents — 182 endpoints, real-time WebSocket, MCP server |
+| [sector-flow](https://github.com/younghwan91/sector-flow) | One map of which sectors each investor type bought and sold today |
+| [krx-fundamentals-client](https://github.com/younghwan91/krx-fundamentals-client) | Python library returning Korean company fundamentals from DART, KRX and Naver as Pydantic models |
 
 ## Caveats
 
