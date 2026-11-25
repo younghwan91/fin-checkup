@@ -1,7 +1,8 @@
 {#
   공통 레이아웃. 블록: title · description · head · header_search · main · scripts.
   랜드마크(header·nav·main·footer)·건너뛰기 링크·lang="ko" 는 가드(site/guard.py `a11y`)가 모든 페이지에서 본다.
-  title·description 은 검색 결과와 공유 미리보기(og:·twitter:)에 그대로 쓰인다 — 페이지마다 다르게.
+  title·description 은 검색 결과와 공유 미리보기(og:·twitter:)·JSON-LD 에 그대로 쓰인다 — 페이지마다 다르게.
+  jsonld 는 컨텍스트 값(선택) — WebPage 에 보탤 schema.org 속성 dict (회사 페이지는 pages/company.py).
   og_image 는 컨텍스트 값(절대주소, 없으면 태그 없음 — 회사 페이지만 site.og_image_url). canonical·og:url 은 --base-url 이 절대주소일 때만.
   링크·자원은 전부 url() 상대경로 — 외부 글꼴·CDN·추적기를 넣지 않는다 (CSP 가 막는다).
 #}
@@ -34,6 +35,12 @@
 <meta property="og:image" content="{{ og_image }}">
 {% endif %}
 <meta name="twitter:card" content="{{ 'summary_large_image' if og_image else 'summary' }}">
+<meta name="twitter:title" content="{{ self.title() | trim }}">
+<meta name="twitter:description" content="{{ self.description() | trim }}">
+{% if og_image %}
+<meta name="twitter:image" content="{{ og_image }}">
+{% endif %}
+{{ site.json_ld(page_path, self.title() | trim, self.description() | trim, jsonld | default(none)) }}
 <link rel="icon" href="{{ url('favicon.ico') }}" sizes="32x32">
 <link rel="icon" href="{{ url('favicon.svg') }}" type="image/svg+xml">
 <link rel="stylesheet" href="{{ url('assets/site.css') }}">

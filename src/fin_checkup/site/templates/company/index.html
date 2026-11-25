@@ -1,10 +1,11 @@
 {#
   회사 페이지. 섹션마다 부분 템플릿 하나 — 섹션을 더하려면 `_<섹션>.html` 을 만들고 아래에 include 한 줄.
+  제목·설명은 검색어(회사 이름 + 지표 이름)가 앞에 오게 — `tests/test_site_meta.py` 가 형식을 본다.
   섹션이 쓸 값: `c`(view.CompanyView), `entry`(context.CompanyEntry), `site`, 그리고 @company_context 가 보탠 키.
 #}
 {% extends "base.html" %}
-{% block title %}{{ c.name }} 재무 신호등 — {{ c.year }} 사업연도 {{ c.groups | map(attribute="rows") | map("length") | sum }}개 지표 · fin-checkup{% endblock %}
-{% block description %}{{ c.name }}({{ c.stock_code }}) {{ c.year }}년 {{ c.report_label }} {{ c.statement_label }}로 계산한 재무비율 — {% for chip in c.chips %}{{ chip.signal.label }} {{ chip.count }}{% if not loop.last %} · {% endif %}{% endfor %}. 지표마다 계산식과 경계값을 함께 적었습니다.{% endblock %}
+{% block title %}{{ c.name }} 재무 신호등 — 부채비율·영업이익률 등 {{ c.groups | map(attribute="rows") | map("length") | sum }}개 지표 · {{ c.year }} 사업연도{% endblock %}
+{% block description %}{{ c.name }}({{ c.stock_code }}) {{ c.year }}년 {{ c.report_label }} {{ c.statement_label }}로 계산한 부채비율·영업이익률·ROE 등 재무비율 — {% for chip in c.chips %}{{ chip.signal.label }} {{ chip.count }}{% if not loop.last %} · {% endif %}{% endfor %}. 지표마다 계산식과 경계값을 함께 적었습니다.{% endblock %}
 {% block head %}
 <link rel="alternate" type="text/markdown" title="{{ c.name }} 재무 측정 (마크다운, 에이전트용)" href="index.md">
 <link rel="alternate" type="application/atom+xml" title="{{ c.name }} 재무 신호등 피드" href="{{ url('feeds/c/' ~ c.stock_code ~ '.xml') }}">

@@ -582,9 +582,10 @@ async def cmd_site_build(args: argparse.Namespace) -> int:
 
 
 async def cmd_site_check(args: argparse.Namespace) -> int:
-    """빌드된 사이트가 넘지 않는 선을 지키는지 (면책·계산식·CSP·외부 스크립트·저장소·인증키)."""
+    """빌드된 사이트가 넘지 않는 선(면책·계산식·CSP·외부 스크립트·저장소·인증키)과 검색 노출 요소."""
     from fin_checkup.site.buildinfo import check_freshness
     from fin_checkup.site.guard import check_coverage, check_site
+    from fin_checkup.site.seo import check_seo
 
     out = Path(args.out_dir)
     # 오래된 사업연도는 위반이 아니라 사람이 볼 경고 — 종료 코드에 넣지 않는다.
@@ -592,14 +593,15 @@ async def cmd_site_check(args: argparse.Namespace) -> int:
     if stale:
         prefix = "::warning::" if os.environ.get("GITHUB_ACTIONS") else "경고: "
         print(f"{prefix}{stale}")
-    violations = check_site(out) + check_coverage(out, args.min_companies)
+    violations = check_site(out) + check_coverage(out, args.min_companies) + check_seo(out)
     files = sum(1 for p in out.rglob("*") if p.is_file()) if out.is_dir() else 0
     if not violations:
         print(f"{out}/ — 파일 {files:,}개 검사, 위반 없음")
         return 0
     for violation in violations:
         print(violation)
-    print(f"\n{out}/ — 파일 {files:,}개 중 위반 {len(violations):,}건 (규칙은 fin_checkup/site/guard.py)")
+    rules = "fin_checkup/site/guard.py · seo.py"
+    print(f"\n{out}/ — 파일 {files:,}개 중 위반 {len(violations):,}건 (규칙은 {rules})")
     return 1
 
 
