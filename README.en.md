@@ -12,7 +12,7 @@ Enter a company name to see 17 profitability, stability, and growth ratios as 馃
 
 [![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/) [![younghwan91/fin-checkup MCP server](https://glama.ai/mcp/servers/younghwan91/fin-checkup/badges/score.svg)](https://glama.ai/mcp/servers/younghwan91/fin-checkup)
 
-[Open the site](https://younghwan91.github.io/fin-checkup/) 路 [Samsung Electronics](https://younghwan91.github.io/fin-checkup/c/005930/) 路 [KB Financial](https://younghwan91.github.io/fin-checkup/c/105560/) 路 [How to read](https://younghwan91.github.io/fin-checkup/learn/) 路 [Guide (Korean)](docs/guide.md)
+[Open the site](https://younghwan91.github.io/fin-checkup/) 路 [Samsung Electronics](https://younghwan91.github.io/fin-checkup/c/005930/) 路 [KB Financial](https://younghwan91.github.io/fin-checkup/c/105560/) 路 [How to read](https://younghwan91.github.io/fin-checkup/learn/) 路 [Guide (Korean)](docs/guide.md) 路 [Blog (Korean)](https://velog.io/@younghwan91/%ED%9A%8C%EC%82%AC-%EC%9D%B4%EB%A6%84%EB%A7%8C-%EB%84%A3%EC%9C%BC%EB%A9%B4-%EC%9E%AC%EB%AC%B4%EC%A0%9C%ED%91%9C-17%EA%B0%9C-%EC%A7%80%ED%91%9C%EB%A5%BC-%EC%8B%A0%ED%98%B8%EB%93%B1%EC%9C%BC%EB%A1%9C-%EA%B3%84%EC%82%B0%EC%8B%9D%EA%B3%BC-%EA%B8%B0%EC%A4%80%EA%B9%8C%EC%A7%80-%EA%B3%B5%EA%B0%9C%ED%96%88%EC%8A%B5%EB%8B%88%EB%8B%A4)
 
 </div>
 
