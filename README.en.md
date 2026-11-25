@@ -10,7 +10,7 @@
 
 Enter a company name to see 17 profitability, stability, and growth ratios as 🟢🟡🔴, each paired with its formula, thresholds, prior-year value, and industry peer comparison. No install, no sign-up, and no API key required.
 
-[![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/)
+[![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/) [![younghwan91/fin-checkup MCP server](https://glama.ai/mcp/servers/younghwan91/fin-checkup/badges/score.svg)](https://glama.ai/mcp/servers/younghwan91/fin-checkup)
 
 [Open the site](https://younghwan91.github.io/fin-checkup/) · [Samsung Electronics](https://younghwan91.github.io/fin-checkup/c/005930/) · [KB Financial](https://younghwan91.github.io/fin-checkup/c/105560/) · [How to read](https://younghwan91.github.io/fin-checkup/learn/) · [Guide (Korean)](docs/guide.md)
 

@@ -10,7 +10,7 @@
 
 회사 이름만 넣으면 수익성·안정성·성장성 17개 지표가 🟢🟡🔴 로 나오며, 색마다 계산식·기준·작년 값·동종업계 분포를 함께 보여 드립니다. 설치·가입·API 키가 필요 없습니다.
 
-[![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/)
+[![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/) [![younghwan91/fin-checkup MCP server](https://glama.ai/mcp/servers/younghwan91/fin-checkup/badges/score.svg)](https://glama.ai/mcp/servers/younghwan91/fin-checkup)
 
 [사이트 바로가기](https://younghwan91.github.io/fin-checkup/) · [삼성전자 예시](https://younghwan91.github.io/fin-checkup/c/005930/) · [KB금융 예시](https://younghwan91.github.io/fin-checkup/c/105560/) · [처음 읽기](https://younghwan91.github.io/fin-checkup/learn/) · [상세 안내](docs/guide.md)
 
