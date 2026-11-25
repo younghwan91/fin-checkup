@@ -435,6 +435,8 @@ gh run watch "$(gh run list --workflow collect.yml --limit 1 --json databaseId -
 - 가장 최근 `data-*` 릴리스를 받는다. **없으면 경고만 남기고 배포하지 않는다** — 지난 사이트가 그대로 남는다.
 - `snapshot import` 로 새 캐시를 만들고 `site build --base-url $SITE_URL` 로 빌드한다.
 - **`site check site-out`** 이 면책·계산식·CSP·외부 스크립트·인증키 패턴을 산출물에서 확인한다(규칙은 `site/guard.py`).
+  같은 명령이 검색 노출 요소도 본다(`site/seo.py`) — 색인 페이지마다 제목·설명·og:/twitter:·canonical·JSON-LD,
+  sitemap 에 빠진 페이지, robots.txt 의 `Sitemap:`.
   하나라도 걸리면 배포하지 않는다.
 - **`site links site-out --base-url $SITE_URL`** 이 내부 링크(상대경로·사이트 주소 아래 절대주소·`#앵커`)가 실제 파일로
   이어지는지 본다(`site/links.py`). 깨진 내부 링크가 있으면 배포하지 않는다. 외부 링크는 목록만 남긴다.

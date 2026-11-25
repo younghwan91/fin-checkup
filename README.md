@@ -10,7 +10,7 @@
 
 회사 이름만 넣으면 수익성·안정성·성장성 17개 지표가 🟢🟡🔴 로 나오며, 색마다 계산식·기준·작년 값·동종업계 분포를 함께 보여 드립니다. 설치·가입·API 키가 필요 없습니다.
 
-[![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/)
+[![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/) [![younghwan91/fin-checkup MCP server](https://glama.ai/mcp/servers/younghwan91/fin-checkup/badges/score.svg)](https://glama.ai/mcp/servers/younghwan91/fin-checkup)
 
 [사이트 바로가기](https://younghwan91.github.io/fin-checkup/) · [삼성전자 예시](https://younghwan91.github.io/fin-checkup/c/005930/) · [KB금융 예시](https://younghwan91.github.io/fin-checkup/c/105560/) · [처음 읽기](https://younghwan91.github.io/fin-checkup/learn/) · [상세 안내](docs/guide.md)
 
@@ -21,6 +21,19 @@
 <p align="center"><sub>공시 수치로 계산한 측정값입니다. 종목 추천이나 투자 판단은 하지 않습니다.</sub></p>
 
 ## 바로 시작하기
+
+AI 도구에 연결하는 가장 빠른 세 가지 방법입니다. 키·가입 없이 공개 사이트 데이터를 읽습니다.
+
+| 쓰는 도구 | 한 줄로 시작하기 |
+|---|---|
+| Claude Desktop | [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/latest/download/fin-checkup.mcpb) 를 받아 두 번 누릅니다 |
+| Claude Code | 아래 두 줄을 입력한 뒤 새 세션에서 "삼성전자 재무 진단해줘" 라고 묻습니다 |
+| Cursor · VS Code · Codex 등 MCP | `uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp` |
+
+```bash
+claude plugin marketplace add younghwan91/fin-checkup
+claude plugin install fin-checkup@fin-checkup
+```
 
 - **브라우저에서 보기**: [사이트](https://younghwan91.github.io/fin-checkup/)에서 회사 이름이나 초성(`ㅅㅅㅈㅈ`)으로 바로 검색합니다.
 - **AI 에게 물어보기**: ChatGPT·Claude 에 아래 문장을 붙여 넣으면 표와 계산식으로 답합니다.
@@ -61,12 +74,7 @@ uv run python -m fin_checkup.cli checkup 005930
 https://younghwan91.github.io/fin-checkup/llms.txt 를 읽고 그 방법대로 삼성전자 재무 진단해줘
 ```
 
-**2) Claude Code** — 두 줄 입력 후 새 세션에서 "진단해줘" 라고 물어보세요.
-
-```bash
-claude plugin marketplace add younghwan91/fin-checkup
-claude plugin install fin-checkup@fin-checkup
-```
+**2) Claude Code** — [바로 시작하기](#바로-시작하기)의 두 줄을 입력한 뒤 새 세션에서 "진단해줘" 라고 물어보세요.
 
 **3) Cursor · VS Code · Claude Desktop · Codex (MCP 서버)** — [![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=fin-checkup&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJmaW4tY2hlY2t1cFttY3BdIEAgZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS95b3VuZ2h3YW45MS9maW4tY2hlY2t1cCIsImZpbi1jaGVja3VwLW1jcCJdfQ%3D%3D) [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22fin-checkup%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22fin-checkup%5Bmcp%5D%20%40%20git%2Bhttps%3A%2F%2Fgithub.com%2Fyounghwan91%2Ffin-checkup%22%2C%22fin-checkup-mcp%22%5D%7D)
 
@@ -89,6 +97,16 @@ claude plugin install fin-checkup@fin-checkup
 출처: https://younghwan91.github.io/fin-checkup/c/086520/ · DART
 ```
 </details>
+
+## 같이 쓰면 좋은 것
+
+같은 사람이 만든 한국 주식 도구입니다. fin-checkup 은 재무제표를, 아래 도구는 주문·수급·원천 데이터를 다룹니다.
+
+| 레포 | 하는 일 |
+|---|---|
+| [kiwoom-client](https://github.com/younghwan91/kiwoom-client) | 키움 REST API 를 파이썬과 AI 에이전트로 씁니다 — 엔드포인트 182개·실시간 WebSocket·MCP 서버 |
+| [sector-flow](https://github.com/younghwan91/sector-flow) | 오늘 어느 섹터로 돈이 들고 났는지, 투자 주체별 순매매를 지도 한 장으로 봅니다 |
+| [krx-fundamentals-client](https://github.com/younghwan91/krx-fundamentals-client) | DART·KRX·네이버의 기업 펀더멘털을 Pydantic 모델로 받는 파이썬 라이브러리입니다 |
 
 ## 유의할 점
 

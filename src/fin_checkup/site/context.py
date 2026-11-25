@@ -152,6 +152,18 @@ class Site:
             return None
         return self.absolute_url(f"og/{stock_code}.png")
 
+    def json_ld(
+        self, output_path: str, title: str, description: str, extra: dict[str, Any] | None = None
+    ) -> str:
+        """그 페이지의 JSON-LD `<script>` (`site/structured.py`). 절대주소가 없으면(404 포함) 빈 문자열."""
+        url = self.canonical_url(output_path)
+        if url is None:
+            return ""
+        from fin_checkup.site import structured
+
+        data = structured.web_page(url, self.absolute_url(), title, description, extra)
+        return structured.script_tag(data)
+
     def render(self, template: str, output_path: str, **context: Any) -> Output:
         """템플릿 하나를 출력 경로에 렌더한다. root·site 는 자동으로 들어간다.
 
