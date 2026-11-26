@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- **Dataset 구조화 데이터** — `/agents/` 의 JSON-LD 가 정적 JSON(`api/index.json`·`api/c/<종목코드>.json`)을 schema.org
+  `Dataset` 으로 알린다(Google 데이터세트 검색). 라이선스 칸은 원천 데이터의 OpenDART 이용약관 — 데이터에 MIT 를 붙이지 않는다.
 - **IndexNow** — 사이트 배포가 끝나면 그 빌드에서 바뀐 페이지 주소를 IndexNow(Bing·네이버·Yandex·Seznam)에 알린다.
   검색 엔진 계정이 없어도 된다. 처음 한 번은 색인 페이지 전부.
 - **검색어에 맞춘 제목** — 회사 페이지 `삼성전자 재무제표 신호등 — 부채비율·영업이익률·ROE 등 17개 지표 (2025)`,
