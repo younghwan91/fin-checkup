@@ -205,3 +205,18 @@ def test_group_sector_follows_sector_for_prefix_rule():
 def test_explanations_have_no_banned_words():
     for name, plain in KSIC_DIVISIONS.values():
         assert banned.find(name + plain) == []
+
+
+def _title(text: str) -> str:
+    return html.unescape(re.search(r"<title>([^<]*)</title>", text).group(1))
+
+
+async def test_titles_lead_with_the_words_people_search(out):
+    # "반도체 업종 재무비율" 처럼 찾는다. 분포를 내는 업종만 중앙값·사분위라고 쓴다 — 없는 것을 약속하지 않게.
+    assert _title(read(out, "s", "26", "index.html")) == (
+        "전자부품·컴퓨터·통신장비 제조업 업종 재무비율 — 상장사 6곳 중앙값·사분위 (2024) · fin-checkup"
+    )
+    tiny = _title(read(out, "s", "64", "index.html"))
+    assert tiny == "금융업·지주회사 업종 상장사 2곳 — 회사별 재무제표 신호등 (2024) · fin-checkup"
+    assert "중앙값" not in tiny
+    assert _title(read(out, "s", "index.html")).startswith("업종별 재무비율 분포 — ")

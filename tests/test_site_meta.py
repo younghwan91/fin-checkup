@@ -70,8 +70,10 @@ def test_page_url_drops_index_html(path, url):
 async def test_company_title_and_description_state_the_year_and_metric_count(out):
     text = read(out, "c/005930/index.html")
     title = html.unescape(re.search(r"<title>([^<]*)</title>", text).group(1))
-    # 검색어(회사 이름 + 지표 이름)가 앞에 온다 — "삼성전자 부채비율" 같은 검색에 걸리게.
-    assert title == "삼성전자 재무 신호등 — 부채비율·영업이익률 등 17개 지표 · 2024 사업연도"
+    # 사람들이 치는 말("삼성전자 재무제표", "삼성전자 부채비율")이 앞에 온다.
+    # 검색 결과는 제목을 60자 남짓에서 자른다.
+    assert title == "삼성전자 재무제표 신호등 — 부채비율·영업이익률·ROE 등 17개 지표 (2024)"
+    assert len(title) <= 60
     desc = meta(text, "name", "description")
     assert desc is not None and "삼성전자" in desc and "005930" in desc and "계산식과 경계값" in desc
     assert "부채비율·영업이익률·ROE" in desc

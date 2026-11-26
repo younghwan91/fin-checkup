@@ -2,7 +2,7 @@
   업종 페이지 하나. 넘길 값: group(sector.GroupLink), members(이름순), sectors(적용된 판정 기준), blocks, caveats, min_peers.
 #}
 {% extends "base.html" %}
-{% block title %}{{ group.info.name }} 업종 {{ site.year }} 재무 지표 분포 · fin-checkup{% endblock %}
+{% block title %}{% if group.count >= min_peers %}{{ group.info.name }} 업종 재무비율 — 상장사 {{ group.count }}곳 중앙값·사분위{% else %}{{ group.info.name }} 업종 상장사 {{ group.count }}곳 — 회사별 재무제표 신호등{% endif %} ({{ site.year }}) · fin-checkup{% endblock %}
 {% block description %}{{ group.info.name }}(KSIC {{ group.info.code }}) 상장사 {{ group.count }}곳의 {{ site.year }} 사업연도 재무 지표 분포(1사분위·중앙값·3사분위)와 계산식·경계값, 소속 회사 이름순 목록.{% endblock %}
 {% block main %}
 <article class="fc-sector">
