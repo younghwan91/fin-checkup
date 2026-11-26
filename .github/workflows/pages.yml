@@ -43,6 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       built: ${{ steps.snapshot.outputs.found }}
+      indexnow: ${{ steps.indexnow.outputs.payload }}
     steps:
       - uses: actions/checkout@v7
 
@@ -130,6 +131,19 @@ jobs:
           fi
           uv run python -m fin_checkup.cli site build "${args[@]}"
 
+      # IndexNow (site/indexnow.py) — 이번 빌드의 페이지 지문을 page-digests.json 으로 사이트에 싣고, 라이브 사이트의
+      # 지문(지난 배포)과 비교해 바뀐 주소만 고른다. 라이브에 지문이 없으면(404, 처음 한 번) 색인 페이지 전부.
+      # 보내기는 배포 뒤 indexnow 작업이 한다 — 열쇠 파일이 라이브에 있어야 검색 엔진이 확인할 수 있다.
+      # 가드보다 먼저 — 지문 파일도 가드를 거친다. 여기서 실패해도 배포는 막지 않는다.
+      - name: IndexNow 보낼 주소
+        id: indexnow
+        if: steps.snapshot.outputs.found == 'true'
+        continue-on-error: true
+        run: |
+          uv run python -m fin_checkup.site.indexnow plan site-out --base-url "$SITE_URL" \
+            --out _indexnow/payload.json
+          if [ -f _indexnow/payload.json ]; then echo "payload=true" >> "$GITHUB_OUTPUT"; fi
+
       # 넘지 않는 선을 산출물에서 직접 확인한다(면책·계산식·CSP·외부 스크립트·인증키 — site/guard.py).
       # 하나라도 걸리면 배포하지 않는다.
       - name: 산출물 가드
@@ -142,6 +156,13 @@ jobs:
       - name: 링크 검사
         if: steps.snapshot.outputs.found == 'true'
         run: uv run python -m fin_checkup.cli site links site-out --base-url "$SITE_URL"
+
+      - uses: actions/upload-artifact@v7
+        if: steps.indexnow.outputs.payload == 'true'
+        with:
+          name: indexnow-payload
+          path: _indexnow/payload.json
+          retention-days: 3
 
       - uses: actions/upload-pages-artifact@v5
         if: steps.snapshot.outputs.found == 'true'
@@ -161,3 +182,32 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+
+  # 배포가 성공한 뒤에만, 이 저장소의 기본 브랜치(또는 data-* 릴리스 — 같은 운영 사이트를 배포한다)에서만.
+  # 이 워크플로엔 PR 트리거가 없고, 포크·다른 브랜치에서 수동 실행한 것은 운영 사이트가 아니라 보내지 않는다.
+  # 보내기가 실패해도(403·429·연결 실패) HTTP 상태만 남기고 작업은 성공한다 — 배포는 이미 끝났다.
+  indexnow:
+    needs: [build, deploy]
+    if: >-
+      needs.build.outputs.indexnow == 'true' &&
+      github.repository == 'younghwan91/fin-checkup' &&
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' ||
+       (github.event_name == 'release' && startsWith(github.ref, 'refs/tags/data-')))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: indexnow-payload
+          path: _indexnow
+
+      - name: IndexNow 알림 (실패해도 배포는 그대로)
+        continue-on-error: true
+        run: uv run --frozen python -m fin_checkup.site.indexnow submit _indexnow/payload.json
