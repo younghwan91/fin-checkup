@@ -1,6 +1,6 @@
 # 에이전트에서 쓰기 — MCP 서버
 
-Claude Code·Claude Desktop·Cursor·Codex·VS Code 같은 MCP 클라이언트에서 "삼성전자 재무 진단해줘" 라고 하면,
+Claude Code·Claude Desktop·Cursor·Codex·VS Code·Gemini CLI 같은 MCP 클라이언트에서 "삼성전자 재무 진단해줘" 라고 하면,
 fin-checkup 이 계산한 신호등 측정값을 에이전트가 그대로 받아 보여 줍니다.
 
 - **설정이 필요 없습니다.** 기본 데이터는 공개 사이트([younghwan91.github.io/fin-checkup](https://younghwan91.github.io/fin-checkup/))의
@@ -94,6 +94,18 @@ args = ["--from", "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-che
   }
 }
 ```
+
+### Gemini CLI
+
+확장으로 설치합니다 — MCP 서버와 측정 규칙(저장소의 [`GEMINI.md`](../GEMINI.md))이 함께 들어갑니다.
+
+```bash
+gemini extensions install https://github.com/younghwan91/fin-checkup
+```
+
+설치 중 OpenDART 인증키를 묻는 입력칸은 비워 둬도 됩니다(나중에 `gemini extensions config fin-checkup`, 또는 아래
+`fin-checkup setup` 으로 넣은 키를 그대로 읽습니다). 확장 대신 `~/.gemini/settings.json` 에 위의 Claude Desktop 과 같은
+`mcpServers` 블록을 넣어도 됩니다.
 
 ### 그 밖의 클라이언트 · HTTP
 

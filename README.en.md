@@ -22,12 +22,13 @@ Enter a company name to see 17 profitability, stability, and growth ratios as �
 
 ## Quick start
 
-The three fastest ways to plug it into an AI tool. No key or sign-up — it reads the public site data.
+The fastest ways to plug it into an AI tool. No key or sign-up — it reads the public site data.
 
 | Tool | One-line start |
 |---|---|
 | Claude Desktop | Download [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/latest/download/fin-checkup.mcpb) and double-click it |
 | Claude Code | Run the two lines below, then ask "diagnose 005930" in a new session |
+| Gemini CLI | `gemini extensions install https://github.com/younghwan91/fin-checkup` |
 | Cursor · VS Code · Codex (any MCP client) | `uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp` |
 
 ```bash
@@ -79,6 +80,7 @@ Read https://younghwan91.github.io/fin-checkup/llms.txt and follow it to diagnos
 **3) Cursor · VS Code · Claude Desktop · Codex (MCP server)** — [![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=fin-checkup&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJmaW4tY2hlY2t1cFttY3BdIEAgZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS95b3VuZ2h3YW45MS9maW4tY2hlY2t1cCIsImZpbi1jaGVja3VwLW1jcCJdfQ%3D%3D) [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22fin-checkup%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22fin-checkup%5Bmcp%5D%20%40%20git%2Bhttps%3A%2F%2Fgithub.com%2Fyounghwan91%2Ffin-checkup%22%2C%22fin-checkup-mcp%22%5D%7D)
 
 - **Claude Desktop one-click**: download [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/latest/download/fin-checkup.mcpb) and double-click it ([details](docs/agents.md#claude-desktop-원클릭-mcpb), Korean).
+- **Gemini CLI extension**: `gemini extensions install https://github.com/younghwan91/fin-checkup` — installs the MCP server together with the measurement-only rules ([`GEMINI.md`](GEMINI.md), Korean).
 - **MCP server command** (requires [uv](https://docs.astral.sh/uv/getting-started/installation/) and git): `uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp`
 - Per-client setup is in [`docs/agents.md`](docs/agents.md) (Korean), and Codex/Cursor skills are in [`docs/agents-skill.md`](docs/agents-skill.md) (Korean).
 
@@ -120,7 +122,7 @@ Other Korean-market tools by the same author. fin-checkup covers financial state
 | Doc | What's inside |
 |---|---|
 | [Guide (Korean)](docs/guide.md) | FAQ, CLI usage, static JSON, badges, API keys |
-| [Agent setup](docs/agents.md) · [Skills](docs/agents-skill.md) | Claude, Cursor, VS Code, Codex setup and diagnose skills |
+| [Agent setup](docs/agents.md) · [Skills](docs/agents-skill.md) | Claude, Cursor, VS Code, Codex, Gemini CLI setup and diagnose skills |
 | [Static API](docs/api-static.md) · [Embed](docs/embed.md) · [Card news](docs/card-news.md) | JSON schema, badge embedding rules, card-news generation |
 | [Operations](docs/OPERATIONS.md) · [Regulatory](docs/REGULATORY.md) | Call budgets, sector rules, wording red lines |
 | [Terms](docs/TERMS.md) · [Privacy](docs/PRIVACY.md) | Draft terms of service and privacy policy |

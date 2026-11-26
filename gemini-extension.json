@@ -1,0 +1,24 @@
+{
+  "name": "fin-checkup",
+  "version": "0.1.1",
+  "description": "Korean listed-company financial checkup from DART filings: 17 ratios with value, signal, formula and threshold. Measurements only, not investment advice.",
+  "mcpServers": {
+    "fin-checkup": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup",
+        "fin-checkup-mcp"
+      ]
+    }
+  },
+  "contextFileName": "GEMINI.md",
+  "settings": [
+    {
+      "name": "OpenDART 인증키 (선택)",
+      "description": "비워 두면 공개 사이트 데이터만 씁니다(키 불필요). 넣으면 사이트에 없는 회사·연도만 이 키로 DART 에서 받아 옵니다. 터미널에서 `fin-checkup setup` 으로 넣은 키도 그대로 읽습니다. 발급: https://opendart.fss.or.kr",
+      "envVar": "DART_API_KEY",
+      "sensitive": true
+    }
+  ]
+}

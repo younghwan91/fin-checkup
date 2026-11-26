@@ -57,6 +57,8 @@ metadata:
   `.vscode/mcp.json` 의 `servers`. **Codex**: `~/.codex/config.toml` 의 `[mcp_servers.fin-checkup]`.
   정확한 스니펫은 `setup_guide(client)` 또는 저장소 `docs/agents.md`. 파일이 있으면 **합친다** — 바꿀 diff 를 보여 주고
   묻고, 사본을 두고 고친다. 고친 뒤 클라이언트를 다시 시작하라고 안내한다.
+- **Gemini CLI 는 확장이 더 간단하다**: 사용자가 터미널에서
+  `gemini extensions install https://github.com/younghwan91/fin-checkup` (MCP 서버 + 측정 규칙). 인증키 입력칸은 비워 둬도 된다.
 - GUI 앱(Desktop·Cursor)이 `uvx` 를 못 찾으면 `command` 에 절대경로(`which uvx` / `where uvx`)를 넣는다.
 - 처음 실행은 git 에서 받아 설치하느라 수십 초 걸린다.
 

@@ -7,6 +7,8 @@
 - **최근 분기** — 회사 페이지·회사 JSON(`latest_quarter`)·마크다운·MCP `diagnose_company` 에 사업보고서 뒤에 나온 분기·반기보고서의
   매출·영업이익·순이익(그 분기 석 달, 1년 전 같은 분기와 나란히)과 자산·부채·자본·부채비율을 판정 없이 싣는다. 신호등은 그대로
   사업보고서로만 매긴다. 연간 부채비율이 ⊘ 인 업종은 분기 부채비율도 ⊘. DART 다중회사 주요계정으로 분기당 ~28회 호출.
+- **Gemini CLI 확장** — `gemini extensions install https://github.com/younghwan91/fin-checkup` 으로 MCP 서버와 측정 규칙
+  (`GEMINI.md`)을 함께 설치한다. DART 키 칸은 선택(키체인 저장). 저장소 루트 `gemini-extension.json` 버전은 릴리스 태그 확인에 들어간다.
 
 ## [0.1.1] — 2026-11-23
 

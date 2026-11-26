@@ -22,12 +22,13 @@
 
 ## 바로 시작하기
 
-AI 도구에 연결하는 가장 빠른 세 가지 방법입니다. 키·가입 없이 공개 사이트 데이터를 읽습니다.
+AI 도구에 연결하는 가장 빠른 방법입니다. 키·가입 없이 공개 사이트 데이터를 읽습니다.
 
 | 쓰는 도구 | 한 줄로 시작하기 |
 |---|---|
 | Claude Desktop | [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/latest/download/fin-checkup.mcpb) 를 받아 두 번 누릅니다 |
 | Claude Code | 아래 두 줄을 입력한 뒤 새 세션에서 "삼성전자 재무 진단해줘" 라고 묻습니다 |
+| Gemini CLI | `gemini extensions install https://github.com/younghwan91/fin-checkup` |
 | Cursor · VS Code · Codex 등 MCP | `uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp` |
 
 ```bash
@@ -79,6 +80,7 @@ https://younghwan91.github.io/fin-checkup/llms.txt 를 읽고 그 방법대로 �
 **3) Cursor · VS Code · Claude Desktop · Codex (MCP 서버)** — [![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=fin-checkup&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJmaW4tY2hlY2t1cFttY3BdIEAgZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS95b3VuZ2h3YW45MS9maW4tY2hlY2t1cCIsImZpbi1jaGVja3VwLW1jcCJdfQ%3D%3D) [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22fin-checkup%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22fin-checkup%5Bmcp%5D%20%40%20git%2Bhttps%3A%2F%2Fgithub.com%2Fyounghwan91%2Ffin-checkup%22%2C%22fin-checkup-mcp%22%5D%7D)
 
 - **Claude Desktop 원클릭**: [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/latest/download/fin-checkup.mcpb) 를 받아 두 번 누르면 설치됩니다([자세히](docs/agents.md#claude-desktop-원클릭-mcpb)).
+- **Gemini CLI 확장**: `gemini extensions install https://github.com/younghwan91/fin-checkup` — MCP 서버와 측정 규칙([`GEMINI.md`](GEMINI.md))을 함께 설치합니다.
 - **MCP 서버 명령** ([uv](https://docs.astral.sh/uv/getting-started/installation/)·git 필요): `uvx --from "fin-checkup[mcp] @ git+https://github.com/younghwan91/fin-checkup" fin-checkup-mcp`
 - 프로그램별 설정은 [`docs/agents.md`](docs/agents.md), Codex·Cursor 스킬은 [`docs/agents-skill.md`](docs/agents-skill.md) 에 있습니다.
 
@@ -120,7 +122,7 @@ https://younghwan91.github.io/fin-checkup/llms.txt 를 읽고 그 방법대로 �
 | 문서 | 내용 |
 |---|---|
 | [상세 안내](docs/guide.md) | 자주 묻는 질문, CLI·정적 JSON·배지 사용법, API 키 안내 |
-| [에이전트 설정](docs/agents.md) · [스킬](docs/agents-skill.md) | Claude·Cursor·VS Code·Codex 연동 및 진단 스킬 |
+| [에이전트 설정](docs/agents.md) · [스킬](docs/agents-skill.md) | Claude·Cursor·VS Code·Codex·Gemini CLI 연동 및 진단 스킬 |
 | [정적 API](docs/api-static.md) · [배지](docs/embed.md) · [카드뉴스](docs/card-news.md) | JSON 필드 명세, 배지 삽입 규칙, 카드뉴스 생성 |
 | [운영](docs/OPERATIONS.md) · [규제 원칙](docs/REGULATORY.md) | 호출 예산, 업종 판정 기준, 표현 원칙 |
 | [약관](docs/TERMS.md) · [개인정보](docs/PRIVACY.md) | 서비스 약관 및 개인정보 처리방침 초안 |

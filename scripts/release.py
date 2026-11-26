@@ -2,7 +2,7 @@
 
 `.github/workflows/release.yml` 이 태그마다 이 순서로 부른다:
 
-    release.py check-tag v0.1.0          # 태그 = pyproject = manifest = server.json = 플러그인
+    release.py check-tag v0.1.0          # 태그 = pyproject = manifest = server.json = 플러그인 = Gemini 확장
     release.py stage _mcpb               # 번들에 넣을 파일만 골라 담는다
     npx -y @anthropic-ai/mcpb@<버전> validate _mcpb/manifest.json, pack _mcpb fin-checkup.mcpb
     release.py smoke fin-checkup.mcpb    # 푼 번들을 manifest 의 명령 그대로 띄워 도구 목록 확인
@@ -35,6 +35,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "mcpb" / "manifest.json"
 SERVER_JSON = ROOT / "server.json"
 PLUGIN_JSON = ROOT / "plugins" / "fin-checkup" / ".claude-plugin" / "plugin.json"
+#: Gemini CLI 확장 — 갤러리·`gemini extensions` 가 보여 주는 버전이라 릴리스 태그와 같아야 한다.
+GEMINI_EXTENSION = ROOT / "gemini-extension.json"
 CHANGELOG = ROOT / "CHANGELOG.md"
 BUNDLE_NAME = "fin-checkup.mcpb"
 REPO_URL = "https://github.com/younghwan91/fin-checkup"
@@ -76,6 +78,7 @@ def versions() -> dict[str, str]:
         "mcpb/manifest.json": _json(MANIFEST)["version"],
         "server.json": server["version"],
         "plugins/fin-checkup/.claude-plugin/plugin.json": _json(PLUGIN_JSON)["version"],
+        "gemini-extension.json": _json(GEMINI_EXTENSION)["version"],
     }
     for i, pkg in enumerate(server["packages"]):
         found[f"server.json packages[{i}].version"] = pkg.get("version", "")
