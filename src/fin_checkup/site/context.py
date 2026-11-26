@@ -26,6 +26,7 @@ from fin_checkup.site.registry import Output
 from fin_checkup.site.season import SeasonView, season_view
 
 if TYPE_CHECKING:
+    from fin_checkup.quarter import LatestQuarter
     from fin_checkup.site.buildinfo import SnapshotInfo
     from fin_checkup.site.disclosures import DisclosureFeed
     from fin_checkup.site.incremental import BuildCache
@@ -108,6 +109,9 @@ class Site:
     snapshot: SnapshotInfo | None = None
     #: 증분 빌드 캐시 (`site build --incremental`). 비싼 산출물(공유 카드 PNG)이 내용 열쇠로 재사용한다.
     build_cache: BuildCache | None = None
+    #: 회사별 가장 최근 분기 주요계정 (`quarter.latest_quarters`, corp_code 열쇠).
+    #: 없는 회사는 그 섹션이 생기지 않는다.
+    quarters: dict[str, LatestQuarter] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.base_url.endswith("/"):

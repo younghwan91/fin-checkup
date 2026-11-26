@@ -25,6 +25,7 @@ from fin_checkup.metrics.peers import PeerStat, SelfDelta
 from fin_checkup.metrics.sector import peer_group_for
 from fin_checkup.metrics.signals import Signal
 from fin_checkup.presentation import band_text
+from fin_checkup.quarter import debt_ratio_not_applicable, newer_than_annual, quarter_json
 from fin_checkup.site.charts import trend_series
 from fin_checkup.site.context import CompanyEntry, Site
 from fin_checkup.site.registry import Output, page
@@ -143,6 +144,12 @@ def company_json(entry: CompanyEntry, site: Site) -> dict[str, Any]:
         # 추이 칸 중 다음 해 보고서가 같은 해를 1% 넘게 다르게 적은 값(재작성). 추이 키 → {연도: 값}.
         # 2026-11 에 더한 필드 — 판(schema_version)은 그대로, 없던 키가 생길 뿐이다.
         "restated": restated_values(data),
+        # 사업보고서 뒤에 나온 최근 분기 주요계정 (판정 없음). 없으면 null. 2026-11 에 더한 필드.
+        "latest_quarter": quarter_json(
+            # MCP 로컬·실시간 모드는 Site 대신 간이 객체를 넘긴다 — 분기 값이 없으면 null.
+            newer_than_annual(getattr(site, "quarters", {}).get(entry.corp.corp_code), result.bsns_year),
+            debt_ratio_not_applicable(result),
+        ),
         "red_flags": [
             {"key": f.key, "label": f.label, "detail": f.detail, "reference": f.reference}
             for f in data.red_flags

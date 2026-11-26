@@ -51,6 +51,12 @@ NO_DATA = {"status": "013", "message": "조회된 데이타가 없습니다."}
 QUOTA = {"status": "020", "message": "요청 제한을 초과하였습니다."}
 
 
+@pytest.fixture(autouse=True)
+def no_quarter_step(monkeypatch):
+    """이 파일은 사업보고서 수집만 본다. 분기 주요계정 단계(호출 수가 달라진다)는 test_quarter.py 가 본다."""
+    monkeypatch.setattr("fin_checkup.collect.interim_targets", lambda today: [])
+
+
 @pytest.fixture
 def cache(tmp_path):
     with Cache(tmp_path / "collect.duckdb") as c:

@@ -34,8 +34,12 @@ from fin_checkup.models import (
     RawStatements,
     ReportCode,
 )
+from fin_checkup.quarter import KeyAccountRow
 
 logger = logging.getLogger(__name__)
+
+#: 다중회사 주요계정(`fnlttMultiAcnt`) 한 번에 넣을 수 있는 회사 수 (DART 개발가이드).
+MULTI_ACCOUNT_BATCH = 100
 
 
 class DartError(RuntimeError):
@@ -394,6 +398,54 @@ class DartClient:
             fs_div=fs_div,
             lines=lines,
         )
+
+    async def fetch_key_accounts(
+        self, corp_codes: list[str], bsns_year: int, reprt_code: ReportCode
+    ) -> list[KeyAccountRow]:
+        """다중회사 주요계정 — 회사 최대 100곳의 주요계정(자산·부채·자본·매출·영업이익·순이익)을 한 번에.
+
+        데이터가 없는 회사는 응답에서 빠질 뿐이다. 손익 금액은 그 분기 석 달 값이다(`quarter` 모듈 설명).
+        """
+        if not corp_codes:
+            return []
+        if len(corp_codes) > MULTI_ACCOUNT_BATCH:
+            raise ValueError(f"fnlttMultiAcnt 는 한 번에 {MULTI_ACCOUNT_BATCH}곳까지 받는다")
+        context = f"key_accounts({len(corp_codes)}곳,{bsns_year},{reprt_code.value})"
+        data = await self._get_json(
+            "fnlttMultiAcnt.json",
+            {"corp_code": ",".join(corp_codes), "bsns_year": str(bsns_year), "reprt_code": reprt_code.value},
+            context,
+        )
+        if data is None:
+            return []
+        wanted = set(corp_codes)
+        rows: list[KeyAccountRow] = []
+        for item in data.get("list", []):
+            corp = (item.get("corp_code") or "").strip()
+            if corp not in wanted:
+                continue
+            try:
+                order = int(item.get("ord") or 0)
+            except ValueError:
+                order = 0
+            rows.append(
+                KeyAccountRow(
+                    corp_code=corp,
+                    bsns_year=bsns_year,
+                    reprt_code=reprt_code.value,
+                    fs_div=(item.get("fs_div") or "").strip(),
+                    sj_div=(item.get("sj_div") or "").strip(),
+                    account_nm=(item.get("account_nm") or "").strip(),
+                    ord=order,
+                    thstrm_dt=(item.get("thstrm_dt") or "").strip(),
+                    thstrm_amount=_amount(item.get("thstrm_amount")),
+                    frmtrm_dt=(item.get("frmtrm_dt") or "").strip(),
+                    frmtrm_amount=_amount(item.get("frmtrm_amount")),
+                    currency=(item.get("currency") or "KRW").strip(),
+                    rcept_no=(item.get("rcept_no") or "").strip(),
+                )
+            )
+        return rows
 
     async def fetch_statements_with_fallback(
         self,

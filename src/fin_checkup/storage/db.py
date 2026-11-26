@@ -20,6 +20,7 @@ from fin_checkup.models import (
     RawStatements,
     ReportCode,
 )
+from fin_checkup.quarter import KeyAccountRow
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +160,26 @@ CREATE TABLE IF NOT EXISTS fetch_misses (
     fetched_at TIMESTAMP NOT NULL,
     PRIMARY KEY (corp_code, bsns_year, reprt_code, fs_div)
 );
+
+-- 분기·반기보고서의 주요계정 (DART 다중회사 주요계정). 사업보고서 사이의 최근 분기를 보여줄 때만 쓴다 —
+-- 지표·신호등 계산에는 들어가지 않는다. 손익 금액은 그 분기 석 달 값 (`fin_checkup.quarter`).
+CREATE TABLE IF NOT EXISTS key_accounts (
+    corp_code     VARCHAR NOT NULL,
+    bsns_year     INTEGER NOT NULL,
+    reprt_code    VARCHAR NOT NULL,
+    fs_div        VARCHAR NOT NULL,
+    sj_div        VARCHAR NOT NULL,
+    account_nm    VARCHAR NOT NULL,
+    ord           INTEGER,
+    thstrm_dt     VARCHAR,
+    thstrm_amount DOUBLE,
+    frmtrm_dt     VARCHAR,
+    frmtrm_amount DOUBLE,
+    currency      VARCHAR,
+    rcept_no      VARCHAR,
+    fetched_at    TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_key_accounts_lookup ON key_accounts(corp_code, bsns_year, reprt_code);
 """
 
 
@@ -663,6 +684,61 @@ class Cache:
                 ],
             )
         return None
+
+    # ------------------------------------------------------------------
+    # 분기 주요계정
+    # ------------------------------------------------------------------
+
+    def save_key_accounts(self, rows: list[KeyAccountRow]) -> int:
+        """받은 줄을 (회사, 연도, 보고서) 단위로 바꿔 넣는다. 넣은 회사 수."""
+        keys = sorted({(r.corp_code, r.bsns_year, r.reprt_code) for r in rows})
+        for key in keys:
+            self.conn.execute(
+                "DELETE FROM key_accounts WHERE corp_code = ? AND bsns_year = ? AND reprt_code = ?",
+                list(key),
+            )
+        now = datetime.now()
+        self._bulk_insert(
+            "key_accounts",
+            [
+                (
+                    r.corp_code, r.bsns_year, r.reprt_code, r.fs_div, r.sj_div, r.account_nm, r.ord,
+                    r.thstrm_dt, r.thstrm_amount, r.frmtrm_dt, r.frmtrm_amount, r.currency, r.rcept_no, now,
+                )
+                for r in rows
+            ],
+            columns=14,
+        )
+        return len({k[0] for k in keys})
+
+    def corp_codes_with_key_accounts(self, bsns_year: int, reprt_code: ReportCode) -> set[str]:
+        rows = self.conn.execute(
+            "SELECT DISTINCT corp_code FROM key_accounts WHERE bsns_year = ? AND reprt_code = ?",
+            [bsns_year, reprt_code.value],
+        ).fetchall()
+        return {r[0] for r in rows}
+
+    def key_account_rows(self, corp_codes: list[str] | None = None) -> list[KeyAccountRow]:
+        """저장된 분기 주요계정 전부 (corp_codes 를 주면 그 회사들만)."""
+        query = (
+            "SELECT corp_code, bsns_year, reprt_code, fs_div, sj_div, account_nm, ord, thstrm_dt, "
+            "thstrm_amount, frmtrm_dt, frmtrm_amount, currency, rcept_no FROM key_accounts"
+        )
+        params: list = []
+        if corp_codes is not None:
+            if not corp_codes:
+                return []
+            query += " WHERE corp_code IN (SELECT unnest(?::VARCHAR[]))"
+            params.append(list(corp_codes))
+        rows = self.conn.execute(query + " ORDER BY ALL", params).fetchall()
+        return [
+            KeyAccountRow(
+                corp_code=r[0], bsns_year=r[1], reprt_code=r[2], fs_div=r[3], sj_div=r[4],
+                account_nm=r[5], ord=r[6] or 0, thstrm_dt=r[7] or "", thstrm_amount=r[8],
+                frmtrm_dt=r[9] or "", frmtrm_amount=r[10], currency=r[11] or "KRW", rcept_no=r[12] or "",
+            )
+            for r in rows
+        ]
 
     # ------------------------------------------------------------------
     # 빈 응답 기록

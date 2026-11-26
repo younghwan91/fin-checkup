@@ -221,6 +221,15 @@ def schemas() -> dict[str, Any]:
                         "additionalProperties": {"type": "number"},
                     },
                 },
+                "latest_quarter": {
+                    "type": ["object", "null"],
+                    "description": (
+                        "사업보고서 뒤에 나온 최근 분기보고서의 주요계정 (판정 없음). "
+                        "flows 는 그 분기 석 달 손익"
+                        "(prior = 1년 전 같은 분기), stocks 는 분기 말 재무상태(prior = 직전 사업연도 말). "
+                        "못 찾은 값은 null. 그런 분기가 없으면 null"
+                    ),
+                },
                 "red_flags": {"type": "array", "items": _ref("RedFlag")},
                 "sources": {"type": "array", "items": _ref("Source")},
             },

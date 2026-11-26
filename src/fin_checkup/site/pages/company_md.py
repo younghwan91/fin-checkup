@@ -23,6 +23,7 @@ from fin_checkup.metrics.engine import MONEY, Metric
 from fin_checkup.metrics.peers import PeerScope
 from fin_checkup.metrics.sector import peer_group_for
 from fin_checkup.metrics.signals import Signal
+from fin_checkup.quarter import LatestQuarter, debt_ratio_not_applicable, newer_than_annual
 from fin_checkup.site.context import CompanyEntry, Site, root_for
 from fin_checkup.site.disclosures import COMPANY_LIMIT
 from fin_checkup.site.pages.api import DART_API
@@ -148,6 +149,9 @@ def company_markdown(entry: CompanyEntry, site: Site, out_path: str) -> str:
             lines.append(f"- 🔴 {f.label} — {f.detail}{ref}")
     else:
         lines.append("재무제표로 확인된 위험 신호(자본잠식·연속 영업손실 등)는 없습니다.")
+    quarter = newer_than_annual(site.quarters.get(entry.corp.corp_code), result.bsns_year)
+    if quarter is not None:
+        lines += ["", *quarter_markdown(quarter, result.bsns_year, debt_ratio_not_applicable(result))]
     lines += ["", "## 최근 위험 공시", ""]
     feed = site.disclosures
     if feed is None:
@@ -190,6 +194,47 @@ def company_markdown(entry: CompanyEntry, site: Site, out_path: str) -> str:
         DISCLAIMER,
     ]
     return "\n".join(lines) + "\n"
+
+
+def quarter_markdown(q: LatestQuarter, annual_year: int, debt_ratio_na: str | None = None) -> list[str]:
+    """최근 분기 주요계정 — 판정 없이 값만. 없는 값은 ⚫."""
+
+    def cell(value: float | None, text: str) -> str:
+        return "⚫ 데이터 없음" if value is None else text
+
+    def ratio(value: float | None) -> str:
+        return "⚫ 계산 안 함" if value is None else f"{value:,.1f}%"
+
+    end = q.period_end.strftime("%Y.%m.%d")
+
+    def row(ln) -> str:
+        now, before = cell(ln.current, ln.current_text), cell(ln.prior, ln.prior_text)
+        return f"| {ln.label} | {now} | {before} | {ln.change} |"
+
+    out = [
+        f"## 최근 분기 — {q.period_label}",
+        "",
+        f"{q.report_label} · {q.statement_label}" + (f" · [DART 원문]({q.dart_url})" if q.dart_url else ""),
+        "",
+        f"| 손익 (석 달) | {q.period_label} | {q.prior_period_label} | 변화 |",
+        "|---|---|---|---|",
+        *(row(ln) for ln in q.flows),
+        "",
+        f"| 재무상태 | {end} | {q.prior_year_end_label} | 변화 |",
+        "|---|---|---|---|",
+        *(row(ln) for ln in q.stocks),
+        (
+            f"| 부채비율 | ⊘ 해당 없음 | ⊘ 해당 없음 | {_cell(debt_ratio_na)} |"
+            if debt_ratio_na
+            else f"| 부채비율 (부채총계 ÷ 자본총계 × 100) | {ratio(q.debt_ratio('current'))}"
+            f" | {ratio(q.debt_ratio('prior'))} | |"
+        ),
+        "",
+        f"신호등은 {annual_year}년 사업보고서로만 매깁니다."
+        " 이 표는 그 뒤 분기보고서의 주요계정을 판정 없이 옮긴 것이고,"
+        " 손익은 그 분기 석 달 값입니다(분기 재무제표는 감사가 아니라 검토).",
+    ]
+    return out
 
 
 @page("company-md")

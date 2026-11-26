@@ -34,7 +34,13 @@ EXPORT_TABLES: dict[str, str] = {
     "metric_values": "",
     # 빈 응답 기록. 없는 해를 ⚫ 로 보여줄 때 '조회했지만 없었다' 의 근거가 된다.
     "fetch_misses": "",
+    # 분기·반기보고서 주요계정 (최근 분기 섹션). 2026-11 에 생겼다.
+    "key_accounts": "",
 }
+
+#: 나중에 생긴 테이블 — 그 전에 올린 스냅샷에는 없어도 들여온다(빈 채로). 이게 없으면 새 코드가
+#: 옛 `data-*` 릴리스를 못 읽어, 첫 수집·배포가 새 테이블이 든 스냅샷을 만들기 전에 멈춘다.
+OPTIONAL_TABLES: frozenset[str] = frozenset({"key_accounts"})
 
 #: 어떤 산출물에도 넣지 않는 개인정보·운영 테이블. 스키마에 없는 이름(subscriptions·
 #: usage_daily)도 둔다 — 옛 버전이나 포크의 DB 에 남아 있으면 그것도 막아야 한다.
@@ -202,7 +208,7 @@ def import_snapshot(src_dir: Path | str, db_path: Path | str) -> dict:
     unknown = sorted(set(tables) - set(EXPORT_TABLES))
     if unknown:
         raise SnapshotError(f"허용목록 밖의 테이블은 들여오지 않습니다: {', '.join(unknown)}")
-    absent = sorted(set(EXPORT_TABLES) - set(tables))
+    absent = sorted(set(EXPORT_TABLES) - set(tables) - OPTIONAL_TABLES)
     if absent:
         raise SnapshotError(f"스냅샷에 테이블이 빠져 있습니다: {', '.join(absent)}")
 

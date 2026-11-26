@@ -24,6 +24,7 @@ from pathlib import Path
 from fin_checkup.clock import kst_now, kst_today
 from fin_checkup.config import Settings
 from fin_checkup.models import CorpCode
+from fin_checkup.quarter import latest_quarters
 from fin_checkup.service import Checkup, CheckupService
 from fin_checkup.site import incremental
 from fin_checkup.site.buildinfo import (
@@ -268,6 +269,7 @@ async def build_site(
         disclosures=as_feed(disclosures),
         snapshot=snapshot,
         build_cache=build_cache,
+        quarters=latest_quarters(cache.key_account_rows([e.corp.corp_code for e in entries])),
     )
     _prepare_out(out)
     files = 0

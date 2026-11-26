@@ -516,6 +516,9 @@ async def diagnose_company(source: Source, company: str, year: int | None = None
     }
     if live:
         result["live_note"] = doc.get("live_note")
+    # 사업보고서 뒤 최근 분기 주요계정 — 사이트 JSON 에 있을 때만 (판정 없음, 없는 값은 null 그대로).
+    if doc.get("latest_quarter"):
+        result["latest_quarter"] = doc["latest_quarter"]
     if feed is not None:
         result["disclosure_window"] = {"begin": feed.begin.isoformat(), "end": feed.end.isoformat()}
     elif feed_problem:
