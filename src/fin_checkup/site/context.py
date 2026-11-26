@@ -152,9 +152,13 @@ class Site:
 
     def og_image_url(self, stock_code: str) -> str | None:
         """회사 공유 카드 이미지의 절대주소. 이미지가 안 생기는 빌드면 None."""
+        return self.image_url(f"og/{stock_code}.png")
+
+    def image_url(self, path: str) -> str | None:
+        """`OG_IMAGE_PAGE` 가 만드는 공유 카드(`og/…png`)의 절대주소. 이미지가 안 생기는 빌드면 None."""
         if not (self.og_images and self.has_absolute_base):
             return None
-        return self.absolute_url(f"og/{stock_code}.png")
+        return self.absolute_url(path)
 
     def json_ld(
         self, output_path: str, title: str, description: str, extra: dict[str, Any] | None = None

@@ -22,6 +22,7 @@ from fin_checkup.metrics.sector import Sector
 from fin_checkup.site.context import CompanyEntry, Site
 from fin_checkup.site.examples import RULE_TEXT, Example, example_for
 from fin_checkup.site.groups import peer_group_of, peer_groups, sector_path
+from fin_checkup.site.images.market import metric_og_path
 from fin_checkup.site.registry import Output, company_context, page
 from fin_checkup.site.related import NextRead, next_reads
 from fin_checkup.site.view import SignalView
@@ -166,4 +167,5 @@ def metric_pages(site: Site) -> Iterator[Output]:
             next_reads=mp.next_reads,
             rule_text=RULE_TEXT,
             rounding_note=ROUNDING_NOTE,
+            og_image=site.image_url(metric_og_path(e.key)),
         )

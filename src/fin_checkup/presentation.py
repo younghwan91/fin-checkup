@@ -12,7 +12,7 @@ from fin_checkup.explain._korean import ro
 from fin_checkup.metrics.changes import Change, detect_changes
 from fin_checkup.metrics.engine import MONEY, Category, CheckupResult, Metric, checkup
 from fin_checkup.metrics.sector import Sector
-from fin_checkup.metrics.signals import SEVERITY, Signal
+from fin_checkup.metrics.signals import SEVERITY, Band, Signal
 from fin_checkup.service import Checkup
 
 #: 요약 줄에 항상 보일 신호. 나머지(측정값·해당없음·데이터없음)는 0이면 감춘다.
@@ -26,8 +26,12 @@ def band_text(metric: Metric) -> str:
         return "이 업종에는 판정 기준을 적용하지 않음 — 아래 '대신 볼 것' 참고."
     if metric.band is None:
         return "절대 기준 없음 — 추이와 업종 비교로 판단할 항목."
-    band = metric.band
-    unit = "" if metric.unit == MONEY else metric.unit
+    return band_phrase(metric.band, metric.unit)
+
+
+def band_phrase(band: Band, metric_unit: str) -> str:
+    """경계값 하나를 한 줄로 (회사 카드·시장 전체 카드가 같은 말을 쓴다)."""
+    unit = "" if metric_unit == MONEY else metric_unit
     # 정상과 주의 경계가 같으면(영업활동현금흐름·FCF 의 0) 🟡 구간이 없다. "주의 0 이상" 을 적으면
     # 주의 구간이 있는 것처럼 읽힌다 — 에이전트 답에도 그대로 옮겨졌다(2026-11-22 직접 써 보고 발견).
     if band.higher_is_better:
