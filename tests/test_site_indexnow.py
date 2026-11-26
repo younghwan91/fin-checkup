@@ -177,3 +177,61 @@ def test_submit_never_raises() -> None:
 def test_cli_submit_exits_zero_without_a_payload(tmp_path, capsys) -> None:
     assert indexnow.main(["submit", str(tmp_path / "missing.json")]) == 0
     assert "IndexNow" in capsys.readouterr().out
+
+
+# 2026-11-27 첫 배포: 배포 직후 보낸 2,731곳이 HTTP 403 — 검색 엔진이 아직 열쇠 파일을 확인하지 못했다.
+# 몇 분 뒤 같은 본문은 200. 그래서 보내기 전에 열쇠 파일이 라이브인지 보고, 403 이면 기다렸다 다시 보낸다.
+
+
+def _router(key_statuses, post_statuses):
+    """열쇠 파일 GET 과 IndexNow POST 를 차례로 응답하는 가짜 opener. 호출 기록을 남긴다."""
+    calls = []
+    keys, posts = list(key_statuses), list(post_statuses)
+
+    def opener(request, timeout):
+        url = request if isinstance(request, str) else request.full_url
+        calls.append(url)
+        if url == indexnow.ENDPOINT:
+            status = posts.pop(0)
+            if status >= 400:
+                raise urllib.error.HTTPError(url, status, "x", {}, io.BytesIO())
+            return _Response(status)
+        status, body = keys.pop(0)
+        if status >= 400:
+            raise urllib.error.HTTPError(url, status, "x", {}, io.BytesIO())
+        return _Response(status, body)
+
+    return opener, calls
+
+
+def test_deliver_waits_for_the_live_key_file_before_posting() -> None:
+    payload = indexnow.build_payload([""], BASE)
+    key = indexnow.KEY.encode()
+    opener, calls = _router([(404, b""), (200, b"stale"), (200, key)], [200])
+    slept = []
+    assert indexnow.deliver(payload, opener=opener, sleep=slept.append) == 200
+    assert calls[:3] == [payload["keyLocation"]] * 3 and calls[3] == indexnow.ENDPOINT
+    assert len(slept) == 2
+
+
+def test_deliver_retries_a_403_then_succeeds() -> None:
+    payload = indexnow.build_payload([""], BASE)
+    opener, calls = _router([(200, indexnow.KEY.encode())], [403, 403, 202])
+    slept = []
+    assert indexnow.deliver(payload, opener=opener, sleep=slept.append) == 202
+    assert calls.count(indexnow.ENDPOINT) == 3 and len(slept) == 2
+
+
+def test_deliver_gives_up_after_the_attempt_limit_without_raising() -> None:
+    payload = indexnow.build_payload([""], BASE)
+    opener, calls = _router([(404, b"")] * indexnow.ATTEMPTS, [403] * indexnow.ATTEMPTS)
+    # 열쇠가 끝내 안 보여도 한 번은 보내 본다 — 상태 코드가 로그에 남아야 원인을 안다.
+    assert indexnow.deliver(payload, opener=opener, sleep=lambda s: None) == 403
+    assert calls.count(payload["keyLocation"]) == indexnow.ATTEMPTS
+
+
+def test_deliver_does_not_retry_other_errors() -> None:
+    payload = indexnow.build_payload([""], BASE)
+    opener, calls = _router([(200, indexnow.KEY.encode())], [422])
+    assert indexnow.deliver(payload, opener=opener, sleep=lambda s: None) == 422
+    assert calls.count(indexnow.ENDPOINT) == 1
