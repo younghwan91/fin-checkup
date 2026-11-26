@@ -7,7 +7,10 @@ GitHub Actions(`collect.yml`)가 매일 돌린다. 한 번에 전부 받는 게 
 1. corp_code 매핑이 오래됐으면 갱신 (`CheckupService.ensure_corp_codes`, 1건).
 2. 종목코드는 있는데 기업개황이 없는 회사(새 상장사)는 개황부터 받는다 — 시장 구분을 봐야
    상장사인지 안다(상장폐지 회사의 옛 종목코드가 corpCode.xml 에 남는다).
-3. 상장사 × 대상 연도(기본 `fiscal.collect_years` — 새 보고서가 들어올 해와 그 전 해) 중 재무가
+3. 최근 분기 주요계정(`quarter.interim_targets` — 끝난 분기 중 최근 둘)이 없는 상장사를 100곳씩
+   묶어 다중회사 주요계정으로 묻는다. 분기 하나에 ~28회. 빈 응답을 따로 기록하지 않는다 — 아직 안 낸
+   회사는 다음 날 같은 묶음에 다시 들어간다(그래도 하루 ~56회 안).
+4. 상장사 × 대상 연도(기본 `fiscal.collect_years` — 새 보고서가 들어올 해와 그 전 해) 중 재무가
    없는 조합만 묻는다. 빈 응답 기록이 TTL(`fiscal.miss_ttl_days`, 시즌엔 짧다) 안이면 건너뛴다.
 
 멈추는 경우 (전부 받은 데까지는 캐시에 남는다):
@@ -32,9 +35,10 @@ import httpx
 
 from fin_checkup.clock import kst_today
 from fin_checkup.config import Settings
-from fin_checkup.dart.client import DartError, RateLimitExceeded
+from fin_checkup.dart.client import MULTI_ACCOUNT_BATCH, DartError, RateLimitExceeded
 from fin_checkup.fiscal import collect_years
 from fin_checkup.models import LISTED_MARKETS, CorpCode, FsDiv, ReportCode
+from fin_checkup.quarter import interim_targets
 from fin_checkup.service import CallBudgetExhausted, CheckupService
 from fin_checkup.storage import Cache, today_key
 
@@ -76,6 +80,10 @@ class CollectSummary:
     companies: int = 0
     #: 멈춰서 이번엔 보지 못한 조합.
     remaining: int = 0
+    #: 최근 분기 주요계정을 물어본 보고서 (`2026-11014` 꼴).
+    quarter_reports: list[str] = field(default_factory=list)
+    #: 새로 받은 (회사, 분기보고서) 주요계정.
+    quarter_fetched: int = 0
     calls: int = 0
     stopped: str | None = None
     errors: list[str] = field(default_factory=list)
@@ -83,7 +91,7 @@ class CollectSummary:
     @property
     def new_data(self) -> bool:
         """사이트에 보이는 데이터가 늘었나 (재무·기업개황)."""
-        return bool(self.fetched or self.companies)
+        return bool(self.fetched or self.companies or self.quarter_fetched)
 
     @property
     def changed(self) -> bool:
@@ -181,6 +189,32 @@ async def collect(
         if limit:
             listed = listed[:limit]
         summary.listed = len(listed)
+
+        # 최근 분기 주요계정 — 100곳에 1회라 분기 하나에 ~28회. 연간 수집이 예산을 다 쓰기 전에 먼저.
+        for q_year, q_code in interim_targets(today):
+            have = cache.corp_codes_with_key_accounts(q_year, q_code)
+            ask = [c.corp_code for c in listed if c.corp_code not in have]
+            summary.quarter_reports.append(f"{q_year}-{q_code.value}")
+            for start in range(0, len(ask), MULTI_ACCOUNT_BATCH):
+                if not fits(1):
+                    summary.stopped = STOP_BUDGET
+                    break
+                batch = ask[start : start + MULTI_ACCOUNT_BATCH]
+                try:
+                    rows = await service.fetch_key_accounts(batch, q_year, q_code)
+                except (RateLimitExceeded, CallBudgetExhausted):
+                    raise
+                except (DartError, httpx.HTTPError) as exc:
+                    if failed(f"분기 주요계정 {q_year} {q_code.label}", exc):
+                        break
+                    continue
+                errors_in_row = 0
+                summary.quarter_fetched += cache.save_key_accounts(rows)
+            if summary.stopped:
+                return summary
+        if summary.quarter_reports:
+            reports = ", ".join(summary.quarter_reports)
+            progress(f"최근 분기 주요계정 {reports} — 새로 받은 회사 {summary.quarter_fetched:,}곳")
 
         pairs = [
             (corp, year)

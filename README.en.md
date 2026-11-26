@@ -59,7 +59,7 @@ Outputs 17 traffic-light ratios with formulas, thresholds, and industry medians 
 
 | Section | What you can do |
 |---|---|
-| [Company page](https://younghwan91.github.io/fin-checkup/c/005930/) | Check 17 ratio traffic lights, red flags (capital impairment, consecutive losses), and 5-year trends |
+| [Company page](https://younghwan91.github.io/fin-checkup/c/005930/) | Check 17 ratio traffic lights, red flags (capital impairment, consecutive losses), 5-year trends, and the latest quarter filed after the annual report (revenue, profit, debt — values only, no signal) |
 | [Ratios](https://younghwan91.github.io/fin-checkup/m/) · [First read](https://younghwan91.github.io/fin-checkup/learn/first-read/) | Plain-language explanations of terms like operating margin and debt ratio |
 | [Industries](https://younghwan91.github.io/fin-checkup/s/) · [Market](https://younghwan91.github.io/fin-checkup/market/) | Distributions by sector or whole market, plus industry company lists sorted by name |
 | [Compare](https://younghwan91.github.io/fin-checkup/compare/) | Compare 2–4 companies side by side in one table |

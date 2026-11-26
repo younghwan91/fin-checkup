@@ -107,9 +107,9 @@ jobs:
                  "calls=\(.calls)", "stopped=\(.stopped // "")"' _collect/summary.json >> "$GITHUB_OUTPUT"
           jq -r '"### 증분 수집",
                  "",
-                 "| 연도 | 예산 | 호출 | 새 재무 | 없음 | 건너뜀 | 실패 | 기업개황 | 남음 | 멈춘 이유 |",
-                 "|---|---|---|---|---|---|---|---|---|---|",
-                 "| \(.years | map(tostring) | join(", ")) | \(.budget) | \(.calls) | \(.fetched) | \(.empty) | \(.skipped) | \(.failed) | \(.companies) | \(.remaining) | \(.stopped // "-") |"' \
+                 "| 연도 | 예산 | 호출 | 새 재무 | 없음 | 건너뜀 | 실패 | 기업개황 | 남음 | 분기 주요계정 | 멈춘 이유 |",
+                 "|---|---|---|---|---|---|---|---|---|---|---|",
+                 "| \(.years | map(tostring) | join(", ")) | \(.budget) | \(.calls) | \(.fetched) | \(.empty) | \(.skipped) | \(.failed) | \(.companies) | \(.remaining) | \(.quarter_fetched // 0) (\(.quarter_reports // [] | join(", "))) | \(.stopped // "-") |"' \
             _collect/summary.json >> "$GITHUB_STEP_SUMMARY"
           stopped="$(jq -r '.stopped // ""' _collect/summary.json)"
           if [ "$stopped" = "quota" ]; then

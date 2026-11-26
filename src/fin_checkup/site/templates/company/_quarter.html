@@ -1,0 +1,47 @@
+{#
+  최근 분기 — 사업보고서(연간) 뒤에 나온 분기·반기보고서의 주요계정 몇 개를 그대로 싣는다 (`fin_checkup.quarter`).
+  신호등·점수는 매기지 않는다. 못 찾은 계정은 0 이 아니라 데이터 없음. 손익은 그 분기 석 달 값이다.
+  사업보고서에서 부채비율이 ⊘ 인 업종(은행 등)은 분기 부채비율도 ⊘ — 같은 페이지가 어긋나지 않게.
+  휴대폰(390px)에서 네 칸이 한 화면에 들어가게 머리글은 짧게, 기간은 표 위 한 줄에 적는다.
+#}
+{% from "_signal.html" import mark %}
+{% macro money(value, text) %}{% if value is none %}{{ mark("unknown") }}<span class="muted">없음</span>{% else %}{{ text }}{% endif %}{% endmacro %}
+{% if quarter %}
+<section class="fc-section fc-quarter" id="quarter" aria-labelledby="quarter-title">
+  <h2 id="quarter-title">최근 분기 — {{ quarter.period_label }}</h2>
+  <p class="fc-basis">{{ quarter.report_label }} · {{ quarter.statement_label }}{% if quarter.dart_url %} · <a href="{{ quarter.dart_url }}" rel="noopener">DART 원문</a>{% endif %}</p>
+  <p class="fc-hint">손익: {{ quarter.period_label }} 석 달 ↔ 1년 전 같은 분기({{ quarter.prior_period_label }})</p>
+  <div class="fc-table-scroll">
+  <table class="fc-quarter-table">
+    <caption class="fc-visually-hidden">손익 — {{ quarter.period_label }}과 {{ quarter.prior_period_label }} (석 달 값)</caption>
+    <thead><tr><th scope="col">손익</th><th scope="col">이번 분기</th><th scope="col">1년 전</th><th scope="col">변화</th></tr></thead>
+    <tbody>
+    {% for ln in quarter.flows %}
+      <tr><th scope="row">{{ ln.label }}</th><td>{{ money(ln.current, ln.current_text) }}</td><td>{{ money(ln.prior, ln.prior_text) }}</td><td>{{ ln.change }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="fc-hint">재무상태: {{ quarter.period_end.strftime("%Y.%m.%d") }} ↔ 직전 사업연도 말({{ quarter.prior_year_end_label }})</p>
+  <div class="fc-table-scroll">
+  <table class="fc-quarter-table">
+    <caption class="fc-visually-hidden">재무상태 — {{ quarter.period_end.strftime("%Y.%m.%d") }}과 {{ quarter.prior_year_end_label }}</caption>
+    <thead><tr><th scope="col">재무상태</th><th scope="col">분기 말</th><th scope="col">전기 말</th><th scope="col">변화</th></tr></thead>
+    <tbody>
+    {% for ln in quarter.stocks %}
+      <tr><th scope="row">{{ ln.label }}</th><td>{{ money(ln.current, ln.current_text) }}</td><td>{{ money(ln.prior, ln.prior_text) }}</td><td>{{ ln.change }}</td></tr>
+    {% endfor %}
+    {% if quarter_debt_na %}
+      <tr><th scope="row">부채비율</th><td colspan="3" class="fc-quarter-na">{{ mark("not_applicable") }}해당 없음 — {{ quarter_debt_na }}</td></tr>
+    {% else %}
+    {% set now_ratio = quarter.debt_ratio("current") %}{% set before_ratio = quarter.debt_ratio("prior") %}
+      <tr><th scope="row">부채비율</th><td>{% if now_ratio is none %}{{ mark("unknown") }}<span class="muted">없음</span>{% else %}{{ "{:,.1f}".format(now_ratio) }}%{% endif %}</td><td>{% if before_ratio is none %}{{ mark("unknown") }}<span class="muted">없음</span>{% else %}{{ "{:,.1f}".format(before_ratio) }}%{% endif %}</td><td>{% if now_ratio is not none and before_ratio is not none %}{{ "{:+,.1f}".format(now_ratio - before_ratio) }}%p{% endif %}</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+  </div>
+  <p class="fc-hint">{% if not quarter_debt_na %}부채비율 = 부채총계 ÷ 자본총계 × 100 (자본총계가 0 이하이면 계산하지 않습니다). {% endif %}위 신호등은 {{ c.year }}년 사업보고서(연간) 숫자로만 매깁니다. 이 표는 그 뒤에 나온 분기보고서의 주요계정을 판정 없이 옮긴 것입니다 —
+  손익은 그 분기 석 달 값이라 연간 값·연간 경계값과 바로 견주지 않습니다. 분기 재무제표는 감사가 아니라 검토를 받습니다.
+  {{ mark("unknown") }}없음: 주요계정에서 그 항목을 찾지 못한 경우(0으로 채우지 않습니다).</p>
+</section>
+{% endif %}

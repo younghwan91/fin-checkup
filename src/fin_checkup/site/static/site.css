@@ -377,6 +377,18 @@ h3 { font-size: .9rem; color: var(--ink-muted); margin: 1.2rem 0 .5rem; letter-s
 .fc-table-view th[scope="row"], .fc-table-view thead th:first-child { text-align: left; }
 .fc-table-view td.muted { color: var(--ink-muted); }
 
+.fc-quarter-table { border-collapse: collapse; margin: .5rem 0 .8rem; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.fc-quarter-table th, .fc-quarter-table td {
+  border-bottom: 1px solid var(--border); padding: .3rem .25rem; text-align: right; white-space: nowrap;
+}
+.fc-quarter-table th[scope="row"], .fc-quarter-table thead th:first-child { text-align: left; }
+.fc-quarter-table .muted { color: var(--ink-muted); }
+.fc-quarter-table td.fc-quarter-na { text-align: left; white-space: normal; color: var(--ink-muted); font-size: .85rem; }
+@media (min-width: 30rem) {
+  .fc-quarter-table { font-size: .9rem; }
+  .fc-quarter-table th, .fc-quarter-table td { padding: .3rem .5rem; }
+}
+
 /* ── 업종·분포 (sector/, market/, _distribution.html) ─── */
 
 .fc-dist .fc-metric { border-left-color: var(--border); }

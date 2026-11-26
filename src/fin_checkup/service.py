@@ -31,6 +31,7 @@ from fin_checkup.metrics.sector import Sector, peer_group_for, sector_for
 from fin_checkup.metrics.signals import Signal
 from fin_checkup.metrics.units import mark_unit_suspects, pair_scale
 from fin_checkup.models import Company, CorpCode, Financials, FsDiv, RawStatements, ReportCode
+from fin_checkup.quarter import KeyAccountRow
 from fin_checkup.storage import Cache, today_key
 
 logger = logging.getLogger(__name__)
@@ -127,6 +128,16 @@ class CheckupService:
     # ------------------------------------------------------------------
     # 재무제표
     # ------------------------------------------------------------------
+
+    async def fetch_key_accounts(
+        self, corp_codes: list[str], bsns_year: int, reprt_code: ReportCode
+    ) -> list[KeyAccountRow]:
+        """다중회사 주요계정 한 묶음(최대 100곳)을 DART 에서 받는다. 저장은 부르는 쪽이."""
+        client = self._client()
+        if client is None:
+            return []
+        async with client:
+            return await client.fetch_key_accounts(corp_codes, bsns_year, reprt_code)
 
     async def get_financials(
         self,
