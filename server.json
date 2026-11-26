@@ -3,7 +3,7 @@
   "name": "io.github.younghwan91/fin-checkup",
   "title": "fin-checkup",
   "description": "Korean listed-company financials from DART filings: 17 ratios with signal, formula, threshold",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "websiteUrl": "https://younghwan91.github.io/fin-checkup/",
   "repository": {
     "url": "https://github.com/younghwan91/fin-checkup",
@@ -12,8 +12,8 @@
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/younghwan91/fin-checkup/releases/download/v0.1.1/fin-checkup.mcpb",
-      "version": "0.1.1",
+      "identifier": "https://github.com/younghwan91/fin-checkup/releases/download/v0.2.0/fin-checkup.mcpb",
+      "version": "0.2.0",
       "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "transport": {
         "type": "stdio"
