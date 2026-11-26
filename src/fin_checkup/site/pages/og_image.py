@@ -11,7 +11,7 @@ from collections.abc import Iterator
 
 from fin_checkup.site import incremental
 from fin_checkup.site.context import OG_IMAGE_PAGE, Site
-from fin_checkup.site.images.market import market_deck, market_og_pngs
+from fin_checkup.site.images.market import draw_market_og, market_deck, market_og_specs
 from fin_checkup.site.images.og import OgCard, og_card_for, og_path, render_many
 from fin_checkup.site.registry import Output, page
 
@@ -31,9 +31,7 @@ def og_images(site: Site) -> Iterator[Output]:
     cards = [og_card_for(entry, label) for entry in site.companies]
     for card, png in zip(cards, _pngs(site, cards), strict=True):
         yield Output(og_path(card.stock_code), png)
-    deck = market_deck(site.companies, site.year)
-    for path, png in market_og_pngs(deck, site.fonts, label):
-        yield Output(path, png)
+    yield from _market_outputs(site, label)
 
 
 def _pngs(site: Site, cards: list[OgCard]) -> list[bytes]:
@@ -50,3 +48,28 @@ def _pngs(site: Site, cards: list[OgCard]) -> list[bytes]:
         cache.put_bytes(keys[i], png)
         pngs[i] = png
     return [png for png in pngs if png is not None]
+
+
+#: 같은 프로세스 안에서 그린 시장 공유 카드 (열쇠 → PNG). 내용·글꼴·코드 판이 같으면 그림도 같다 —
+#: 테스트처럼 같은 시드로 여러 번 빌드할 때 18장(1.4초)을 매번 다시 그리지 않게. 오래된 것부터 버린다.
+_MARKET_MEMO: dict[str, bytes] = {}
+_MARKET_MEMO_MAX = 64
+
+
+def _market_outputs(site: Site, label: str) -> Iterator[Output]:
+    """`/market/`·지표 페이지 공유 카드. 증분 캐시가 있으면 거기서, 없으면 프로세스 안 메모에서 다시 쓴다."""
+    deck = market_deck(site.companies, site.year)
+    fonts = incremental.fonts_id(site.fonts)
+    head = (deck.year, deck.total, deck.sector_labels)
+    for path, metric, kicker in market_og_specs(deck):
+        k = incremental.key("market-og", incremental.code_version(), fonts, head, metric, kicker, label)
+        png = site.build_cache.get_bytes(k) if site.build_cache is not None else _MARKET_MEMO.get(k)
+        if png is None:
+            png = draw_market_og(deck, metric, site.fonts, kicker, label).png()
+            if site.build_cache is not None:
+                site.build_cache.put_bytes(k, png)
+            else:
+                while len(_MARKET_MEMO) >= _MARKET_MEMO_MAX:
+                    _MARKET_MEMO.pop(next(iter(_MARKET_MEMO)))
+                _MARKET_MEMO[k] = png
+        yield Output(path, png)

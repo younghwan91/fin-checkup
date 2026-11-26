@@ -223,3 +223,19 @@ async def test_cli_writes_the_market_cards(tmp_path, monkeypatch, fonts, capsys)
     both = ["site", "cards", "005930", "--market", "--out", str(out)]
     assert await asyncio.to_thread(main, both) == 2
     assert await asyncio.to_thread(main, ["site", "cards", "--out", str(out)]) == 2
+
+
+async def test_same_content_is_not_redrawn_in_one_process(tmp_path, fonts, monkeypatch):
+    """시장 공유 카드 18장은 내용이 같으면 다시 그리지 않는다 — 테스트 빌드마다 1.4초씩 늘던 것."""
+    from fin_checkup.site.pages import og_image
+
+    calls = []
+    real = og_image.draw_market_og
+    monkeypatch.setattr(og_image, "draw_market_og", lambda *a, **k: calls.append(1) or real(*a, **k))
+    monkeypatch.setattr(og_image, "_MARKET_MEMO", {})
+    with Cache(tmp_path / "memo.duckdb") as cache:
+        seed_site_cache(cache)
+        for name in ("a", "b"):
+            await build_site(cache, tmp_path / name, 2024, base_url=BASE, built_on=date(2026, 11, 21))
+    assert len(calls) == len(METRIC_DEFS) + 1, "두 번째 빌드는 메모에서"
+    assert (tmp_path / "a" / MARKET_OG_PATH).read_bytes() == (tmp_path / "b" / MARKET_OG_PATH).read_bytes()

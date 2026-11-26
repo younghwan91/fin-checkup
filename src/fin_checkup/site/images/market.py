@@ -277,16 +277,22 @@ def draw_market_og(
     return canvas
 
 
-def market_og_pngs(deck: MarketDeck, fonts: FontSet, site_label: str = "") -> list[tuple[str, bytes]]:
-    """(출력 경로, PNG). `/market/` 은 엔진 순서 첫 지표 — 값이 눈에 띄는 지표를 고르지 않는다."""
+def market_og_specs(deck: MarketDeck) -> list[tuple[str, MarketMetric, str]]:
+    """(출력 경로, 지표, 머리말). `/market/` 은 엔진 순서 첫 지표 — 값이 눈에 띄는 지표를 고르지 않는다."""
     if not deck.metrics:
         return []
     first = f"시장 전체 분포 (지표 {len(deck.metrics)}개 중 첫째)"
-    out = [(MARKET_OG_PATH, draw_market_og(deck, deck.metrics[0], fonts, first, site_label).png())]
-    for metric in deck.metrics:
-        png = draw_market_og(deck, metric, fonts, "시장 전체 분포", site_label).png()
-        out.append((metric_og_path(metric.key), png))
-    return out
+    specs = [(MARKET_OG_PATH, deck.metrics[0], first)]
+    specs += [(metric_og_path(m.key), m, "시장 전체 분포") for m in deck.metrics]
+    return specs
+
+
+def market_og_pngs(deck: MarketDeck, fonts: FontSet, site_label: str = "") -> list[tuple[str, bytes]]:
+    """(출력 경로, PNG) — `market_og_specs` 순서."""
+    return [
+        (path, draw_market_og(deck, metric, fonts, kicker, site_label).png())
+        for path, metric, kicker in market_og_specs(deck)
+    ]
 
 
 # ── 카드뉴스 1080×1350 ────────────────────────────────────────
