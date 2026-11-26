@@ -46,6 +46,8 @@ def _mcp_servers_block(env: dict[str, str] | None = None) -> str:
 
 
 CLAUDE_CODE_ADD = f"claude mcp add fin-checkup --scope user -- {onboarding.MCP_COMMAND}"
+#: 저장소 루트의 gemini-extension.json 을 읽는다 — MCP 명령은 위 MCP_ARGS 와 같다(`tests/test_gemini_extension.py`).
+GEMINI_EXTENSION_INSTALL = "gemini extensions install https://github.com/younghwan91/fin-checkup"
 
 CLIENTS: dict[str, dict[str, Any]] = {
     "claude-code": {
@@ -169,7 +171,12 @@ CLIENTS: dict[str, dict[str, Any]] = {
         "config_paths": {"user": "~/.gemini/settings.json", "project": ".gemini/settings.json"},
         "install": [
             {
-                "title": "settings.json 에 mcpServers 블록 추가 (바꾸기 전 diff 를 보여 주고 묻는다)",
+                "title": "확장으로 설치 (MCP 서버 + 측정 규칙 GEMINI.md) — 사용자가 터미널에서 직접. 인증키 입력칸은 비워 둬도 된다",
+                "command": GEMINI_EXTENSION_INSTALL,
+                "ask_first": True,
+            },
+            {
+                "title": "또는 settings.json 에 mcpServers 블록 추가 (바꾸기 전 diff 를 보여 주고 묻는다)",
                 "snippet": _mcp_servers_block(),
                 "ask_first": True,
             },
