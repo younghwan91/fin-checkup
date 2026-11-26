@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 import io
+import re
 from collections import Counter
 
 import pytest
@@ -22,7 +23,6 @@ from fin_checkup.metrics.signals import Signal
 from fin_checkup.site.build import collect_companies
 from fin_checkup.site.images.cards import (
     HEIGHT,
-    MORE,
     SOURCE_NAME,
     WIDTH,
     BannedPhraseError,
@@ -164,11 +164,63 @@ async def test_every_metric_counted_on_the_summary_is_on_some_card(checkups, fon
     assert "사이트에서볼수있어요" not in drawn, "블록을 빼지 않는다"
 
 
+def _checkup(checkups, code):
+    return _bank_without_revenue(checkups["105560"]) if code == "105560-bank" else checkups[code]
+
+
+@pytest.mark.parametrize("code", ["005930", "105560", "028300", "105560-bank"])
+async def test_no_card_text_is_cut_mid_sentence(checkups, fonts, code):
+    """실데이터 모양의 카드엔 '…' 가 하나도 없다 — 잘린 문장('…않았을 수…')을 내보내지 않는다.
+    자리가 모자라면 첫 문장(짧은 이유)으로 바꾸지, 문장 가운데서 끊지 않는다."""
+    deck = card_deck(_checkup(checkups, code))
+    for _name, canvas in draw_deck(deck, fonts):
+        for line, _box in canvas.texts:
+            assert "…" not in line, f"잘린 글자: {line!r}"
+
+
+@pytest.mark.parametrize("code", ["005930", "105560", "105560-bank"])
+async def test_last_year_value_survives_a_shortened_why(checkups, fonts, code):
+    """작년 값이 있는 지표는 어느 장에서든 '(작년 …)' 을 단다. 2026-11-21 KB금융 수익성 장은 ⊘ 설명이 길어
+    모든 블록이 짧은 설명으로 내려가면서 ROA·ROE 의 작년 값까지 같이 떨어졌다(삼성전자 장엔 있었다)."""
+    checkup = _checkup(checkups, code)
+    deck = card_deck(checkup)
+    drawn = squash("\n".join(c.all_text() for c in _section_pages(draw_deck(deck, fonts))))
+    blocks = {b.label: b for s in deck.sections for b in s.blocks}
+    with_delta = [m for m in checkup.result.metrics if m.key in checkup.deltas]
+    assert with_delta
+    for metric in with_delta:
+        last_year = re.search(r"\(작년 ([^)]*)\)", blocks[metric.label].why)
+        assert last_year, blocks[metric.label].why
+        assert squash(f"작년 {last_year.group(1)}") in drawn, f"{metric.label} 의 작년 값이 장에서 빠졌다"
+
+
+def _with_interest_paid_note(checkup):
+    """삼성전자 2025 실데이터 모양 — 이자보상배율이 현금흐름표 이자 지급액 기준."""
+    from fin_checkup.metrics.engine import INTEREST_PAID_NOTE
+
+    checkup.result.by_key("interest_coverage").note = INTEREST_PAID_NOTE
+    return checkup
+
+
+@pytest.mark.parametrize("code", ["005930", "105560"])
+async def test_card_sentences_speak_in_one_voice(checkups, fonts, code):
+    """카드 본문은 해요체 하나로 — 평서체(…빠진다.)·합니다체(…않습니다.)가 섞이지 않는다.
+    바닥글 면책 문구는 정해진 문구라 빼고 본다."""
+    checkup = checkups[code]
+    if code == "005930":
+        checkup = _with_interest_paid_note(checkup)
+    deck = card_deck(checkup)
+    for _name, canvas in draw_deck(deck, fonts):
+        body = squash(canvas.all_text()).replace(squash(DISCLAIMER), "")
+        assert not re.search(r"다\.", body), re.findall(r".{20}다\.", body)
+
+
 def test_clamp_says_where_the_rest_is(fonts):
+    more = "… 회사 페이지에서 계속"
     font = fonts.font(24)
     lines = wrap_text("잘리는 문장이 여러 줄로 이어진다. " * 8, font, 600)
-    kept = clamp_lines(lines, font, 600, 2, MORE)
-    assert len(kept) == 2 and kept[-1].endswith(MORE)
+    kept = clamp_lines(lines, font, 600, 2, more)
+    assert len(kept) == 2 and kept[-1].endswith(more)
     assert font.getlength(kept[-1]) <= 600
 
 
@@ -200,21 +252,37 @@ def _stress_deck() -> CardDeck:
     )
 
 
-def test_a_too_long_why_is_cut_with_where_to_continue(fonts):
-    """줄이고도 넘치면 긴 설명만 줄 수를 자르고 끝에 '… 회사 페이지에서 계속' — 말없이 '…' 로 끊지 않는다."""
+def test_a_too_long_why_is_swapped_whole_never_cut(fonts):
+    """줄이고도 넘치면 가장 긴 설명만 한 줄짜리(`why_tiny`)로 통째로 바꾼다 — 문장 가운데서 끊지 않는다.
+    2026-11-21 카드에선 줄 수를 잘라 '…않았을 수…' 같은 끊긴 문장이 나갔다."""
     deck = _stress_deck()
     base = deck.sections[0].blocks[0]
     short = dataclasses.replace(base, why="짧은 설명이에요.", why_short="짧은 설명이에요.")
     very_long = "아주 긴 설명이 이어지는 경우를 본다. " * 40
-    long = dataclasses.replace(base, why=very_long, why_short=very_long)
+    long = dataclasses.replace(base, why=very_long, why_short=very_long, why_tiny="작년 1.00%")
     deck = dataclasses.replace(deck, sections=(Section("수익성", "부제", (short, long, short)),))
     pages = draw_deck(deck, fonts)
     page = next(c for name, c in pages if "-section" in name)
     lines = [t for t, _ in page.texts]
-    assert any(t.endswith(MORE) for t in lines)
+    assert "작년 1.00%" in lines, "긴 설명 대신 한 줄짜리"
+    assert not any("아주 긴 설명" in t for t in lines)
+    assert not any("…" in t for t in lines)
     assert sum("짧은 설명이에요." in t for t in lines) == 2, "짧은 설명은 그대로"
     for _name, canvas in pages:
         assert_card_rules(canvas, deck, fonts)
+
+
+@pytest.mark.parametrize("code", ["005930", "105560", "028300", "105560-bank"])
+async def test_six_metric_card_keeps_a_sentence_per_metric(checkups, fonts, code):
+    """성장성·효율성(지표 6개) 장도 지표마다 설명 한 줄은 남긴다 — 예전엔 이 장이 늘 설명 없이 나가
+    🟡 영업이익 증가율에 이유 문장이 없었다 (2026-11-21 KB금융)."""
+    deck = card_deck(_checkup(checkups, code))
+    section = next(s for s in deck.sections if s.title == "성장성·효율성")
+    page = next(c for c in _section_pages(draw_deck(deck, fonts)) if "성장성·효율성" in c.all_text())
+    drawn = squash(page.all_text())
+    for block in section.blocks:
+        forms = [w for w in (block.why, block.why_short, block.why_tiny) if w]
+        assert any(squash(w) in drawn for w in forms), f"{block.label} 에 설명 문장이 없다"
 
 
 def test_worst_case_text_still_fits(fonts):
