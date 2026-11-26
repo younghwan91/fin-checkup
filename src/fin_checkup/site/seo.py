@@ -11,7 +11,8 @@
   하나도 빠지지 않는다.
 - 절대주소 빌드(robots.txt 에 `Sitemap:` 이 있음)라면 — canonical 이 그 페이지 주소와 같고, JSON-LD
   (`WebPage`, url = canonical)가 읽히며, 회사 페이지의 JSON-LD 는 회사(`about.name`)를 담는다.
-  공유 카드 PNG(`og/<코드>.png`)가 빌드됐으면 그 회사 페이지는 og:image·twitter:image 로 가리킨다.
+  공유 카드 PNG 가 빌드됐으면 그 페이지는 og:image·twitter:image 로 가리킨다 — 회사 `og/<코드>.png`,
+  시장 전체 `og/market.png`, 지표 해설 `og/m/<지표>.png` (`share_image_for`).
 """
 
 from __future__ import annotations
@@ -34,7 +35,19 @@ REQUIRED_META = (
     ("name", "twitter:card"),
     ("name", "twitter:title"),
 )
-_COMPANY_PAGE = re.compile(r"^c/[0-9A-Z]{6}/index\.html$")
+_COMPANY_PAGE = re.compile(r"^c/([0-9A-Z]{6})/index\.html$")
+_METRIC_PAGE = re.compile(r"^m/([a-z_]+)/index\.html$")
+
+
+def share_image_for(rel: str) -> str | None:
+    """그 페이지의 공유 카드 PNG 경로 — 회사·시장 전체·지표 해설 페이지만. 나머지는 None."""
+    if m := _COMPANY_PAGE.match(rel):
+        return f"og/{m.group(1)}.png"
+    if rel == "market/index.html":
+        return "og/market.png"
+    if m := _METRIC_PAGE.match(rel):
+        return f"og/m/{m.group(1)}.png"
+    return None
 _LOC = re.compile(r"<loc>([^<]+)</loc>")
 _SITEMAP_LINE = re.compile(r"^Sitemap:\s*(\S+)\s*$", re.MULTILINE)
 
@@ -147,9 +160,9 @@ def check_seo(out: Path) -> list[Violation]:
             if scan.canonical != url:
                 found.append(Violation(rel, RULE, f"canonical 이 {url} 가 아니다: {scan.canonical}"))
             found += _check_json_ld(rel, scan, url)
-            code = rel.split("/")[1] if _COMPANY_PAGE.match(rel) else None
-            if code and (out / "og" / f"{code}.png").is_file():
-                image = base + f"og/{code}.png"
+            png = share_image_for(rel)
+            if png and (out / png).is_file():
+                image = base + png
                 for key in (("property", "og:image"), ("name", "twitter:image")):
                     if scan.meta.get(key) != image:
                         found.append(Violation(rel, RULE, f"{key[1]} 가 공유 카드 {image} 가 아니다"))

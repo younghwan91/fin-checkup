@@ -3,7 +3,7 @@
   랜드마크(header·nav·main·footer)·건너뛰기 링크·lang="ko" 는 가드(site/guard.py `a11y`)가 모든 페이지에서 본다.
   title·description 은 검색 결과와 공유 미리보기(og:·twitter:)·JSON-LD 에 그대로 쓰인다 — 페이지마다 다르게.
   jsonld 는 컨텍스트 값(선택) — WebPage 에 보탤 schema.org 속성 dict (회사 페이지는 pages/company.py).
-  og_image 는 컨텍스트 값(절대주소, 없으면 태그 없음 — 회사 페이지만 site.og_image_url). canonical·og:url 은 --base-url 이 절대주소일 때만.
+  og_image 는 컨텍스트 값(절대주소, 없으면 태그 없음 — 회사 페이지·시장 전체·지표 페이지만, site.image_url). canonical·og:url 은 --base-url 이 절대주소일 때만.
   링크·자원은 전부 url() 상대경로 — 외부 글꼴·CDN·추적기를 넣지 않는다 (CSP 가 막는다).
 #}
 <!doctype html>

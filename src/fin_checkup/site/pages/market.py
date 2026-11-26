@@ -14,6 +14,7 @@ from collections.abc import Iterator
 from fin_checkup.metrics.peers import MIN_PEERS
 from fin_checkup.site.context import Site
 from fin_checkup.site.groups import SIGNAL_ORDER
+from fin_checkup.site.images.market import MARKET_OG_PATH
 from fin_checkup.site.pages.sector import member_sectors, metric_blocks
 from fin_checkup.site.registry import Output, page
 from fin_checkup.site.view import SignalView
@@ -32,4 +33,5 @@ def market_page(site: Site) -> Iterator[Output]:
         blocks=metric_blocks(site.companies, sectors),
         legend=[SignalView.of(s) for s in SIGNAL_ORDER],
         min_peers=MIN_PEERS,
+        og_image=site.image_url(MARKET_OG_PATH),
     )

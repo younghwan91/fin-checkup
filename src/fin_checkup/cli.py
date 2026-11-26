@@ -633,6 +633,9 @@ async def cmd_site_cards(args: argparse.Namespace) -> int:
     from fin_checkup.site.images.cards import card_deck, draw_deck
     from fin_checkup.site.images.fonts import INSTALL_HINT, resolve_fonts
 
+    if bool(args.market) == bool(args.stock_code):
+        print("종목코드 하나 또는 --market 하나만 주세요.")
+        return 2
     fonts = resolve_fonts()
     if fonts is None:
         print(INSTALL_HINT)
@@ -641,6 +644,8 @@ async def cmd_site_cards(args: argparse.Namespace) -> int:
     if not db_path.exists():
         print(f"캐시 DB 가 없습니다: {db_path}  (FIN_CHECKUP_DB_PATH 로 지정할 수 있습니다)")
         return 1
+    if args.market:
+        return await _site_market_cards(args, db_path, fonts)
     with Cache(db_path, read_only=True) as cache:
         corp = cache.find_by_stock_code(args.stock_code)
         if corp is None:
@@ -661,6 +666,31 @@ async def cmd_site_cards(args: argparse.Namespace) -> int:
         print(f"  {out / name}")
     seconds = time.perf_counter() - started
     print(f"{corp.corp_name} 카드 {len(pages)}장 · {seconds:.1f}초")
+    print("올리기 전에 docs/card-news.md 의 규칙을 볼 것 (출처·면책을 지우지 않는다).")
+    return 0
+
+
+async def _site_market_cards(args: argparse.Namespace, db_path: Path, fonts) -> int:
+    """시장 전체 카드뉴스 — 모집단·분포는 `/market/` 과 같다 (`collect_companies` · `site.groups`)."""
+    import time
+
+    from fin_checkup.site.build import collect_companies
+    from fin_checkup.site.images.market import draw_market_deck, market_deck
+
+    started = time.perf_counter()
+    with Cache(db_path, read_only=True) as cache:
+        entries, _skipped = await collect_companies(cache, args.year)
+    if not entries:
+        print(f"{args.year} 사업연도 재무가 있는 회사가 캐시에 없습니다.")
+        return 1
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    pages = draw_market_deck(market_deck(entries, args.year, args.base_url), fonts)
+    for name, canvas in pages:
+        (out / name).write_bytes(canvas.png())
+        print(f"  {out / name}")
+    seconds = time.perf_counter() - started
+    print(f"시장 전체(상장사 {len(entries):,}곳) 카드 {len(pages)}장 · {seconds:.1f}초")
     print("올리기 전에 docs/card-news.md 의 규칙을 볼 것 (출처·면책을 지우지 않는다).")
     return 0
 
@@ -843,7 +873,12 @@ def main(argv: list[str] | None = None) -> int:
     p_site_cards = site_sub.add_parser(
         "cards", help="카드뉴스 PNG (1080×1350, 7장 이하) — 만들기만 하고 올리지 않는다"
     )
-    p_site_cards.add_argument("stock_code", help="종목코드 6자리")
+    p_site_cards.add_argument("stock_code", nargs="?", help="종목코드 6자리 (--market 이면 빼기)")
+    p_site_cards.add_argument(
+        "--market",
+        action="store_true",
+        help="회사 대신 시장 전체 신호 비율 카드 (회사 이름 없음, /market/ 과 같은 분포)",
+    )
     p_site_cards.add_argument("--out", required=True, help="PNG 를 쓸 폴더")
     p_site_cards.add_argument("--year", type=int, default=default_fiscal_year(), help="기준 사업연도")
     p_site_cards.add_argument(
