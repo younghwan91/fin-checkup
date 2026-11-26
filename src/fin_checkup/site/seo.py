@@ -13,6 +13,8 @@
   (`WebPage`, url = canonical)가 읽히며, 회사 페이지의 JSON-LD 는 회사(`about.name`)를 담는다.
   공유 카드 PNG 가 빌드됐으면 그 페이지는 og:image·twitter:image 로 가리킨다 — 회사 `og/<코드>.png`,
   시장 전체 `og/market.png`, 지표 해설 `og/m/<지표>.png` (`share_image_for`).
+  정적 JSON 을 안내하는 `agents/index.html` 의 JSON-LD 는 `mainEntity` 로 `Dataset` 을 담고, 그 내려받기
+  주소(`distribution[].contentUrl`)는 이 빌드에 있는 파일이다 — Google 데이터세트 검색이 읽는 곳.
 """
 
 from __future__ import annotations
@@ -48,6 +50,8 @@ def share_image_for(rel: str) -> str | None:
     if m := _METRIC_PAGE.match(rel):
         return f"og/m/{m.group(1)}.png"
     return None
+#: Dataset(`structured.dataset`)을 싣는 페이지.
+DATASET_PAGE = "agents/index.html"
 _LOC = re.compile(r"<loc>([^<]+)</loc>")
 _SITEMAP_LINE = re.compile(r"^Sitemap:\s*(\S+)\s*$", re.MULTILINE)
 
@@ -115,6 +119,23 @@ def _check_json_ld(rel: str, scan: _HeadScan, url: str) -> list[Violation]:
     return found
 
 
+def _check_dataset(rel: str, scan: _HeadScan, base: str, out: Path) -> list[Violation]:
+    try:
+        entity = json.loads(scan.json_ld[0]).get("mainEntity") or {}
+    except (IndexError, ValueError):
+        return []  # JSON-LD 자체의 문제는 _check_json_ld 가 이미 잡았다.
+    if entity.get("@type") != "Dataset":
+        return [Violation(rel, RULE, "JSON-LD mainEntity 에 정적 JSON 의 Dataset 이 없다")]
+    urls = [d.get("contentUrl", "") for d in entity.get("distribution") or [] if isinstance(d, dict)]
+    if not urls:
+        return [Violation(rel, RULE, "Dataset 에 내려받기(distribution) 주소가 없다")]
+    return [
+        Violation(rel, RULE, f"Dataset 내려받기 주소가 빌드에 없다: {u}")
+        for u in urls
+        if not (u.startswith(base) and (out / u.removeprefix(base)).is_file())
+    ]
+
+
 def check_seo(out: Path) -> list[Violation]:
     """출력 폴더의 검색 노출 요소. 위반이 없으면 빈 목록."""
     if not out.is_dir():
@@ -160,6 +181,8 @@ def check_seo(out: Path) -> list[Violation]:
             if scan.canonical != url:
                 found.append(Violation(rel, RULE, f"canonical 이 {url} 가 아니다: {scan.canonical}"))
             found += _check_json_ld(rel, scan, url)
+            if rel == DATASET_PAGE:
+                found += _check_dataset(rel, scan, base, out)
             png = share_image_for(rel)
             if png and (out / png).is_file():
                 image = base + png

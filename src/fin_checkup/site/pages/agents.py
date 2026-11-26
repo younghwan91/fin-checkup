@@ -1,5 +1,6 @@
 """`/agents/` — 사람이 읽는 '에이전트에서 쓰기': 붙여 넣는 프롬프트 · curl 예 · 에이전트용 파일 ·
-MCP·플러그인 문서.
+MCP·플러그인 문서. 정적 JSON 을 안내하는 페이지라 JSON-LD 에 그 데이터의 `Dataset` 을 싣는다
+(`structured.dataset`).
 
 에이전트 쪽 안내 본문은 `/llms.txt`(pages/llms.py)·`/openapi.json`(pages/openapi.py) 이고, 여기는 그 길을
 사람에게 알려 준다. 프롬프트는 복사해 다른 서비스에 붙이는 글이라 절대주소를 쓴다
@@ -12,6 +13,9 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 
+from fin_checkup.metrics.engine import METRIC_DEFS
+from fin_checkup.site import structured
+from fin_checkup.site.buildinfo import data_years
 from fin_checkup.site.context import Site
 from fin_checkup.site.pages.llms import LLMS, LLMS_FULL, REPO, example_entries
 from fin_checkup.site.pages.openapi import PATH as OPENAPI
@@ -69,6 +73,16 @@ def agents_page(site: Site) -> Iterator[Output]:
     examples = example_entries(site)
     code = examples[0].stock_code if examples else "005930"
     names = [e.name for e in examples] + ["삼성전자", "SK하이닉스"]
+    dataset = structured.dataset(
+        page_url=site.absolute_url("agents/"),
+        site_url=site.absolute_url(),
+        repo_url=REPO,
+        years=data_years(site.companies),
+        built_on=site.built_on.isoformat(),
+        company_count=len(site.companies),
+        sample_code=code if examples else None,
+        variables=[spec.label for spec in METRIC_DEFS],
+    )
     yield site.render(
         "agents/index.html",
         "agents/index.html",
@@ -81,4 +95,6 @@ def agents_page(site: Site) -> Iterator[Output]:
         openapi=OPENAPI,
         mcp_doc=MCP_DOC,
         skill_doc=SKILL_DOC,
+        # 절대주소 빌드에서만 JSON-LD 가 나온다(site.json_ld) — 상대 빌드에선 쓰이지 않는다.
+        jsonld={"mainEntity": dataset},
     )

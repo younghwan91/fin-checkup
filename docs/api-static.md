@@ -10,6 +10,11 @@ AI 에이전트용 안내는 [`/llms.txt`](https://younghwan91.github.io/fin-che
 
 **측정값이다.** 투자권유·자문이 아니며, 모든 파일에 `disclaimer` 가 들어 있다 — 다시 보여 줄 땐 함께 보여 준다.
 
+검색 엔진에는 [`/agents/`](https://younghwan91.github.io/fin-checkup/agents/) 페이지의 JSON-LD 가 이 파일들을 schema.org
+`Dataset`(`mainEntity`)으로 알린다 — Google 데이터세트 검색용(`site/structured.py` `dataset()`, `site check` 가 내려받기
+주소가 빌드에 있는지 본다). 라이선스 칸에는 원천 데이터의 이용 조건(OpenDART 이용약관)을 적는다 — 데이터에 MIT 를
+붙이지 않는다. MIT 는 코드의 라이선스다(`docs/REGULATORY.md`).
+
 ## `api/index.json`
 
 | 필드 | 뜻 |
