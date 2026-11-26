@@ -508,3 +508,18 @@ uv run python -m http.server -d site-out 8080                            # http:
 소유 확인 HTML 파일(`google….html`, `naver….html`)은 비밀이 아니다(내용이 파일 이름 그대로 공개된다). 빌드가
 출력 폴더를 매번 비우므로, `pages.yml` 의 사이트 빌드 단계 끝에서 `site-out/` 루트에 그 파일을 쓰는 한 줄을 더한다.
 하위 경로 등록이 거부되면 사용자 지정 도메인을 붙여야 한다 — 그때 `SITE_URL` 도 함께 바꾼다.
+
+### IndexNow — 계정 없이 바뀐 주소 알리기
+
+위 두 곳은 운영자 로그인이 필요하다. 그 전에도 Bing·네이버·Yandex·Seznam 이 새 페이지를 알도록, `pages.yml` 이 배포 뒤
+[IndexNow](https://www.indexnow.org/documentation) 로 이번 빌드에서 바뀐 주소를 `https://api.indexnow.org/indexnow` 에 보낸다
+(`site/indexnow.py`).
+
+- **열쇠**: `indexnow.KEY` — 공개가 전제다. 빌드가 `/fin-checkup/<열쇠>.txt` 로 싣고(`pages/indexnow.py`), 사이트가 도메인
+  루트가 아니라서 `keyLocation` 으로 그 주소를 알린다. 열쇠 파일이 있는 디렉터리 아래 주소만 보낼 수 있다.
+- **무엇을**: 빌드 단계가 색인 페이지마다 지문(`<title>` + `<main>`, 빌드 날짜는 가림)을 `page-digests.json` 으로 사이트에 싣고,
+  라이브 사이트의 같은 파일(지난 배포)과 비교해 바뀐·새로 생긴·없어진 주소를 고른다. 라이브에 파일이 없으면(404 — 처음 한 번)
+  색인 페이지 전부, 요청당 상한 10,000곳. 404 가 아닌 실패로는 전체를 다시 보내지 않고 그 회차를 건너뛴다.
+- **언제**: `deploy` 가 성공한 뒤 `indexnow` 작업. 이 저장소의 `main`(또는 `data-*` 릴리스) 실행에서만 — 포크·다른 브랜치 수동
+  실행·PR 에서는 보내지 않는다. 결과는 로그의 `IndexNow: N곳 → HTTP 200`(접수)·`202`(열쇠 확인 대기). `403` 은 열쇠 파일이
+  안 보인다는 뜻 — 라이브에서 `<SITE_URL><열쇠>.txt` 를 열어 본다. 실패해도 배포는 그대로다.

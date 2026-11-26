@@ -28,3 +28,20 @@ def test_backfill_runs_between_snapshot_import_and_site_build() -> None:
     backfill = _position(text, "fin_checkup.cli backfill")
     build = _position(text, "fin_checkup.cli site build")
     assert imported < backfill < build
+
+
+def test_indexnow_plans_before_the_guard_and_pings_only_after_a_main_deploy() -> None:
+    """IndexNow 는 배포 뒤·운영 사이트에서만 보내고, 실패해도 배포를 실패로 만들지 않는다."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    build = _position(text, "fin_checkup.cli site build")
+    plan = _position(text, "fin_checkup.site.indexnow plan")
+    guard = _position(text, "fin_checkup.cli site check")
+    assert build < plan < guard, "지문 파일도 가드를 거친다"
+    job = text[_position(text, "\n  indexnow:") :]
+    assert "needs: [build, deploy]" in job
+    assert "github.repository == 'younghwan91/fin-checkup'" in job
+    assert "github.ref == 'refs/heads/main'" in job
+    assert "github.event_name != 'pull_request'" in job
+    submit = _position(job, "fin_checkup.site.indexnow submit")
+    assert "continue-on-error: true" in job[job.rfind("- name:", 0, submit) : submit]
+    assert "pull_request" not in text[: _position(text, "permissions:")], "PR 로는 돌지 않는다"
