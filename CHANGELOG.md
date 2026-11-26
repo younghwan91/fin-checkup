@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-11-27
+
+- **시장 전체 공유 카드** — `/market/` 과 지표 페이지 17개(`/m/<지표>/`)에 공유 이미지(`og/market.png`·`og/m/<지표>.png`)를 붙였다.
+  상장사 전체의 신호 비율과 곳 수, 경계값, 계산식, 출처, 면책 문구를 싣는다. 회사 이름은 넣지 않는다.
+  `site cards --market` 은 카테고리마다 한 장씩, 7장짜리 시장 카드뉴스 덱을 만든다.
+- **카드뉴스 고침** — 설명을 문장 중간에서 자르지 않는다. 금융업 덱에도 요약에서 센 지표가 모두 나온다. ROA·ROE 에 작년 값을 붙이고, 문장을 해요체로 맞췄다.
 - **Dataset 구조화 데이터** — `/agents/` 의 JSON-LD 가 정적 JSON(`api/index.json`·`api/c/<종목코드>.json`)을 schema.org
   `Dataset` 으로 알린다(Google 데이터세트 검색). 라이선스 칸은 원천 데이터의 OpenDART 이용약관 — 데이터에 MIT 를 붙이지 않는다.
 - **IndexNow** — 사이트 배포가 끝나면 그 빌드에서 바뀐 페이지 주소를 IndexNow(Bing·네이버·Yandex·Seznam)에 알린다.
@@ -15,6 +21,10 @@
   사업보고서로만 매긴다. 연간 부채비율이 ⊘ 인 업종은 분기 부채비율도 ⊘. DART 다중회사 주요계정으로 분기당 ~28회 호출.
 - **Gemini CLI 확장** — `gemini extensions install https://github.com/younghwan91/fin-checkup` 으로 MCP 서버와 측정 규칙
   (`GEMINI.md`)을 함께 설치한다. DART 키 칸은 선택(키체인 저장). 저장소 루트 `gemini-extension.json` 버전은 릴리스 태그 확인에 들어간다.
+- **Claude Desktop 확장** — 릴리스 파일 [`fin-checkup.mcpb`](https://github.com/younghwan91/fin-checkup/releases/download/v0.2.0/fin-checkup.mcpb)
+  를 두 번 눌러 설치. 공식 MCP Registry 항목 `io.github.younghwan91/fin-checkup` 도 0.2.0 으로 올라간다.
+
+본 결과는 공시 수치를 공개된 재무비율 공식으로 계산한 측정값입니다. 투자권유·자문이 아니며, 데이터 정확성과 이용에 따른 손익에 책임지지 않습니다.
 
 ## [0.1.1] — 2026-11-23
 

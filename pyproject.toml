@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fin-checkup"
-version = "0.1.1"
+version = "0.2.0"
 description = "DART 공시 기반 재무 건강검진 — 재무비율을 신호등으로, 위험 공시는 사실만"
 readme = "README.md"
 license = { text = "MIT" }
