@@ -15,8 +15,15 @@ from fin_checkup.explain.metrics import band_ranges, get_explainer
 from fin_checkup.format import format_metric, format_money
 from fin_checkup.metrics.engine import (
     BASIS_NOTES,
+    CAPEX_ITEMIZED_NOTE,
+    CAPEX_WITH_INTANGIBLES_NOTE,
+    INTEREST_PAID_NOTE,
     MISSING_ACCOUNT_NOTE,
     MONEY,
+    RECEIVABLE_AGGREGATE_NOTE,
+    TINY_INVENTORY_NOTE,
+    TINY_RECEIVABLE_NOTE,
+    TINY_REVENUE_NOTE,
     Category,
     Metric,
 )
@@ -26,6 +33,33 @@ from fin_checkup.metrics.signals import Signal
 from fin_checkup.metrics.units import UNIT_SUSPECT_MARKER
 
 _NO_ZERO_FILL = "없는 값을 0으로 채우지 않고 비워 둬요."
+
+#: 근거 비고(엔진 메모, 평서체)를 '왜 이 색' 문장에 붙일 때의 해요체. 메모를 그대로 붙이면
+#: "…정상이에요(작년 48.48배). …이자는 빠진다." 처럼 한 설명 안에서 말투가 갈린다 (2026-11-21 카드).
+#: 메모 자체(API `note`)는 그대로 둔다 — 데이터 필드라 문체를 바꾸면 소비자가 깨진다.
+BASIS_SENTENCES: dict[str, str] = {
+    INTEREST_PAID_NOTE: (
+        "현금흐름표의 이자 지급액 기준이에요(손익계산서에 이자비용 단독 계정이 없어요). "
+        "전환사채 상각이자처럼 현금으로 나가지 않은 이자는 빠져요."
+    ),
+    RECEIVABLE_AGGREGATE_NOTE: (
+        "매출채권 단독 계정이 없어 매출채권및기타채권 합계(미수금 등 포함)로 계산했어요 — "
+        "실제보다 낮게 나올 수 있어요."
+    ),
+    CAPEX_ITEMIZED_NOTE: "유형자산 취득 합계 줄이 없어 종류별 취득(토지·건물·기계장치 등)을 더해 계산했어요.",
+    CAPEX_WITH_INTANGIBLES_NOTE: (
+        "유형·무형자산 취득이 한 줄로 공시돼 무형자산 취득까지 빼서 계산했어요 — 공식보다 낮게 나올 수 있어요."
+    ),
+    TINY_INVENTORY_NOTE: (
+        "재고자산이 하루 매출보다 적어 회전율이 크게 나와요 — 재고를 거의 두지 않는 사업일 수 있어요."
+    ),
+    TINY_RECEIVABLE_NOTE: (
+        "매출채권이 하루 매출보다 적어 회전율이 크게 나와요 — 외상 없이 바로 대금을 받는 사업일 수 있어요."
+    ),
+    TINY_REVENUE_NOTE: (
+        "매출액이 이익(손실)의 10분의 1보다 작아 이익률이 ±1,000% 밖으로 나와요 — 매출이 아주 작은 해의 값이에요."
+    ),
+}
 
 
 def why_color(
@@ -67,7 +101,8 @@ def why_color(
         return f"{name} {topic(value)} {signal.emoji} {is_(signal.label)} — {reason}"
 
     # 근거 비고는 여럿일 수 있다(합계 기준 + 하루 매출보다 작은 매출채권). 메모에 적힌 순서대로 붙인다.
-    basis = " ".join(sorted((n for n in BASIS_NOTES if n in metric.note), key=metric.note.index)) or None
+    found = sorted((n for n in BASIS_NOTES if n in metric.note), key=metric.note.index)
+    basis = " ".join(BASIS_SENTENCES[n] for n in found) or None
     if signal is Signal.NEUTRAL or metric.band is None:
         sentence = f"{name} {topic(value)} 업종마다 차이가 커서 경계값 없이 ⚪ 측정값으로만 보여 줘요{context}."
         return f"{sentence} {basis}" if basis else sentence
@@ -125,6 +160,13 @@ def _missing_reason(metric: Metric) -> str:
     )
 
 
+def last_year_text(delta: SelfDelta, currency: str = "KRW") -> str:
+    """작년 값을 설명 문장에 쓰는 모양으로 (10.88% · 4.0조원)."""
+    if delta.unit == MONEY:
+        return format_money(delta.previous, currency)
+    return f"{delta.previous:,.2f}{delta.unit}"
+
+
 def _context(peer: PeerStat | None, delta: SelfDelta | None, currency: str) -> str:
     parts: list[str] = []
     if peer is not None:
@@ -133,9 +175,5 @@ def _context(peer: PeerStat | None, delta: SelfDelta | None, currency: str) -> s
             text += f"·{peer.rank_text}"
         parts.append(text)
     if delta is not None:
-        if delta.unit == MONEY:
-            before = format_money(delta.previous, currency)
-        else:
-            before = f"{delta.previous:,.2f}{delta.unit}"
-        parts.append(f"작년 {before}")
+        parts.append(f"작년 {last_year_text(delta, currency)}")
     return f"({', '.join(parts)})" if parts else ""

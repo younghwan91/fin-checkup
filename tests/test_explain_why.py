@@ -396,7 +396,35 @@ def test_tiny_denominator_notes_are_appended_as_facts():
         **base, revenue=1_000_000, trade_receivables=100, operating_income=-20_000_000,
         trade_receivables_source=ReceivableSource.TRADE_AND_OTHER,
     ))
+    from fin_checkup.explain.why import BASIS_SENTENCES
+
     turnover = why_color(result.by_key("receivable_turnover"))
-    assert "⚪" in turnover and TINY_RECEIVABLE_NOTE in turnover and RECEIVABLE_AGGREGATE_NOTE in turnover
+    assert "⚪" in turnover
+    assert BASIS_SENTENCES[TINY_RECEIVABLE_NOTE] in turnover
+    assert BASIS_SENTENCES[RECEIVABLE_AGGREGATE_NOTE] in turnover
+    assert turnover.index(BASIS_SENTENCES[TINY_RECEIVABLE_NOTE]) < turnover.index(
+        BASIS_SENTENCES[RECEIVABLE_AGGREGATE_NOTE]
+    ), "메모에 적힌 순서대로"
     margin = why_color(result.by_key("operating_margin"))
-    assert "🔴" in margin and TINY_REVENUE_NOTE in margin
+    assert "🔴" in margin and BASIS_SENTENCES[TINY_REVENUE_NOTE] in margin
+
+
+def test_basis_notes_are_appended_in_haeyo_style():
+    """근거 비고는 엔진의 평서체 메모(…빠진다.)를 그대로 붙이면 앞 문장(…정상이에요)과 말투가 갈린다
+    (2026-11-21 삼성전자 카드 4장 이자보상배율). '왜 이 색' 문장은 끝까지 해요체."""
+    import re
+
+    from fin_checkup.explain.why import BASIS_SENTENCES
+    from fin_checkup.metrics.engine import BASIS_NOTES
+
+    assert set(BASIS_SENTENCES) == set(BASIS_NOTES), "새 근거 비고엔 해요체 문장도 함께"
+    for note, sentence in BASIS_SENTENCES.items():
+        assert sentence.endswith("요."), sentence
+        assert not re.search(r"다\.(\s|$)", sentence), sentence
+        assert note not in sentence
+
+    m = metric("interest_coverage", dict(operating_income=500, interest_expense=100,
+                                         interest_expense_source=InterestSource.CASH_FLOW))
+    text = why_color(m)
+    assert not re.search(r"다\.(\s|$)", text), text
+    assert text.endswith("요."), text
