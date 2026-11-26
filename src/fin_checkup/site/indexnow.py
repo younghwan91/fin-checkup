@@ -24,6 +24,7 @@ import hashlib
 import json
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterable
@@ -44,6 +45,10 @@ MAX_URLS = 10_000
 #: 이번 빌드의 페이지 지문 — 다음 배포가 비교할 기준. 사이트 루트에 싣는다.
 DIGESTS = "page-digests.json"
 TIMEOUT = 20
+#: 배포 직후엔 검색 엔진이 열쇠 파일을 아직 못 본다(2026-11-27 첫 배포: 403, 몇 분 뒤 같은 본문 200).
+#: 열쇠 확인과 403 재시도를 이만큼, 이 간격으로 — 합쳐 최대 약 10분.
+ATTEMPTS = 6
+RETRY_WAIT = 60
 
 Opener = Callable[..., Any]
 
@@ -157,6 +162,40 @@ def submit(payload: dict[str, Any], opener: Opener = urllib.request.urlopen) -> 
         return None
 
 
+def key_is_live(key_location: str, opener: Opener = urllib.request.urlopen) -> bool:
+    """`keyLocation` 이 200 이고 내용이 열쇠 그대로인가."""
+    try:
+        with opener(key_location, timeout=TIMEOUT) as response:
+            return int(response.status) == 200 and response.read().decode("utf-8").strip() == KEY
+    except (urllib.error.URLError, OSError, UnicodeDecodeError):
+        return False
+
+
+def deliver(
+    payload: dict[str, Any],
+    opener: Opener = urllib.request.urlopen,
+    sleep: Callable[[float], Any] = time.sleep,
+) -> int | None:
+    """열쇠 파일이 라이브가 될 때까지 기다렸다 보내고, 403(열쇠 미확인)이면 기다렸다 다시 보낸다.
+
+    열쇠가 끝내 안 보여도 한 번은 보낸다 — 상태 코드가 로그에 남아야 원인을 안다. 403 밖의 실패는
+    다시 보내도 같으니 바로 돌려준다. 예외는 내지 않는다.
+    """
+    for attempt in range(ATTEMPTS):
+        if key_is_live(payload["keyLocation"], opener):
+            break
+        if attempt < ATTEMPTS - 1:
+            sleep(RETRY_WAIT)
+    status = None
+    for attempt in range(ATTEMPTS):
+        status = submit(payload, opener)
+        if status != 403:
+            return status
+        if attempt < ATTEMPTS - 1:
+            sleep(RETRY_WAIT)
+    return status
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m fin_checkup.site.indexnow", description=__doc__.split("\n")[0]
@@ -182,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         print("IndexNow: 보낼 주소가 없어 건너뛴다")
         return 0
     payload = json.loads(args.payload.read_text("utf-8"))
-    status = submit(payload)
+    status = deliver(payload)
     print(f"IndexNow: {len(payload['urlList']):,}곳 → HTTP {status if status is not None else '연결 실패'}")
     return 0
 
