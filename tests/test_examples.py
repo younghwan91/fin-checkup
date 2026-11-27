@@ -85,3 +85,18 @@ def test_http_base_fetches_from_the_site(monkeypatch):
     monkeypatch.setattr(example.urllib.request, "urlopen", fake_urlopen)
     assert example.fetch_json("https://example.github.io/fin-checkup/", "api/index.json") == {"ok": True}
     assert seen == ["https://example.github.io/fin-checkup/api/index.json"]
+
+
+def test_missing_base_dir_exits_with_one_line_message(tmp_path):
+    missing = tmp_path / "no-such-dir"
+    with pytest.raises(SystemExit, match="파일을 읽지 못했습니다"):
+        example.main(["005930", "105560", "--base", str(missing)])
+
+
+def test_http_error_exits_with_one_line_message(monkeypatch):
+    def fail_urlopen(request, timeout):
+        raise example.urllib.error.URLError("offline")
+
+    monkeypatch.setattr(example.urllib.request, "urlopen", fail_urlopen)
+    with pytest.raises(SystemExit, match="데이터를 받지 못했습니다"):
+        example.fetch_json("https://example.github.io/fin-checkup/", "api/index.json")
