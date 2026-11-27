@@ -30,7 +30,14 @@
     <h2 id="dist-title">지표 17개</h2>
     <p class="fc-hint">지표 이름을 누르면 해당 지표의 상세 분포 카드로 이동합니다.</p>
     {% if signal_overview is defined and signal_overview %}
-    <div class="fc-overview-wrap">{{ signal_overview }}</div>
+    <div class="fc-overview-wrap">
+      <ul class="fc-shares fc-overview-legend" aria-label="신호 구성 범례">
+        {% for s in legend %}
+        <li class="sig-{{ s.key }}">{{ mark(s.key) }}{{ s.label }}</li>
+        {% endfor %}
+      </ul>
+      {{ signal_overview }}
+    </div>
     {% endif %}
     {% with show_signals=True %}{% include "_distribution.html" %}{% endwith %}
   </section>

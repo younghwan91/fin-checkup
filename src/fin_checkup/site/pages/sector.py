@@ -29,6 +29,7 @@ from fin_checkup.site.charts import (
 )
 from fin_checkup.site.context import CompanyEntry, Site
 from fin_checkup.site.groups import (
+    SIGNAL_ORDER,
     Distribution,
     distributions,
     peer_group_of,
@@ -36,6 +37,7 @@ from fin_checkup.site.groups import (
     sector_path,
 )
 from fin_checkup.site.registry import Output, company_context, page
+from fin_checkup.site.view import SignalView
 
 
 @dataclass(frozen=True)
@@ -122,6 +124,9 @@ def metric_blocks(entries: list[CompanyEntry], sectors: list[Sector]) -> list[Me
             unit=d.spec.unit,
             band=band,
             chart_id=f"dist-{d.key}",
+            q1_text=d.text(d.q1),
+            median_text=d.text(d.median),
+            q3_text=d.text(d.q3),
         )
         meter = signal_meter_svg([(s.signal.value, s.signal.label, s.count) for s in d.signals])
         out.append(
@@ -197,6 +202,7 @@ def sector_pages(site: Site) -> Iterator[Output]:
             sectors=sectors,
             blocks=blocks,
             signal_overview=_overview(blocks, f"overview-{link.info.code}"),
+            legend=[SignalView.of(s) for s in SIGNAL_ORDER],
             caveats=[c for s in sectors for c in caveats_for(s)],
             min_peers=MIN_PEERS,
         )
