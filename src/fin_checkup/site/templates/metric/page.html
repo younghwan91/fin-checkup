@@ -18,7 +18,7 @@
   <section class="fc-section" id="formula" aria-labelledby="formula-title">
     <h2 id="formula-title">계산식과 경계값</h2>
     <dl class="fc-basis-list">
-      <dt>계산식</dt><dd>{{ e.formula }}</dd>
+      <dt>계산식</dt><dd>{{ e.formula | math }}</dd>
       {% for t in p.thresholds %}
       <dt>경계값{% if t.sector_label %} ({{ t.sector_label }}){% endif %}</dt><dd>{{ t.text | marks }}</dd>
       {% endfor %}
@@ -63,7 +63,7 @@
     <h2 id="example-title">실제 숫자로 계산해 보기</h2>
     {% set ex = p.example %}
     {% if ex %}
-    <p>{% if not ex.is_default %}기본 예시 회사로는 이 지표를 계산할 수 없어서, 아래 규칙에 따라 다른 회사를 썼어요. {% endif %}<a href="{{ url(ex.entry.path) }}">{{ ex.entry.name }}</a>의 {{ ex.worked.year }} 사업연도 공시 숫자예요. <span class="fc-hint">(이 사이트가 기준으로 삼은 가장 최근 사업보고서 연도입니다.)</span></p>
+    <p>{% if not ex.is_default %}기본 예시 회사로는 이 지표를 계산할 수 없어서, 아래 규칙에 따라 다른 회사를 썼어요. {% endif %}<a href="{{ url(ex.entry.path) }}">{{ ex.entry.name }}</a>의 {{ ex.worked.year }} 사업연도 공시 숫자예요. <span class="fc-hint">({{ site.season.next_annual.period }} 사업보고서는 {{ site.season.next_annual.due.isoformat() }}까지 공시되므로, 현재 가장 최근 확정 연간 보고서는 {{ ex.worked.year }}년입니다.)</span></p>
     <dl class="fc-basis-list fc-worked">
       {% for i in ex.worked.inputs %}
       <dt>{{ i.label }}</dt><dd>{{ i.text | marks }} <small>({{ i.year }}년 {{ i.statement }})</small></dd>

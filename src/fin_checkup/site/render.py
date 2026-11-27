@@ -59,6 +59,30 @@ def signal_marks(text: str) -> Markup:
     return Markup(out)
 
 
+def math_formula(formula: str) -> Markup:
+    """수식 문자열을 오프라인 LaTeX 스타일 분수 마크업으로 바꾼다 (CDN·JS 없음)."""
+    hidden = f'<span class="fc-visually-hidden">{escape(formula)}</span>'
+    if " ÷ " in formula:
+        num, rest = formula.split(" ÷ ", 1)
+        if num.startswith("(") and num.endswith(")"):
+            num = num[1:-1]
+        if " × " in rest:
+            den, mult = rest.split(" × ", 1)
+            body = (
+                f'<span class="fc-frac"><span class="fc-num">{escape(num)}</span>'
+                f'<span class="fc-den">{escape(den)}</span></span>'
+                f'<span class="fc-op">×</span><span class="fc-mult">{escape(mult)}</span>'
+            )
+        else:
+            body = (
+                f'<span class="fc-frac"><span class="fc-num">{escape(num)}</span>'
+                f'<span class="fc-den">{escape(rest)}</span></span>'
+            )
+    else:
+        body = f'<span class="fc-expr">{escape(formula)}</span>'
+    return Markup(f'{hidden}<span class="fc-math" aria-hidden="true">{body}</span>')
+
+
 def make_env() -> Environment:
     env = Environment(
         loader=PackageLoader("fin_checkup.site", "templates"),
@@ -70,4 +94,5 @@ def make_env() -> Environment:
     )
     env.globals.update(url=_url, DISCLAIMER=DISCLAIMER, LOGO=Markup(inline_mark_svg()))
     env.filters["marks"] = signal_marks
+    env.filters["math"] = math_formula
     return env
