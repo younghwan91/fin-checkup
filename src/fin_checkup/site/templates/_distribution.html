@@ -36,7 +36,7 @@
     </ul>
     {% endif %}
     <dl class="fc-basis-list">
-      <dt>계산식</dt><dd>{{ d.spec.formula }}</dd>
+      <dt>계산식</dt><dd>{{ d.spec.formula | math }}</dd>
       {% for t in b.thresholds %}
       <dt>경계값{% if t.sector_label %} ({{ t.sector_label }}){% endif %}</dt><dd>{{ t.text | marks }}</dd>
       {% endfor %}
