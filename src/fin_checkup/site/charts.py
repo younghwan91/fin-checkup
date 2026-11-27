@@ -1067,7 +1067,7 @@ def sector_heatmap_svg(
                 tip = f"{name} · {m_label}: 해당 없음(⊘)"
             else:
                 pct_i = round(red_pct)
-                bucket = 0 if pct_i == 0 else 1 if pct_i < 15 else 2 if pct_i < 30 else 3 if pct_i < 50 else 4
+                bucket = 0 if pct_i == 0 else 1 if pct_i < 20 else 2 if pct_i < 35 else 3 if pct_i < 50 else 4
                 cls, txt = f"fc-hm-rate-{bucket}", f"{pct_i}%"
                 tip = f"{name} · {m_label}: 위험 {red_pct:.1f}% ({red_cnt}/{total}곳)"
             parts.append(

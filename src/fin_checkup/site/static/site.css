@@ -35,9 +35,9 @@
   --tint-neutral: #f2f2f0;
   --tint-not_applicable: #f5f5f3;
   --tint-unknown: #eeeeec;
-  --hm-1: #fdf2f2;
-  --hm-2: #f9d6d6;
-  --hm-3: #f1a9aa;
+  --hm-1: #eef4fb;
+  --hm-2: #d6e6f7;
+  --hm-3: #fdf3df;
 
   /* 차트 막대 — 상태색과 겹치지 않는 파랑 하나 (dataviz validate_palette: 밝은·어두운 면 모두 통과) */
   --chart-1: #2a78d6;
@@ -81,9 +81,9 @@
     --tint-neutral: #232321;
     --tint-not_applicable: #20201e;
     --tint-unknown: #262624;
-    --hm-1: #2a1d1d;
-    --hm-2: #422324;
-    --hm-3: #6b2b2d;
+    --hm-1: #1a222c;
+    --hm-2: #223042;
+    --hm-3: #2e2716;
 
     --chart-1: #3987e5;
     --chart-grid: #2a2a27;
