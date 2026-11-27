@@ -195,7 +195,7 @@ async def test_company_page_has_trend_section_with_table_fallback(cache, tmp_pat
     out = tmp_path / "out"
     await build_site(cache, out, 2024, built_on=date(2026, 11, 21))
     html = (out / "c" / SAMSUNG.stock_code / "index.html").read_text(encoding="utf-8")
-    assert 'id="trend"' in html and "5개년 추이" in html
+    assert 'id="trend"' in html and "5개년 시계열 추이" in html
     assert html.count('class="fc-ch fc-ch-trend"') == 10  # 금액 4 + 비율 6
     assert "<details" in html and "표로 보기" in html
     assert "⚫ 데이터 없음" in html

@@ -34,6 +34,9 @@
       <li><a href="#d-{{ b.dist.key }}">{{ b.dist.spec.label }}</a></li>
       {% endfor %}
     </ul>
+    {% if signal_overview is defined and signal_overview %}
+    <div class="fc-overview-wrap">{{ signal_overview }}</div>
+    {% endif %}
     {% with show_signals=True %}{% include "_distribution.html" %}{% endwith %}
   </section>
 </article>

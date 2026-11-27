@@ -25,7 +25,7 @@ from markupsafe import Markup
 
 from fin_checkup.disclaimer import DISCLAIMER
 from fin_checkup.format import chart_scale, format_metric, format_money
-from fin_checkup.metrics.engine import MONEY, Metric, checkup
+from fin_checkup.metrics.engine import METRIC_DEFS, MONEY, Metric, checkup
 from fin_checkup.metrics.peers import PeerStat
 from fin_checkup.metrics.signals import Band, Signal
 from fin_checkup.metrics.units import UNIT_SUSPECT_NOTE
@@ -910,4 +910,172 @@ def dist_strip_svg(
         f'y1="{_DIST_Y - 9}" y2="{_DIST_Y + 9}"/>'
     )
     parts.append("</g></svg>")
+    return Markup("".join(parts))
+
+
+_HM_GLYPH = {
+    Signal.GREEN: "●",
+    Signal.YELLOW: "▲",
+    Signal.RED: "■",
+    Signal.NEUTRAL: "▬",
+    Signal.NOT_APPLICABLE: "⊘",
+    Signal.UNKNOWN: "·",
+}
+
+
+def signal_heatmap_svg(data: Checkup, years: int = 5) -> Markup:
+    """5개년 × 17개 지표 신호 히트맵 — 일회성 변동과 지속적 위험/정상 구간을 한눈에."""
+    if not data.history:
+        return Markup("")
+    by_year = {f.bsns_year: f for f in data.history}
+    latest = max(by_year)
+    span = list(range(latest - years + 1, latest + 1))
+    sector = data.result.sector
+    currency = data.result.currency
+    yearly = {
+        y: (None if by_year[y].unit_suspect else checkup(by_year[y], by_year.get(y - 1), sector=sector))
+        for y in span
+        if y in by_year
+    }
+
+    label_w, col_w, gap, row_h, head_h = 154.0, 44.0, 4.0, 22.0, 24.0
+    total_w = label_w + len(span) * (col_w + gap)
+    total_h = head_h + len(METRIC_DEFS) * row_h + 4.0
+
+    parts = [
+        f'<svg class="fc-ch fc-ch-heatmap" viewBox="0 0 {total_w:.0f} {total_h:.0f}" '
+        f'role="img" aria-label="5개년 재무 지표 신호 히트맵" xmlns="http://www.w3.org/2000/svg">',
+        "<title>5개년 × 17개 지표 신호 히트맵</title>",
+    ]
+    for ci, yr in enumerate(span):
+        cx = label_w + ci * (col_w + gap) + col_w / 2
+        cls = "fc-ch-x fc-hm-latest" if yr == latest else "fc-ch-x"
+        parts.append(f'<text class="{cls}" x="{cx:.1f}" y="16" text-anchor="middle">{yr}</text>')
+
+    for ri, spec in enumerate(METRIC_DEFS):
+        ry = head_h + ri * row_h
+        parts.append(
+            f'<text class="fc-hm-label" x="0" y="{ry + 14:.1f}">{_esc(spec.label)}</text>'
+        )
+        for ci, yr in enumerate(span):
+            cx = label_w + ci * (col_w + gap)
+            res = yearly.get(yr)
+            if yr not in by_year:
+                sig = Signal.UNKNOWN
+                note = f"{sig.emoji} {sig.label} (사업보고서 미수집)"
+            elif res is None:
+                sig = Signal.UNKNOWN
+                note = f"{sig.emoji} {sig.label} (단위 오류 의심)"
+            else:
+                m = res.by_key(spec.key)
+                if m is None:
+                    sig, note = Signal.UNKNOWN, f"{Signal.UNKNOWN.emoji} {Signal.UNKNOWN.label}"
+                else:
+                    sig = m.signal
+                    val_txt = format_metric(m, currency)
+                    note = f"{sig.emoji} {sig.label} ({val_txt})"
+            glyph = _HM_GLYPH[sig]
+            tip = f"{yr}년 {spec.label}: {note}"
+            parts.append(
+                f'<g class="fc-hm-cell sig-{sig.value}"><title>{_esc(tip)}</title>'
+                f'<rect class="fc-hm-rect" x="{cx:.1f}" y="{ry + 2:.1f}" '
+                f'width="{col_w:.0f}" height="{row_h - 4:.0f}" rx="4"/>'
+                f'<text class="fc-hm-glyph" x="{cx + col_w / 2:.1f}" y="{ry + 14.5:.1f}" '
+                f'text-anchor="middle">{glyph}</text></g>'
+            )
+    parts.append("</svg>")
+    return Markup("".join(parts))
+
+
+def signal_overview_svg(
+    rows: Sequence[tuple[str, Sequence[tuple[str, str, int]]]],
+    chart_id: str,
+) -> Markup:
+    """17개 지표 신호 구성 100% 누적 막대 — 섹터·시장 전체의 신호 분포를 한 축에서 비교."""
+    if not rows:
+        return Markup("")
+    label_w, bar_w, right_w, row_h = 152.0, 260.0, 88.0, 21.0
+    total_w = label_w + bar_w + right_w
+    total_h = len(rows) * row_h + 6.0
+    cid = _esc(chart_id)
+    parts = [
+        f'<svg class="fc-ch fc-ch-overview" viewBox="0 0 {total_w:.0f} {total_h:.0f}" '
+        f'role="img" aria-labelledby="{cid}-t" xmlns="http://www.w3.org/2000/svg">',
+        f'<title id="{cid}-t">17개 지표 신호 구성 비율</title>',
+    ]
+    for ri, (label, shares) in enumerate(rows):
+        ry = 3.0 + ri * row_h
+        parts.append(f'<text class="fc-hm-label" x="0" y="{ry + 13:.1f}">{_esc(label)}</text>')
+        total = sum(cnt for _, _, cnt in shares)
+        if total > 0:
+            x = label_w
+            active = [(k, lbl, cnt) for k, lbl, cnt in shares if cnt > 0]
+            for i, (k, lbl, cnt) in enumerate(active):
+                w = (cnt / total) * bar_w if i < len(active) - 1 else max(label_w + bar_w - x, 0.5)
+                pct = round(cnt / total * 100)
+                parts.append(
+                    f'<rect class="fc-ch-meter-seg sig-{_esc(k)}" x="{x:.1f}" y="{ry + 3:.1f}" '
+                    f'width="{max(w, 0.5):.1f}" height="12" rx="2">'
+                    f"<title>{_esc(label)} · {_esc(lbl)} {pct}% ({cnt:,}곳)</title></rect>"
+                )
+                x += w
+            green_cnt = sum(cnt for k, _, cnt in shares if k == "green")
+            red_cnt = sum(cnt for k, _, cnt in shares if k == "red")
+            g_pct = round(green_cnt / total * 100)
+            r_pct = round(red_cnt / total * 100)
+            parts.append(
+                f'<text class="fc-ch-x" x="{label_w + bar_w + 8:.1f}" y="{ry + 13:.1f}">'
+                f"정상 {g_pct}% · 위험 {r_pct}%</text>"
+            )
+    parts.append("</svg>")
+    return Markup("".join(parts))
+
+
+def sector_heatmap_svg(
+    rows: Sequence[tuple[str, str, int, Sequence[tuple[str, str, float, bool, int]]]],
+) -> Markup:
+    """섹터 × 17개 지표 위험 비중 히트맵 — KSIC 코드순 고정, 색+수치 병행."""
+    if not rows:
+        return Markup("")
+    metrics = rows[0][3]
+    label_w, col_w, gap, row_h, head_h = 180.0, 34.0, 2.0, 22.0, 82.0
+    total_w = label_w + len(metrics) * (col_w + gap)
+    total_h = head_h + len(rows) * row_h + 6.0
+    parts = [
+        f'<svg class="fc-ch fc-ch-sector-hm" viewBox="0 0 {total_w:.0f} {total_h:.0f}" '
+        f'role="img" aria-label="섹터별 지표 위험 구간 비중 히트맵" xmlns="http://www.w3.org/2000/svg">',
+        "<title>섹터별 17개 지표 위험(🔴) 비중 히트맵</title>",
+    ]
+    for ci, (m_label, _key, _pct, _na, _cnt) in enumerate(metrics):
+        cx = label_w + ci * (col_w + gap) + col_w / 2
+        short = m_label.split(" (")[0]
+        parts.append(
+            f'<text class="fc-hm-col" x="{cx:.1f}" y="{head_h - 6:.1f}" '
+            f'transform="rotate(-45 {cx:.1f} {head_h - 6:.1f})" text-anchor="start">{_esc(short)}</text>'
+        )
+    for ri, (code, name, total, cells) in enumerate(rows):
+        ry = head_h + ri * row_h
+        short_name = name[:14] + ("…" if len(name) > 14 else "")
+        parts.append(
+            f'<text class="fc-hm-label" x="0" y="{ry + 14:.1f}">'
+            f"{_esc(code)} {_esc(short_name)} ({total})</text>"
+        )
+        for ci, (m_label, _key, red_pct, all_na, red_cnt) in enumerate(cells):
+            cx = label_w + ci * (col_w + gap)
+            if all_na:
+                cls, txt = "fc-hm-na", "⊘"
+                tip = f"{name} · {m_label}: 해당 없음(⊘)"
+            else:
+                pct_i = round(red_pct)
+                bucket = 0 if pct_i == 0 else 1 if pct_i < 15 else 2 if pct_i < 30 else 3 if pct_i < 50 else 4
+                cls, txt = f"fc-hm-rate-{bucket}", f"{pct_i}%"
+                tip = f"{name} · {m_label}: 위험 {red_pct:.1f}% ({red_cnt}/{total}곳)"
+            parts.append(
+                f'<g class="fc-hm-cell {cls}"><title>{_esc(tip)}</title>'
+                f'<rect class="fc-hm-rect" x="{cx:.1f}" y="{ry + 2:.1f}" '
+                f'width="{col_w:.0f}" height="{row_h - 4:.0f}" rx="3"/>'
+                f'<text class="fc-hm-glyph" x="{cx + col_w / 2:.1f}" y="{ry + 14:.1f}" '
+                f'text-anchor="middle">{txt}</text></g>'
+            )
+    parts.append("</svg>")
     return Markup("".join(parts))
