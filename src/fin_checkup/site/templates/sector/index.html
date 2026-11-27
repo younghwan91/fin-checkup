@@ -1,19 +1,26 @@
 {% extends "base.html" %}
-{% block title %}업종별 재무비율 분포 — KSIC 중분류 {{ groups | length }}개 업종 · fin-checkup{% endblock %}
-{% block description %}업종 비교에 쓰는 KSIC 중분류 묶음 {{ groups | length }}개 — 업종마다 재무 지표 분포와 소속 회사(이름순)를 볼 수 있습니다.{% endblock %}
+{% block title %}섹터별 재무비율 분포 — KSIC 중분류 {{ groups | length }}개 섹터 · fin-checkup{% endblock %}
+{% block description %}피어 비교에 쓰는 KSIC 중분류 섹터 {{ groups | length }}개 — 섹터별 재무 지표 분포와 소속 회사(이름순)를 볼 수 있습니다.{% endblock %}
 {% block main %}
 <article class="fc-sectors">
-  <h1>업종</h1>
-  <p class="fc-lead">회사 페이지의 "동종업계" 비교는 아래 묶음 안에서 합니다. 묶음은 DART 기업개황의 업종코드(통계청 한국표준산업분류, KSIC) 앞 두 자리입니다.</p>
-  <p class="fc-hint">업종코드 순서입니다. 업종마다 지표의 분포와 소속 회사(이름순)를 볼 수 있습니다. 회사 수가 {{ min_peers }}곳보다 적은 업종은 분포를 내지 않습니다.</p>
+  <h1>섹터</h1>
+  <p class="fc-lead">피어 그룹(Peer Group) 비교는 아래 KSIC(한국표준산업분류) 중분류 섹터 단위로 집계합니다.</p>
+  <p class="fc-hint">표준산업분류 코드순이며, 표본 수가 {{ min_peers }}곳 이상인 섹터만 사분위수(IQR)·중앙값 분포를 산출합니다.</p>
+  {% if sector_heatmap is defined and sector_heatmap %}
+  <section class="fc-section" id="sector-heatmap" aria-labelledby="sector-hm-title">
+    <h2 id="sector-hm-title">섹터 × 지표 위험 비중 히트맵</h2>
+    <p class="fc-hint">각 섹터에서 해당 지표가 위험(🔴) 임계치에 속한 기업 비율(%)입니다. 색과 수치를 함께 적었습니다.</p>
+    <div class="fc-table-scroll">{{ sector_heatmap }}</div>
+  </section>
+  {% endif %}
   <ul class="fc-sector-list">
     {% for g in groups %}
     <li><a href="{{ url(g.path) }}"><span class="fc-code">{{ g.info.code }}</span> {{ g.info.name }}</a> <small>{{ g.count }}곳</small></li>
     {% endfor %}
   </ul>
-  <p>업종을 가리지 않은 분포는 <a href="{{ url('market/') }}">시장 전체 분포</a>에 있습니다.</p>
+  <p>섹터를 구분하지 않은 전체 상장사 분포는 <a href="{{ url('market/') }}">시장 전체 분포</a>에서 확인할 수 있습니다.</p>
   {% if ungrouped %}
-  <p class="fc-hint">업종코드가 없는 회사 {{ ungrouped }}곳은 어느 업종에도 넣지 않았습니다.</p>
+  <p class="fc-hint">업종코드가 없는 회사 {{ ungrouped }}곳은 섹터 분류에서 제외했습니다.</p>
   {% endif %}
 </article>
 {% endblock %}

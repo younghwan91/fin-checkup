@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 from fin_checkup.metrics.peers import MIN_PEERS
+from fin_checkup.site.charts import signal_overview_svg
 from fin_checkup.site.context import Site
 from fin_checkup.site.groups import SIGNAL_ORDER
 from fin_checkup.site.images.market import MARKET_OG_PATH
@@ -25,12 +26,21 @@ PATH = "market/index.html"
 @page("market")
 def market_page(site: Site) -> Iterator[Output]:
     sectors = member_sectors(site.companies)
+    blocks = metric_blocks(site.companies, sectors)
+    overview = signal_overview_svg(
+        [
+            (b.dist.spec.label, [(s.signal.value, s.signal.label, s.count) for s in b.dist.signals])
+            for b in blocks
+        ],
+        "market-overview",
+    )
     yield site.render(
         "market/index.html",
         PATH,
         total=len(site.companies),
         sectors=sectors,
-        blocks=metric_blocks(site.companies, sectors),
+        blocks=blocks,
+        signal_overview=overview,
         legend=[SignalView.of(s) for s in SIGNAL_ORDER],
         min_peers=MIN_PEERS,
         og_image=site.image_url(MARKET_OG_PATH),

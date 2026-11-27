@@ -135,8 +135,8 @@ async def test_missing_values_are_left_out_not_counted_as_zero(out):
 
 async def test_tiny_group_says_so_and_shows_no_distribution(out):
     text = read(out, "s", "64", "index.html")
-    assert "2곳뿐이라 업종 분포를 내지 않습니다" in text
-    assert "일반·은행·증권·금융지주 기준으로 판정" in text
+    assert "2곳뿐이라 섹터 분포를 산출하지 않습니다" in text
+    assert "일반·은행·증권·금융지주 임계치 기준" in text
     assert 'id="distribution"' not in text
     assert "BIS" in section(text, "about"), "금융업 ⊘ 지표의 대신 볼 것"
     assert peer_group_info("64").mixed_note in text
@@ -214,9 +214,9 @@ def _title(text: str) -> str:
 async def test_titles_lead_with_the_words_people_search(out):
     # "반도체 업종 재무비율" 처럼 찾는다. 분포를 내는 업종만 중앙값·사분위라고 쓴다 — 없는 것을 약속하지 않게.
     assert _title(read(out, "s", "26", "index.html")) == (
-        "전자부품·컴퓨터·통신장비 제조업 업종 재무비율 — 상장사 6곳 중앙값·사분위 (2024) · fin-checkup"
+        "전자부품·컴퓨터·통신장비 제조업 섹터 재무비율 — 상장사 6곳 중앙값·사분위 (2024) · fin-checkup"
     )
     tiny = _title(read(out, "s", "64", "index.html"))
-    assert tiny == "금융업·지주회사 업종 상장사 2곳 — 회사별 재무제표 신호등 (2024) · fin-checkup"
+    assert tiny == "금융업·지주회사 섹터 상장사 2곳 — 회사별 재무제표 신호등 (2024) · fin-checkup"
     assert "중앙값" not in tiny
-    assert _title(read(out, "s", "index.html")).startswith("업종별 재무비율 분포 — ")
+    assert _title(read(out, "s", "index.html")).startswith("섹터별 재무비율 분포 — ")

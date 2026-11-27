@@ -20,7 +20,13 @@ from fin_checkup.explain.sectors import PeerGroupInfo, peer_group_info
 from fin_checkup.metrics.engine import NOT_APPLICABLE_BY_SECTOR
 from fin_checkup.metrics.peers import MIN_PEERS
 from fin_checkup.metrics.sector import Sector
-from fin_checkup.site.charts import dist_strip_svg, signal_meter_svg
+from fin_checkup.metrics.signals import Signal
+from fin_checkup.site.charts import (
+    dist_strip_svg,
+    sector_heatmap_svg,
+    signal_meter_svg,
+    signal_overview_svg,
+)
 from fin_checkup.site.context import CompanyEntry, Site
 from fin_checkup.site.groups import (
     Distribution,
@@ -140,27 +146,51 @@ def company_peer_group(entry: CompanyEntry, site: Site) -> dict[str, Any]:
     return {"peer_group": GroupLink(peer_group_info(code), sector_path(code), len(members))}
 
 
+def _overview(blocks: list[MetricBlock], chart_id: str) -> Markup:
+    return signal_overview_svg(
+        [
+            (b.dist.spec.label, [(s.signal.value, s.signal.label, s.count) for s in b.dist.signals])
+            for b in blocks
+        ],
+        chart_id,
+    )
+
+
 @page("sector")
 def sector_pages(site: Site) -> Iterator[Output]:
     groups = peer_groups(site)
     links = [GroupLink(peer_group_info(code), sector_path(code), len(m)) for code, m in groups.items()]
+    hm_rows = []
+    for link in links:
+        members = groups[link.info.code]
+        if len(members) < MIN_PEERS:
+            continue
+        cells = []
+        for d in distributions(members):
+            red = next((s for s in d.signals if s.signal is Signal.RED), None)
+            all_na = d.not_applicable == d.total
+            cells.append((d.spec.label, d.key, red.percent if red else 0.0, all_na, red.count if red else 0))
+        hm_rows.append((link.info.code, link.info.name, link.count, cells))
     yield site.render(
         "sector/index.html",
         "s/index.html",
         groups=links,
         ungrouped=len(site.companies) - sum(len(m) for m in groups.values()),
         min_peers=MIN_PEERS,
+        sector_heatmap=sector_heatmap_svg(hm_rows),
     )
     for link in links:
         members = groups[link.info.code]
         sectors = member_sectors(members)
+        blocks = metric_blocks(members, sectors)
         yield site.render(
             "sector/group.html",
             link.path + "index.html",
             group=link,
             members=members,
             sectors=sectors,
-            blocks=metric_blocks(members, sectors),
+            blocks=blocks,
+            signal_overview=_overview(blocks, f"overview-{link.info.code}"),
             caveats=[c for s in sectors for c in caveats_for(s)],
             min_peers=MIN_PEERS,
         )
