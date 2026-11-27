@@ -94,3 +94,11 @@ def seed_site_cache(cache: Cache) -> None:
     cache.save_statements(statements(HLB.corp_code, 2024, 100.0, -50.0))
     cache.save_statements(statements(UNLISTED.corp_code, 2024, 100.0, 10.0))
     cache.save_statements(statements(DELISTED.corp_code, 2024, 500.0, 60.0))
+
+
+def html_pages(out):
+    """빌드 산출물의 HTML *페이지* — 검색 엔진 소유 확인 파일(`site/verification.py`)은 HTML 확장자지만
+    페이지가 아니라 뺀다(머리·바닥글·면책 문구·제목이 없는 한 줄짜리)."""
+    from fin_checkup.site.verification import FILES
+
+    return sorted(p for p in out.rglob("*.html") if p.relative_to(out).as_posix() not in FILES)

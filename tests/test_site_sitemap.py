@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from datetime import date
 
 import pytest
-from hub_seed import seed_site_cache
+from hub_seed import html_pages, seed_site_cache
 
 from fin_checkup.site import registry
 from fin_checkup.site.build import build_site
@@ -39,13 +39,13 @@ def locs(out) -> list[str]:
 
 async def test_sitemap_lists_every_html_page_with_absolute_urls(out):
     urls = locs(out)
-    html_pages = sorted(
+    indexable = sorted(
         p.relative_to(out).as_posix()
-        for p in out.rglob("*.html")
+        for p in html_pages(out)
         if 'name="robots" content="noindex"' not in p.read_text(encoding="utf-8")
     )
-    assert (out / "404.html").exists() and "404.html" not in html_pages  # noindex — 색인하지 않는다
-    assert len(urls) == len(html_pages) == len(set(urls))
+    assert (out / "404.html").exists() and "404.html" not in indexable  # noindex — 색인하지 않는다
+    assert len(urls) == len(indexable) == len(set(urls))
     assert urls[0] == BASE, "홈이 맨 앞"
     for code in ("005930", "105560", "028300"):
         assert f"{BASE}c/{code}/" in urls

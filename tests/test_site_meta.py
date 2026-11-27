@@ -12,7 +12,7 @@ import re
 from datetime import date
 
 import pytest
-from hub_seed import seed_site_cache
+from hub_seed import html_pages, seed_site_cache
 from PIL import Image
 
 from fin_checkup.site import build
@@ -83,7 +83,7 @@ async def test_company_title_and_description_state_the_year_and_metric_count(out
 
 async def test_every_page_has_its_own_title_and_description(out):
     seen_titles: set[str] = set()
-    for path in sorted(out.rglob("*.html")):
+    for path in html_pages(out):
         text = read(out, str(path.relative_to(out)))
         title = re.search(r"<title>([^<]*)</title>", text).group(1)
         assert title not in seen_titles, f"{path}: 제목이 다른 페이지와 같다"
@@ -106,7 +106,7 @@ async def test_canonical_and_og_url_are_absolute_with_a_base_url(out):
 
 async def test_no_canonical_without_an_absolute_base_url(tmp_path):
     out = await _build(tmp_path, base_url="/", name="rel")
-    for path in out.rglob("*.html"):
+    for path in html_pages(out):
         text = path.read_text(encoding="utf-8")
         assert 'rel="canonical"' not in text, path
         assert 'property="og:url"' not in text and 'property="og:image"' not in text, path
@@ -189,7 +189,7 @@ async def test_company_json_ld_names_the_company_and_the_path_to_it(out):
 
 
 async def test_every_indexable_page_has_json_ld_and_404_has_none(out):
-    for path in sorted(out.rglob("*.html")):
+    for path in html_pages(out):
         rel = str(path.relative_to(out))
         text = read(out, rel)
         if rel == "404.html":

@@ -6,7 +6,7 @@ import json
 from datetime import date, datetime
 
 import pytest
-from hub_seed import seed_site_cache
+from hub_seed import html_pages, seed_site_cache
 
 from fin_checkup.cli import main
 from fin_checkup.clock import KST
@@ -69,7 +69,7 @@ async def test_build_json_describes_time_years_snapshot_sha_and_counts(built):
 
 async def test_every_page_footer_names_the_data_basis_and_links_build_json(built):
     out, _ = built
-    for path in out.rglob("*.html"):
+    for path in html_pages(out):
         text = path.read_text(encoding="utf-8")
         assert "데이터 기준: 2024 사업연도 (스냅샷 2026-11-20) · 빌드 2026-11-21" in text, path
         assert 'build.json">빌드 정보</a>' in text, path

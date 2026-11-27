@@ -38,6 +38,7 @@ from pathlib import Path
 from fin_checkup.disclaimer import DISCLAIMER
 from fin_checkup.explain import banned
 from fin_checkup.metrics.signals import Signal
+from fin_checkup.site.verification import FILES as VERIFICATION_FILES
 
 #: 판정한 신호. 이 신호의 지표는 경계값을 반드시 보여야 한다 — 왜 이 색인지 감추지 않는다.
 JUDGED_SIGNALS = frozenset({"sig-green", "sig-yellow", "sig-red"})
@@ -359,6 +360,11 @@ def check_file(path: str, data: bytes, proper_nouns: Iterable[str] = ()) -> list
     # 바이너리(ico·png)도 인증키 검사는 한다 — latin-1 은 어떤 바이트든 글자로 읽는다.
     text = data.decode("utf-8") if suffix in _TEXT_SUFFIXES else data.decode("latin-1")
     found = list(_check_secrets(path, text))
+    if path in VERIFICATION_FILES:
+        # 검색 엔진 소유 확인 파일 — 페이지가 아니다. 한 글자라도 다르면 인증이 풀린다.
+        if text != VERIFICATION_FILES[path]:
+            found.append(Violation(path, "verification", "소유 확인 파일 내용이 등록한 값과 다르다"))
+        return found
     if suffix == ".html":
         found += _check_page(path, text)
         found += _check_banned(path, text, proper_nouns)
