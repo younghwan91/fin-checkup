@@ -8,7 +8,7 @@
 
 **A free tool that reads listed companies' financial statements as traffic lights.**
 
-Enter a company name to see 17 profitability, stability, and growth ratios as 🟢🟡🔴, each paired with its formula, thresholds, prior-year value, and industry peer comparison. No install, no sign-up, and no API key required.
+Enter a company name to see 17 profitability, stability, and growth ratios as 🟢🟡🔴, each paired with its formula, thresholds, YoY bar, and sector box-and-whisker distribution. No install, no sign-up, and no API key required.
 
 [![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/) [![younghwan91/fin-checkup MCP server](https://glama.ai/mcp/servers/younghwan91/fin-checkup/badges/score.svg)](https://glama.ai/mcp/servers/younghwan91/fin-checkup)
 
@@ -16,7 +16,7 @@ Enter a company name to see 17 profitability, stability, and growth ratios as �
 
 </div>
 
-[![Site demo — search the initial consonants ㅅㅅㅈㅈ to find Samsung Electronics, scan all 17 signals at a glance, then open the operating-margin card's formula, thresholds, industry distribution and the metric explainer](docs/images/demo.gif)](https://younghwan91.github.io/fin-checkup/c/005930/)
+[![Site demo — search initial consonants ㅅㅅㅈㅈ to find Samsung Electronics, scan the glance signal bar, inspect the operating-margin box-and-whisker distribution and 5-year signal heatmap, and open the metric explainer](docs/images/demo.gif)](https://younghwan91.github.io/fin-checkup/c/005930/)
 
 <p align="center"><sub>Measurements computed from filed figures. Not investment advice, and no stock recommendations. The site is in Korean only—numbers, colors, and formulas read fine as-is.</sub></p>
 
@@ -45,24 +45,24 @@ uv sync --all-extras
 uv run python -m fin_checkup.cli checkup 005930
 ```
 
-Outputs 17 traffic-light ratios with formulas, thresholds, and industry medians for a Korean listed company.
+Outputs 17 traffic-light ratios with formulas, thresholds, and sector medians for a Korean listed company.
 
 ## What you get
 
 | Signal | Meaning |
 |---|---|
 | 🟢 Normal · 🟡 Caution · 🔴 Risk | Compared against thresholds. Every ratio displays its exact thresholds |
-| ⚪ Measured | Wide sector variation, so no threshold is applied—shows the value and industry median only |
+| ⚪ Measured | Wide sector variation, so no threshold is applied—shows the value and sector median only |
 | ⊘ N/A | Ratio does not fit the sector (e.g., debt ratio for banks); shows what to check instead |
 | ⚫ No data | Account not found in the filing. Never filled with `0` |
 
-**Example** — Samsung Electronics FY2025 operating margin **13.07% 🟢**: threshold *7%+ normal* · prior year 10.88% · top 10% of 294 industry peers · industry median 2.00%.
+**Example** — Samsung Electronics FY2025 operating margin **13.07% 🟢**: threshold *7%+ normal* · prior year 10.88% · above the middle 50% of 294 sector peers · sector median 2.00%.
 
 | Section | What you can do |
 |---|---|
-| [Company page](https://younghwan91.github.io/fin-checkup/c/005930/) | Check 17 ratio traffic lights, red flags (capital impairment, consecutive losses), 5-year trends, and the latest quarter filed after the annual report (revenue, profit, debt — values only, no signal) |
+| [Company page](https://younghwan91.github.io/fin-checkup/c/005930/) | Check the glance signal bar & summary, 17 ratio cards with box-and-whisker peer distributions, 5-year × 17-metric signal heatmap & trends, and latest quarter values |
 | [Ratios](https://younghwan91.github.io/fin-checkup/m/) · [First read](https://younghwan91.github.io/fin-checkup/learn/first-read/) | Plain-language explanations of terms like operating margin and debt ratio |
-| [Industries](https://younghwan91.github.io/fin-checkup/s/) · [Market](https://younghwan91.github.io/fin-checkup/market/) | Distributions by sector or whole market, plus industry company lists sorted by name |
+| [Sectors](https://younghwan91.github.io/fin-checkup/s/) · [Market](https://younghwan91.github.io/fin-checkup/market/) | Sector × metric risk heatmap, 100%-stacked signal overview, IQR distribution charts, and company lists sorted by name |
 | [Compare](https://younghwan91.github.io/fin-checkup/compare/) | Compare 2–4 companies side by side in one table |
 | [Watchlist](https://younghwan91.github.io/fin-checkup/watch/) | Track signal changes for saved companies (stored only in your browser, no account) |
 | Risk-disclosure feeds | Subscribe to filings (rights offerings, CBs, audit opinions) via RSS — [Whole market](https://younghwan91.github.io/fin-checkup/feeds/disclosures.xml) |

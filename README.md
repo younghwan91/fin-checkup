@@ -8,7 +8,7 @@
 
 **상장사 재무제표를 신호등으로 읽어 주는 무료 도구입니다.**
 
-회사 이름만 넣으면 수익성·안정성·성장성 17개 지표가 🟢🟡🔴 로 나오며, 색마다 계산식·기준·작년 값·동종업계 분포를 함께 보여 드립니다. 설치·가입·API 키가 필요 없습니다.
+회사 이름만 넣으면 수익성·안정성·성장성 17개 지표가 🟢🟡🔴 로 나오며, 색마다 계산식·임계치·작년 대비 막대·섹터 분포(박스앤위스커)를 함께 보여 드립니다. 설치·가입·API 키가 필요 없습니다.
 
 [![CI](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/younghwan91/fin-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-younghwan--chae-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/younghwan-chae/) [![younghwan91/fin-checkup MCP server](https://glama.ai/mcp/servers/younghwan91/fin-checkup/badges/score.svg)](https://glama.ai/mcp/servers/younghwan91/fin-checkup)
 
@@ -16,7 +16,7 @@
 
 </div>
 
-[![사이트 데모 — 첫 화면에서 초성 ㅅㅅㅈㅈ 로 삼성전자를 찾고, 한눈에 보기에서 지표 17개 신호를 본 뒤, 영업이익률 카드의 계산식·경계값·동종업계 분포와 지표 해설을 엽니다](docs/images/demo.gif)](https://younghwan91.github.io/fin-checkup/c/005930/)
+[![사이트 데모 — 첫 화면에서 초성 ㅅㅅㅈㅈ 로 삼성전자를 찾고, 한눈에 보기(신호 요약·비율 바)와 영업이익률 카드의 박스앤위스커 분포, 5개년 신호 히트맵, 지표 해설을 확인합니다](docs/images/demo.gif)](https://younghwan91.github.io/fin-checkup/c/005930/)
 
 <p align="center"><sub>공시 수치로 계산한 측정값입니다. 종목 추천이나 투자 판단은 하지 않습니다.</sub></p>
 
@@ -45,24 +45,24 @@ uv sync --all-extras
 uv run python -m fin_checkup.cli checkup 005930
 ```
 
-실행하면 국내 상장사의 17개 재무 지표 신호등과 계산식·경계값·업종 중앙값이 출력됩니다.
+실행하면 국내 상장사의 17개 재무 지표 신호등과 계산식·임계치·섹터 중앙값이 출력됩니다.
 
 ## 무엇을 볼 수 있나요
 
 | 신호 | 뜻 |
 |---|---|
-| 🟢 정상 · 🟡 주의 · 🔴 위험 | 기준값과 견준 결과입니다. 기준값은 모든 지표에 적혀 있습니다 |
-| ⚪ 측정값 | 업종마다 차이가 커서 기준 없이 값과 업종 중앙값만 보여 드립니다 |
-| ⊘ 해당 없음 | 이 업종에 맞지 않는 지표입니다(예: 은행의 부채비율). 대신 볼 지표를 알려 드립니다 |
+| 🟢 정상 · 🟡 주의 · 🔴 위험 | 임계치와 견준 결과입니다. 임계치는 모든 지표에 적혀 있습니다 |
+| ⚪ 측정값 | 섹터마다 차이가 커서 임계치 없이 값과 섹터 중앙값만 보여 드립니다 |
+| ⊘ 해당 없음 | 이 섹터에 맞지 않는 지표입니다(예: 은행의 부채비율). 대신 볼 지표를 알려 드립니다 |
 | ⚫ 데이터 없음 | 공시에서 숫자를 찾지 못했습니다. 0 으로 채우지 않습니다 |
 
-**예시** — 삼성전자 2025년 영업이익률 **13.07% 🟢**: 기준 *7% 이상이면 정상* · 작년 10.88% · 같은 업종 294곳 중 상위 10% · 업종 중앙값 2.00%.
+**예시** — 삼성전자 2025년 영업이익률 **13.07% 🟢**: 기준 *7% 이상이면 정상* · 작년 10.88% · 같은 섹터 294곳 분포(가운데 50% 위) · 섹터 중앙값 2.00%.
 
 | 메뉴 | 할 수 있는 일 |
 |---|---|
-| [회사 페이지](https://younghwan91.github.io/fin-checkup/c/005930/) | 지표 17개 신호등, 위험 신호(자본잠식·연속 영업손실 등), 5년 추이, 사업보고서 뒤에 나온 최근 분기 매출·이익·부채(판정 없이 원문 값)를 확인합니다 |
+| [회사 페이지](https://younghwan91.github.io/fin-checkup/c/005930/) | 한눈에 보기(신호 비율 바·요약), 지표 17개 신호등과 박스앤위스커 피어 분포, 5개년 × 17개 지표 신호 히트맵·시계열 추이, 최근 분기 원문 값을 확인합니다 |
 | [지표 해설](https://younghwan91.github.io/fin-checkup/m/) · [처음 읽기](https://younghwan91.github.io/fin-checkup/learn/first-read/) | 영업이익률·부채비율 같은 용어를 쉬운 말로 확인합니다 |
-| [업종](https://younghwan91.github.io/fin-checkup/s/) · [시장 전체](https://younghwan91.github.io/fin-checkup/market/) | 업종별·시장 전체 분포와 업종별 회사 목록(이름순)을 확인합니다 |
+| [섹터](https://younghwan91.github.io/fin-checkup/s/) · [시장 전체](https://younghwan91.github.io/fin-checkup/market/) | 섹터 × 지표 위험 비중 히트맵, 100% 신호 구성 막대, 사분위수(IQR) 분포 차트와 섹터별 회사 목록(이름순)을 확인합니다 |
 | [나란히 보기](https://younghwan91.github.io/fin-checkup/compare/) | 2~4곳을 한 표에 나란히 비교합니다 |
 | [관심종목](https://younghwan91.github.io/fin-checkup/watch/) | 담아 둔 회사의 변화를 확인합니다(브라우저에만 저장, 계정 없음) |
 | 위험 공시 피드 | 유상증자·CB·감사의견·상장폐지 공시를 RSS 로 구독합니다 — [시장 전체](https://younghwan91.github.io/fin-checkup/feeds/disclosures.xml) |

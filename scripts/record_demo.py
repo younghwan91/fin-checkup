@@ -73,10 +73,10 @@ def record(base: str) -> list[tuple[Image.Image, int]]:
         rec.shot(1800)
 
         rec.scroll_to("#m-operating_margin")
-        rec.shot(900)
-        page.locator("#m-operating_margin details.fc-peer summary").first.click()
-        page.wait_for_timeout(200)
         rec.shot(1800)
+
+        rec.scroll_to("#trend")
+        rec.shot(1600)
 
         page.locator('#m-operating_margin a[href$="m/operating_margin/"]').first.click()
         page.wait_for_load_state("networkidle")
