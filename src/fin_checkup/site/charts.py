@@ -938,7 +938,7 @@ def signal_heatmap_svg(data: Checkup, years: int = 5) -> Markup:
         if y in by_year
     }
 
-    label_w, col_w, gap, row_h, head_h = 154.0, 44.0, 4.0, 22.0, 24.0
+    label_w, col_w, gap, row_h, head_h = 168.0, 44.0, 4.0, 22.0, 24.0
     total_w = label_w + len(span) * (col_w + gap)
     total_h = head_h + len(METRIC_DEFS) * row_h + 4.0
 
@@ -994,7 +994,7 @@ def signal_overview_svg(
     """17개 지표 신호 구성 100% 누적 막대 — 섹터·시장 전체의 신호 분포를 한 축에서 비교."""
     if not rows:
         return Markup("")
-    label_w, bar_w, right_w, row_h = 152.0, 260.0, 88.0, 21.0
+    label_w, bar_w, right_w, row_h = 168.0, 240.0, 124.0, 21.0
     total_w = label_w + bar_w + right_w
     total_h = len(rows) * row_h + 6.0
     cid = _esc(chart_id)
@@ -1038,8 +1038,8 @@ def sector_heatmap_svg(
     if not rows:
         return Markup("")
     metrics = rows[0][3]
-    label_w, col_w, gap, row_h, head_h = 180.0, 34.0, 2.0, 22.0, 82.0
-    total_w = label_w + len(metrics) * (col_w + gap)
+    label_w, col_w, gap, row_h, head_h = 180.0, 34.0, 2.0, 22.0, 96.0
+    total_w = label_w + len(metrics) * (col_w + gap) + 28.0
     total_h = head_h + len(rows) * row_h + 6.0
     parts = [
         f'<svg class="fc-ch fc-ch-sector-hm" viewBox="0 0 {total_w:.0f} {total_h:.0f}" '
