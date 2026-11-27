@@ -63,7 +63,7 @@
     <h2 id="example-title">실제 숫자로 계산해 보기</h2>
     {% set ex = p.example %}
     {% if ex %}
-    <p>{% if not ex.is_default %}기본 예시 회사로는 이 지표를 계산할 수 없어서, 아래 규칙에 따라 다른 회사를 썼어요. {% endif %}<a href="{{ url(ex.entry.path) }}">{{ ex.entry.name }}</a>의 {{ ex.worked.year }} 사업연도 공시 숫자예요.</p>
+    <p>{% if not ex.is_default %}기본 예시 회사로는 이 지표를 계산할 수 없어서, 아래 규칙에 따라 다른 회사를 썼어요. {% endif %}<a href="{{ url(ex.entry.path) }}">{{ ex.entry.name }}</a>의 {{ ex.worked.year }} 사업연도 공시 숫자예요. <span class="fc-hint">(이 사이트가 기준으로 삼은 가장 최근 사업보고서 연도입니다.)</span></p>
     <dl class="fc-basis-list fc-worked">
       {% for i in ex.worked.inputs %}
       <dt>{{ i.label }}</dt><dd>{{ i.text | marks }} <small>({{ i.year }}년 {{ i.statement }})</small></dd>

@@ -9,14 +9,18 @@
     <li class="fc-metric sig-{{ m.signal.key }}" id="m-{{ m.key }}">
       <div class="fc-metric-head">
         {{ badge(m.signal.key, m.signal.label) }}
-        <span class="fc-metric-label"><a href="{{ url('m/' ~ m.key ~ '/') }}" title="{{ m.label }} 해설">{{ m.label }}</a></span>
+        <span class="fc-metric-label">
+          <a href="{{ url('m/' ~ m.key ~ '/') }}" title="{{ m.one_liner }}">{{ m.label }}</a>
+          <span class="fc-def-pop" aria-hidden="true">{{ m.one_liner }}<small>눌러서 계산식·함정 전체 보기</small></span>
+        </span>
         <span class="fc-metric-value{% if m.missing %} muted{% endif %}">{{ m.value_text }}</span>
       </div>
+      <p class="fc-why">{{ m.why_text | marks }}</p>
       <p class="fc-desc">{{ m.description }}</p>
       <dl class="fc-basis-list">
         <dt>계산식</dt><dd>{{ m.formula }}</dd>
         <dt>경계값</dt><dd>{{ m.band_text }}</dd>
-        {% if m.delta_text %}<dt>작년 대비</dt><dd class="fc-delta"><span class="fc-delta-values">{{ m.delta_values }}</span>{% if m.delta_change %} · {{ m.delta_change }}{% endif %}{% if m.delta_direction %}<span class="fc-delta-eval">{{ m.delta_direction }}</span>{% endif %}</dd>{% endif %}
+        {% if m.delta_text %}<dt>작년 대비</dt><dd class="fc-delta"><span class="fc-delta-values">{{ m.delta_values }}</span>{% if m.delta_change %} · {{ m.delta_change }}{% endif %}{% if m.delta_direction %}<span class="fc-delta-eval">{{ m.delta_direction }}</span>{% endif %}{% if m.delta_svg %}{{ m.delta_svg }}{% endif %}</dd>{% endif %}
       </dl>
       {% include "company/_peer_strip.html" %}
       <p class="fc-metric-links"><a href="{{ url('m/' ~ m.key ~ '/') }}">{{ m.label }} 해설</a> · <a href="{{ url(metric_dist.path) }}#d-{{ m.key }}">{{ metric_dist.text }}</a></p>

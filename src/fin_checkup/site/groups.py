@@ -103,6 +103,8 @@ class Distribution:
     q1: float | None
     q3: float | None
     signals: tuple[SignalShare, ...]
+    p10: float | None = None
+    p90: float | None = None
 
     @property
     def key(self) -> str:
@@ -161,11 +163,13 @@ def distribution(spec: MetricDef, entries: list[CompanyEntry]) -> Distribution:
     shares = tuple(
         SignalShare(s, counts[s], round(counts[s] / total * 100, 1) if total else 0.0) for s in SIGNAL_ORDER
     )
-    median = q1 = q3 = None
+    median = q1 = q3 = p10 = p90 = None
     if len(values) >= MIN_PEERS:
         median = statistics.median(values)
         # 'inclusive' 는 최솟값·최댓값을 0%·100% 로 두는 흔한 정의(스프레드시트 QUARTILE 과 같다).
         q1, _, q3 = statistics.quantiles(values, n=4, method="inclusive")
+        deciles = statistics.quantiles(values, n=10, method="inclusive")
+        p10, p90 = deciles[0], deciles[8]
     return Distribution(
         spec=spec,
         count=len(values),
@@ -178,6 +182,8 @@ def distribution(spec: MetricDef, entries: list[CompanyEntry]) -> Distribution:
         q1=q1,
         q3=q3,
         signals=shares,
+        p10=p10,
+        p90=p90,
     )
 
 

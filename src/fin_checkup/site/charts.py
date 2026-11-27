@@ -41,7 +41,14 @@ AMOUNT_SERIES: tuple[tuple[str, str], ...] = (
     ("operating_cash_flow", "영업활동현금흐름"),
 )
 #: 추이에 그릴 비율 지표 (engine 의 key). 이름·단위·⊘ 여부는 엔진이 정한다.
-RATIO_SERIES: tuple[str, ...] = ("operating_margin", "debt_ratio", "current_ratio")
+RATIO_SERIES: tuple[str, ...] = (
+    "operating_margin",
+    "net_margin",
+    "roe",
+    "debt_ratio",
+    "current_ratio",
+    "equity_ratio",
+)
 
 
 def _esc(text: object) -> str:
@@ -499,6 +506,8 @@ class PeerStrip:
     #: "가운데 50% 2.1% ~ 8.4% · 중앙값 4.3%"
     spread_text: str
     value_text: str
+    #: "가운데 50% 위" · "가운데 50% 안" · "가운데 50% 아래" (순위·백분위 없이 위치만)
+    position_text: str
     #: 경계값 띠를 그렸는지 (⚪ 측정값 지표는 경계값이 없다).
     has_band: bool
 
@@ -612,8 +621,20 @@ def peer_strip(metric: Metric, stat: PeerStat | None, currency: str, chart_id: s
         parts.append(f'<path class="fc-ch-marker" d="M{mx + 1:.1f},{_DIST_Y}l-9,-6v12z"/>')
     else:
         parts.append(f'<circle class="fc-ch-marker" cx="{mx:.1f}" cy="{_DIST_Y}" r="5"/>')
+    val_label = _value_text(value, unit, currency)
+    anchor = "start" if mx < 55 else "end" if mx > STRIP_W - 55 else "middle"
+    parts.append(
+        f'<text class="fc-ch-mine-label" x="{mx:.1f}" y="{_DIST_Y - 12}" text-anchor="{anchor}">'
+        f"{_esc(val_label)}</text>"
+    )
     parts.append("</g></svg>")
-    return PeerStrip(Markup("".join(parts)), title, spread, mine, band is not None)
+    if value > q3:
+        pos = "가운데 50% 위"
+    elif value < q1:
+        pos = "가운데 50% 아래"
+    else:
+        pos = "가운데 50% 안"
+    return PeerStrip(Markup("".join(parts)), title, spread, mine, pos, band is not None)
 
 
 def peer_strips(data: Checkup) -> dict[str, PeerStrip]:
@@ -738,3 +759,155 @@ def badge_svg(counts: dict[Signal, int], year: int, company: str = "") -> str:
         f'lengthAdjust="spacingAndGlyphs">{left_text}</text>'
         f'<g fill="{_BADGE_INK}">{"".join(pieces)}</g></g></svg>\n'
     )
+
+
+def delta_bar_svg(before: float, after: float, before_text: str, after_text: str) -> Markup:
+    """작년(위·회색) vs 올해(아래·파랑) 두 줄 가로 막대 — 카드 안 '작년 대비' 미니 그래프."""
+    w, h = 160.0, 22.0
+    lo = min(before, after, 0.0)
+    hi = max(before, after, 0.0)
+    span = hi - lo
+    if span <= 0:
+        return Markup("")
+    zero_x = (-lo / span) * w if lo < 0 else 0.0
+
+    def bar(val: float, y: float, cls: str) -> str:
+        x_end = zero_x + (val / span) * w
+        x0 = min(zero_x, x_end)
+        bw = abs(x_end - zero_x)
+        if val != 0 and bw < 2.5:
+            bw = 2.5
+            x0 = zero_x if val > 0 else zero_x - bw
+        return f'<rect class="{cls}" x="{x0:.1f}" y="{y:.1f}" width="{bw:.1f}" height="7" rx="2"/>'
+
+    zero_line = (
+        f'<line class="fc-ch-zero" x1="{zero_x:.1f}" y1="0" x2="{zero_x:.1f}" y2="{h:.0f}"/>'
+        if lo < 0
+        else ""
+    )
+    title = f"작년 {before_text}, 올해 {after_text}"
+    return Markup(
+        f'<svg class="fc-ch fc-ch-delta" viewBox="0 0 {w:.0f} {h:.0f}" aria-hidden="true">'
+        f"<title>{_esc(title)}</title>"
+        f"{zero_line}"
+        f'{bar(before, 2.0, "fc-ch-delta-prev")}'
+        f'{bar(after, 12.0, "fc-ch-bar")}'
+        f"</svg>"
+    )
+
+
+def signal_meter_svg(chips: Sequence[tuple[str, str, int]]) -> Markup:
+    """신호 비율 가로 막대 — 한눈에 보기 상단에서 정상·주의·위험·기타 비중을 한 줄로 시각화."""
+    total = sum(count for _, _, count in chips)
+    if total <= 0:
+        return Markup("")
+    w, h = 400.0, 10.0
+    gap = 2.0
+    active = [(k, lbl, c) for k, lbl, c in chips if c > 0]
+    usable = w - gap * max(len(active) - 1, 0)
+    x = 0.0
+    rects: list[str] = []
+    for i, (key, label, count) in enumerate(active):
+        seg_w = (count / total) * usable if i < len(active) - 1 else max(w - x, 1.0)
+        rects.append(
+            f'<rect class="fc-ch-meter-seg sig-{_esc(key)}" x="{x:.1f}" y="0" '
+            f'width="{max(seg_w, 1.0):.1f}" height="{h:.0f}" rx="3">'
+            f"<title>{_esc(label)} {count}개</title></rect>"
+        )
+        x += seg_w + gap
+    return Markup(
+        f'<svg class="fc-ch fc-ch-meter" viewBox="0 0 {w:.0f} {h:.0f}" '
+        f'preserveAspectRatio="none" aria-hidden="true">{"".join(rects)}</svg>'
+    )
+
+
+def dist_strip_svg(
+    *,
+    label: str,
+    count: int,
+    p10: float | None,
+    q1: float | None,
+    median: float | None,
+    q3: float | None,
+    p90: float | None,
+    unit: str,
+    band: Band | None,
+    chart_id: str,
+) -> Markup | None:
+    """업종·시장 분포 카드용 박스앤위스커 그림 — 10~90% 수염, Q1~Q3 상자, 중앙값 선, 경계값 띠."""
+    if None in (p10, q1, median, q3, p90):
+        return None
+    assert p10 is not None and q1 is not None and median is not None and q3 is not None and p90 is not None
+    lo, hi = p10, p90
+    edges = sorted({band.warn, band.good}) if band else []
+
+    def near(v: float, a: float, b: float) -> bool:
+        span = b - a or max(abs(b), 1.0)
+        return a - span * _NEAR <= v <= b + span * _NEAR
+
+    kept = [e for e in edges if near(e, lo, hi)]
+    lo, hi = min([lo, *kept]), max([hi, *kept])
+    pad = (hi - lo or 1.0) * 0.06
+    lo, hi = lo - pad, hi + pad
+
+    def x(v: float) -> float:
+        v = min(max(v, lo), hi)
+        return _STRIP_X0 + (v - lo) / (hi - lo) * (_STRIP_X1 - _STRIP_X0)
+
+    cid = _esc(chart_id)
+    title = f"{label} 분포 ({count:,}곳)"
+    spread = (
+        f"가운데 50% {_value_text(q1, unit, 'KRW')} ~ {_value_text(q3, unit, 'KRW')}"
+        f" · 중앙값 {_value_text(median, unit, 'KRW')}"
+    )
+    parts = [
+        f'<svg class="fc-ch fc-ch-peer" viewBox="0 0 {STRIP_W} {STRIP_H}" role="img" '
+        f'aria-labelledby="{cid}-t {cid}-d" xmlns="http://www.w3.org/2000/svg">',
+        f'<title id="{cid}-t">{_esc(title)}</title>',
+        f'<desc id="{cid}-d">{_esc(spread)}</desc>',
+    ]
+    if band is not None:
+        parts.append('<g class="fc-ch-bands">')
+        segments = _band_segments(band, lo, hi)
+        for i, (a, b, signal) in enumerate(segments):
+            x0 = x(a) + (1 if i else 0)
+            x1 = x(b) - (1 if i < len(segments) - 1 else 0)
+            parts.append(
+                f'<rect class="fc-ch-band sig-{signal.value}" x="{x0:.1f}" y="{_BAND_Y}" '
+                f'width="{max(x1 - x0, 0):.1f}" height="4" rx="2">'
+                f"<title>{_esc(signal.emoji)} {_esc(signal.label)} 구간</title></rect>"
+            )
+            if x1 - x0 >= BAND_LABEL_MIN_WIDTH:
+                parts.append(
+                    f'<text class="fc-ch-band-label" x="{(x0 + x1) / 2:.1f}" y="{_BAND_LABEL_Y}" '
+                    f'text-anchor="middle">{_esc(signal.label)}</text>'
+                )
+        labels = _edge_labels(edges, lo, hi, x, unit, "KRW")
+        for edge in edges:
+            if lo < edge < hi:
+                parts.append(
+                    f'<line class="fc-ch-edge" x1="{x(edge):.1f}" x2="{x(edge):.1f}" '
+                    f'y1="{_BAND_Y - 3}" y2="{_BAND_Y + 7}"/>'
+                )
+        for cls, text, lx, anchor, row in labels:
+            parts.append(
+                f'<text class="{cls}" x="{lx:.1f}" y="{row}" text-anchor="{anchor}">{_esc(text)}</text>'
+            )
+        if any(row == _TICK_ROW_2 for *_, row in labels):
+            parts[0] = parts[0].replace(f"0 0 {STRIP_W} {STRIP_H}", f"0 0 {STRIP_W} {_TICK_ROW_2 + 2}")
+        parts.append("</g>")
+
+    parts.append(f'<g class="fc-ch-dist"><title>{_esc(spread)}</title>')
+    parts.append(
+        f'<line class="fc-ch-whisker" x1="{x(p10):.1f}" x2="{x(p90):.1f}" y1="{_DIST_Y}" y2="{_DIST_Y}"/>'
+    )
+    parts.append(
+        f'<rect class="fc-ch-box" x="{x(q1):.1f}" y="{_DIST_Y - 7}" '
+        f'width="{max(x(q3) - x(q1), 1.5):.1f}" height="14" rx="3"/>'
+    )
+    parts.append(
+        f'<line class="fc-ch-median" x1="{x(median):.1f}" x2="{x(median):.1f}" '
+        f'y1="{_DIST_Y - 9}" y2="{_DIST_Y + 9}"/>'
+    )
+    parts.append("</g></svg>")
+    return Markup("".join(parts))
