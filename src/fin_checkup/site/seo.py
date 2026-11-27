@@ -28,6 +28,7 @@ from pathlib import Path
 from fin_checkup.site.context import page_url
 from fin_checkup.site.guard import Violation
 from fin_checkup.site.sitemap import ROBOTS, SITEMAP
+from fin_checkup.site.verification import FILES as VERIFICATION_FILES
 
 RULE = "seo"
 REQUIRED_META = (
@@ -160,7 +161,7 @@ def check_seo(out: Path) -> list[Violation]:
     title_paths: dict[str, str] = {}
     for file in sorted(out.rglob("*.html")):
         rel = file.relative_to(out).as_posix()
-        if rel == "404.html":
+        if rel == "404.html" or rel in VERIFICATION_FILES:
             continue
         scan = _scan(file.read_text(encoding="utf-8"))
         if scan.noindex:

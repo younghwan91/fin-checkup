@@ -16,6 +16,7 @@ from xml.sax.saxutils import escape
 
 from fin_checkup.site.context import Site, page_url
 from fin_checkup.site.registry import Output
+from fin_checkup.site.verification import FILES as VERIFICATION_FILES
 
 SITEMAP = "sitemap.xml"
 ROBOTS = "robots.txt"
@@ -23,7 +24,8 @@ ROBOTS = "robots.txt"
 MAX_URLS = 50_000
 
 _NOINDEX = re.compile(r"<meta\s+name=\"robots\"\s+content=\"[^\"]*noindex", re.IGNORECASE)
-_NOT_INDEXED = frozenset({"404.html"})
+#: 색인하지 않는 HTML — 404 와 검색 엔진 소유 확인 파일(`site/verification.py`).
+_NOT_INDEXED = frozenset({"404.html", *VERIFICATION_FILES})
 
 
 def is_indexable(output: Output) -> bool:

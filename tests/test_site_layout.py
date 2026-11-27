@@ -6,7 +6,7 @@ import re
 from datetime import date
 
 import pytest
-from hub_seed import seed_site_cache
+from hub_seed import html_pages, seed_site_cache
 
 from fin_checkup.disclaimer import DISCLAIMER
 from fin_checkup.metrics.signals import Signal
@@ -24,8 +24,6 @@ async def out(tmp_path):
     return target
 
 
-def html_pages(out):
-    return sorted(out.rglob("*.html"))
 
 
 def read(path) -> str:

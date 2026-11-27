@@ -14,7 +14,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from hub_seed import seed_site_cache
+from hub_seed import html_pages, seed_site_cache
 
 from fin_checkup.metrics.signals import Signal
 from fin_checkup.site.build import build_site
@@ -57,7 +57,7 @@ SCREENS = [
 
 
 def test_no_page_draws_signal_emoji_on_screen(out):
-    for path in sorted(out.rglob("*.html")):
+    for path in html_pages(out):
         body = main(path)
         for emoji in EMOJI:
             assert emoji not in body, f"{path.relative_to(out)}: 화면에 이모지 {emoji}"
