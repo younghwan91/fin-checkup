@@ -13,6 +13,7 @@ import argparse
 import json
 import sys
 import unicodedata
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -27,9 +28,16 @@ def fetch_json(base: str, path: str) -> dict[str, Any]:
     if base.startswith(("http://", "https://")):
         url = base.rstrip("/") + "/" + path
         request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return json.load(response)
-    return json.loads((Path(base) / path).read_text(encoding="utf-8"))
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return json.load(response)
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise SystemExit(f"{url}: 데이터를 받지 못했습니다 ({exc}).") from exc
+    target = Path(base) / path
+    try:
+        return json.loads(target.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise SystemExit(f"{target}: 파일을 읽지 못했습니다 ({exc}).") from exc
 
 
 def load_company(base: str, stock_code: str) -> dict[str, Any]:
