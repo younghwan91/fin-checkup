@@ -35,9 +35,11 @@
   --tint-neutral: #f2f2f0;
   --tint-not_applicable: #f5f5f3;
   --tint-unknown: #eeeeec;
-  --hm-1: #eef4fb;
-  --hm-2: #d6e6f7;
-  --hm-3: #fae6be;
+  --hm-0: #efefeb;
+  --hm-1: #dbeafe;
+  --hm-2: #93c5fd;
+  --hm-3: #fde68a;
+  --hm-4: #fca5a5;
 
   /* 차트 막대 — 상태색과 겹치지 않는 파랑 하나 (dataviz validate_palette: 밝은·어두운 면 모두 통과) */
   --chart-1: #2a78d6;
@@ -81,9 +83,11 @@
     --tint-neutral: #232321;
     --tint-not_applicable: #20201e;
     --tint-unknown: #262624;
-    --hm-1: #1a222c;
-    --hm-2: #223042;
-    --hm-3: #3d3219;
+    --hm-0: #2b2b27;
+    --hm-1: #1e3a5f;
+    --hm-2: #285284;
+    --hm-3: #664d14;
+    --hm-4: #7a282b;
 
     --chart-1: #3987e5;
     --chart-grid: #2a2a27;
@@ -120,9 +124,11 @@
   --tint-neutral: #f2f2f0;
   --tint-not_applicable: #f5f5f3;
   --tint-unknown: #eeeeec;
-  --hm-1: #eef4fb;
-  --hm-2: #d6e6f7;
-  --hm-3: #fae6be;
+  --hm-0: #efefeb;
+  --hm-1: #dbeafe;
+  --hm-2: #93c5fd;
+  --hm-3: #fde68a;
+  --hm-4: #fca5a5;
   --chart-1: #2a78d6;
   --chart-grid: #ecece8;
   --chart-box: #d9d9d4;
@@ -157,9 +163,11 @@
   --tint-neutral: #232321;
   --tint-not_applicable: #20201e;
   --tint-unknown: #262624;
-  --hm-1: #1a222c;
-  --hm-2: #223042;
-  --hm-3: #3d3219;
+  --hm-0: #2b2b27;
+  --hm-1: #1e3a5f;
+  --hm-2: #285284;
+  --hm-3: #664d14;
+  --hm-4: #7a282b;
   --chart-1: #3987e5;
   --chart-grid: #2a2a27;
   --chart-box: #4a4a45;
@@ -444,11 +452,11 @@ h3 { font-size: .84rem; font-weight: 700; color: var(--ink-muted); margin: 1.2re
 .fc-hm-latest { fill: var(--ink); font-weight: 700; }
 .fc-hm-rect { fill: var(--tint, var(--surface-sunk)); stroke: var(--border); stroke-width: 1; }
 .fc-hm-glyph { fill: var(--ink); font-size: 10.5px; font-weight: 700; }
-.fc-hm-rate-0 .fc-hm-rect { fill: var(--surface-sunk); }
+.fc-hm-rate-0 .fc-hm-rect { fill: var(--hm-0); }
 .fc-hm-rate-1 .fc-hm-rect { fill: var(--hm-1); }
 .fc-hm-rate-2 .fc-hm-rect { fill: var(--hm-2); }
 .fc-hm-rate-3 .fc-hm-rect { fill: var(--hm-3); }
-.fc-hm-rate-4 .fc-hm-rect { fill: var(--tint-red); stroke: var(--sig-red); }
+.fc-hm-rate-4 .fc-hm-rect { fill: var(--hm-4); }
 .fc-hm-rate-4 .fc-hm-glyph { fill: var(--ink); }
 .fc-hm-na .fc-hm-rect { fill: var(--tint-not_applicable); }
 .fc-hm-na .fc-hm-glyph { fill: var(--ink-muted); }
