@@ -167,6 +167,8 @@ def sector_pages(site: Site) -> Iterator[Output]:
             continue
         cells = []
         for d in distributions(members):
+            if d.spec.band is None and not d.spec.sector_bands:
+                continue
             red = next((s for s in d.signals if s.signal is Signal.RED), None)
             all_na = d.not_applicable == d.total
             cells.append((d.spec.label, d.key, red.percent if red else 0.0, all_na, red.count if red else 0))
