@@ -839,6 +839,9 @@ def dist_strip_svg(
     unit: str,
     band: Band | None,
     chart_id: str,
+    q1_text: str | None = None,
+    median_text: str | None = None,
+    q3_text: str | None = None,
 ) -> Markup | None:
     """업종·시장 분포 카드용 박스앤위스커 그림 — 10~90% 수염, Q1~Q3 상자, 중앙값 선, 경계값 띠."""
     if None in (p10, q1, median, q3, p90):
@@ -915,6 +918,25 @@ def dist_strip_svg(
         f'<line class="fc-ch-median" x1="{x(median):.1f}" x2="{x(median):.1f}" '
         f'y1="{_DIST_Y - 9}" y2="{_DIST_Y + 9}"/>'
     )
+    med_x = x(median)
+    med_txt = median_text or _value_text(median, unit, "KRW")
+    q1_txt = q1_text or _value_text(q1, unit, "KRW")
+    q3_txt = q3_text or _value_text(q3, unit, "KRW")
+    med_anchor = "start" if med_x < 42 else "end" if med_x > STRIP_W - 42 else "middle"
+    parts.append(
+        f'<text class="fc-ch-value" x="{med_x:.1f}" y="{_DIST_Y - 12}" text-anchor="{med_anchor}">'
+        f"{_esc(med_txt)}</text>"
+    )
+    if x(q1) <= med_x - 36:
+        parts.append(
+            f'<text class="fc-ch-q" x="{x(q1):.1f}" y="{_DIST_Y - 12}" text-anchor="end">'
+            f"{_esc(q1_txt)}</text>"
+        )
+    if x(q3) >= med_x + 36:
+        parts.append(
+            f'<text class="fc-ch-q" x="{x(q3):.1f}" y="{_DIST_Y - 12}" text-anchor="start">'
+            f"{_esc(q3_txt)}</text>"
+        )
     parts.append("</g></svg>")
     return Markup("".join(parts))
 

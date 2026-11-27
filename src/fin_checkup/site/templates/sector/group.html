@@ -2,6 +2,7 @@
   업종 페이지 하나. 넘길 값: group(sector.GroupLink), members(이름순), sectors(적용된 판정 기준), blocks, caveats, min_peers.
 #}
 {% extends "base.html" %}
+{% from "_signal.html" import mark %}
 {% block title %}{% if group.count >= min_peers %}{{ group.info.name }} 섹터 재무비율 — 상장사 {{ group.count }}곳 중앙값·사분위{% else %}{{ group.info.name }} 섹터 상장사 {{ group.count }}곳 — 회사별 재무제표 신호등{% endif %} ({{ site.year }}) · fin-checkup{% endblock %}
 {% block description %}{{ group.info.name }}(KSIC {{ group.info.code }}) 섹터 상장사 {{ group.count }}곳의 {{ site.year }} 사업연도 재무 지표 분포(1사분위·중앙값·3사분위)와 계산식·임계치, 소속 회사 이름순 목록.{% endblock %}
 {% block main %}
@@ -35,7 +36,16 @@
     <h2 id="dist-title">섹터 지표 분포</h2>
     <p class="fc-hint">가운데 절반(IQR)의 기업이 1사분위(Q1)와 3사분위(Q3) 사이에 위치합니다. 분포는 객관적 측정치이며 임계치는 지표별로 별도 표기했습니다.</p>
     {% if signal_overview is defined and signal_overview %}
-    <div class="fc-overview-wrap">{{ signal_overview }}</div>
+    <div class="fc-overview-wrap">
+      {% if legend is defined %}
+      <ul class="fc-shares fc-overview-legend" aria-label="신호 구성 범례">
+        {% for s in legend %}
+        <li class="sig-{{ s.key }}">{{ mark(s.key) }}{{ s.label }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {{ signal_overview }}
+    </div>
     {% endif %}
     {% with show_signals=True %}{% include "_distribution.html" %}{% endwith %}
   </section>
