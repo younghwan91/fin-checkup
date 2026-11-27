@@ -20,7 +20,7 @@
 {% if season_compact is defined and season_compact %}
 <aside class="fc-season fc-season-compact" aria-label="데이터 기준일">
   <details>
-    <summary>데이터 기준: {{ s.year }} 사업연도 사업보고서 · 상장사 {{ "{:,}".format(site.companies | length) }}곳 · 빌드 {{ s.built_on.isoformat() }}{% if s.pending_year %} <span class="fc-season-pending">({{ s.pending_year }} 사업연도는 아직 반영 전)</span>{% endif %} <span class="fc-season-more">새 숫자는 언제?</span></summary>
+    <summary>데이터 기준: {{ s.year }} 사업연도 사업보고서 · 상장사 {{ "{:,}".format(site.companies | length) }}곳 · 빌드 {{ s.built_on.isoformat() }}{% if s.pending_year %} <span class="fc-season-pending">({{ s.pending_year }} 사업연도는 아직 반영 전)</span>{% endif %} <span class="fc-season-more">다음 공시 일정</span></summary>
     {{ season_body() }}
   </details>
 </aside>

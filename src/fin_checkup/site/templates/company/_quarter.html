@@ -9,6 +9,10 @@
 {% if quarter %}
 <section class="fc-section fc-quarter" id="quarter" aria-labelledby="quarter-title">
   <h2 id="quarter-title">최근 분기 — {{ quarter.period_label }}</h2>
+  <div class="fc-period-switch" aria-label="기간 보기 전환">
+    <a class="fc-period-pill" href="#trend">연간 (5개년) ↑</a>
+    <span class="fc-period-pill is-active">최근 분기 ({{ quarter.period_label }})</span>
+  </div>
   <p class="fc-basis">{{ quarter.report_label }} · {{ quarter.statement_label }}{% if quarter.dart_url %} · <a href="{{ quarter.dart_url }}" rel="noopener">DART 원문</a>{% endif %}</p>
   <p class="fc-hint">손익: {{ quarter.period_label }} 석 달 ↔ 1년 전 같은 분기({{ quarter.prior_period_label }})</p>
   <div class="fc-table-scroll">

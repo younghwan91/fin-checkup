@@ -913,23 +913,35 @@ def dist_strip_svg(
     return Markup("".join(parts))
 
 
-_HM_GLYPH = {
-    Signal.GREEN: "●",
-    Signal.YELLOW: "▲",
-    Signal.RED: "■",
-    Signal.NEUTRAL: "▬",
-    Signal.NOT_APPLICABLE: "⊘",
-    Signal.UNKNOWN: "·",
-}
+@dataclass(frozen=True)
+class HeatmapCell:
+    year: int
+    signal_key: str
+    signal_label: str
+    value_text: str
+    title: str
 
 
-def signal_heatmap_svg(data: Checkup, years: int = 5) -> Markup:
-    """5개년 × 17개 지표 신호 히트맵 — 일회성 변동과 지속적 위험/정상 구간을 한눈에."""
+@dataclass(frozen=True)
+class HeatmapRow:
+    key: str
+    label: str
+    cells: tuple[HeatmapCell, ...]
+
+
+@dataclass(frozen=True)
+class SignalHeatmap:
+    years: tuple[int, ...]
+    rows: tuple[HeatmapRow, ...]
+
+
+def signal_heatmap(data: Checkup, years: int = 5) -> SignalHeatmap | None:
+    """5개년 × 17개 지표 신호 히트맵 데이터 — 선명한 HTML/CSS 매트릭스 표용."""
     if not data.history:
-        return Markup("")
+        return None
     by_year = {f.bsns_year: f for f in data.history}
     latest = max(by_year)
-    span = list(range(latest - years + 1, latest + 1))
+    span = tuple(range(latest - years + 1, latest + 1))
     sector = data.result.sector
     currency = data.result.currency
     yearly = {
@@ -937,55 +949,32 @@ def signal_heatmap_svg(data: Checkup, years: int = 5) -> Markup:
         for y in span
         if y in by_year
     }
-
-    label_w, col_w, gap, row_h, head_h = 168.0, 44.0, 4.0, 22.0, 24.0
-    total_w = label_w + len(span) * (col_w + gap)
-    total_h = head_h + len(METRIC_DEFS) * row_h + 4.0
-
-    parts = [
-        f'<svg class="fc-ch fc-ch-heatmap" viewBox="0 0 {total_w:.0f} {total_h:.0f}" '
-        f'role="img" aria-label="5개년 재무 지표 신호 히트맵" xmlns="http://www.w3.org/2000/svg">',
-        "<title>5개년 × 17개 지표 신호 히트맵</title>",
-    ]
-    for ci, yr in enumerate(span):
-        cx = label_w + ci * (col_w + gap) + col_w / 2
-        cls = "fc-ch-x fc-hm-latest" if yr == latest else "fc-ch-x"
-        parts.append(f'<text class="{cls}" x="{cx:.1f}" y="16" text-anchor="middle">{yr}</text>')
-
-    for ri, spec in enumerate(METRIC_DEFS):
-        ry = head_h + ri * row_h
-        parts.append(
-            f'<a class="fc-hm-link" href="#m-{_esc(spec.key)}">'
-            f'<text class="fc-hm-label" x="0" y="{ry + 14:.1f}">{_esc(spec.label)}</text></a>'
-        )
-        for ci, yr in enumerate(span):
-            cx = label_w + ci * (col_w + gap)
+    rows: list[HeatmapRow] = []
+    for spec in METRIC_DEFS:
+        cells: list[HeatmapCell] = []
+        for yr in span:
             res = yearly.get(yr)
             if yr not in by_year:
                 sig = Signal.UNKNOWN
-                note = f"{sig.emoji} {sig.label} (사업보고서 미수집)"
+                val_txt = "—"
+                tip = f"{yr}년 {spec.label}: {sig.emoji} {sig.label} (미수집)"
             elif res is None:
                 sig = Signal.UNKNOWN
-                note = f"{sig.emoji} {sig.label} (단위 오류 의심)"
+                val_txt = "의심"
+                tip = f"{yr}년 {spec.label}: {sig.emoji} {sig.label} (단위 의심)"
             else:
                 m = res.by_key(spec.key)
                 if m is None:
-                    sig, note = Signal.UNKNOWN, f"{Signal.UNKNOWN.emoji} {Signal.UNKNOWN.label}"
+                    sig = Signal.UNKNOWN
+                    val_txt = "—"
+                    tip = f"{yr}년 {spec.label}: {sig.emoji} {sig.label}"
                 else:
                     sig = m.signal
                     val_txt = format_metric(m, currency)
-                    note = f"{sig.emoji} {sig.label} ({val_txt})"
-            glyph = _HM_GLYPH[sig]
-            tip = f"{yr}년 {spec.label}: {note}"
-            parts.append(
-                f'<g class="fc-hm-cell seg-{sig.value}"><title>{_esc(tip)}</title>'
-                f'<rect class="fc-hm-rect" x="{cx:.1f}" y="{ry + 2:.1f}" '
-                f'width="{col_w:.0f}" height="{row_h - 4:.0f}" rx="4"/>'
-                f'<text class="fc-hm-glyph" x="{cx + col_w / 2:.1f}" y="{ry + 14.5:.1f}" '
-                f'text-anchor="middle">{glyph}</text></g>'
-            )
-    parts.append("</svg>")
-    return Markup("".join(parts))
+                    tip = f"{yr}년 {spec.label}: {sig.emoji} {sig.label} ({val_txt})"
+            cells.append(HeatmapCell(yr, sig.value, sig.label, val_txt, tip))
+        rows.append(HeatmapRow(spec.key, spec.label, tuple(cells)))
+    return SignalHeatmap(span, tuple(rows))
 
 
 def signal_overview_svg(

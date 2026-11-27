@@ -11,7 +11,7 @@
     <p class="fc-lead">공시된 재무제표를 공개된 공식으로 계산해, 지표마다 신호등과 계산식을 함께 보여 드립니다.</p>
     {% with search_id = "home" %}{% include "_search_box.html" %}{% endwith %}
     {% with season_compact = true %}{% include "_season.html" %}{% endwith %}
-    <p class="fc-landing-links"><a class="fc-guide-link" href="{{ url('learn/') }}">처음 오셨나요? 신호등 읽는 법 <span aria-hidden="true">→</span></a></p>
+    <p class="fc-landing-links"><a class="fc-guide-link" href="{{ url('learn/') }}">처음 오셨나요? 지표·신호 기준 보기 <span aria-hidden="true">→</span></a></p>
     {# 이 브라우저에 담아 둔 것이 있을 때만 static/resume.js 가 연다. #}
     <p class="fc-resume" id="fc-resume" hidden>이어 보기: <a data-resume="watch" href="{{ url('watch/') }}" hidden>담아 둔 관심종목</a> <a data-resume="compare" href="{{ url('compare/') }}" hidden>고른 회사 나란히 보기</a></p>
   </section>
