@@ -762,36 +762,42 @@ def badge_svg(counts: dict[Signal, int], year: int, company: str = "") -> str:
 
 
 def delta_bar_svg(before: float, after: float, before_text: str, after_text: str) -> Markup:
-    """작년(위·회색) vs 올해(아래·파랑) 두 줄 가로 막대 — 카드 안 '작년 대비' 미니 그래프."""
-    w, h = 160.0, 22.0
+    """작년(위·회색) vs 올해(아래·파랑) 두 줄 가로 막대 — 연도·수치 라벨 포함."""
+    bar_x, bar_w, h = 32.0, 134.0, 34.0
+    total_w = 240.0
     lo = min(before, after, 0.0)
     hi = max(before, after, 0.0)
     span = hi - lo
     if span <= 0:
         return Markup("")
-    zero_x = (-lo / span) * w if lo < 0 else 0.0
+    zero_x = bar_x + ((-lo / span) * bar_w if lo < 0 else 0.0)
 
     def bar(val: float, y: float, cls: str) -> str:
-        x_end = zero_x + (val / span) * w
+        x_end = zero_x + (val / span) * bar_w
         x0 = min(zero_x, x_end)
         bw = abs(x_end - zero_x)
         if val != 0 and bw < 2.5:
             bw = 2.5
             x0 = zero_x if val > 0 else zero_x - bw
-        return f'<rect class="{cls}" x="{x0:.1f}" y="{y:.1f}" width="{bw:.1f}" height="7" rx="2"/>'
+        return f'<rect class="{cls}" x="{x0:.1f}" y="{y:.1f}" width="{bw:.1f}" height="8" rx="2"/>'
 
     zero_line = (
-        f'<line class="fc-ch-zero" x1="{zero_x:.1f}" y1="0" x2="{zero_x:.1f}" y2="{h:.0f}"/>'
+        f'<line class="fc-ch-zero" x1="{zero_x:.1f}" y1="1" x2="{zero_x:.1f}" y2="{h - 1:.0f}"/>'
         if lo < 0
         else ""
     )
+    val_x = bar_x + bar_w + 6.0
     title = f"작년 {before_text}, 올해 {after_text}"
     return Markup(
-        f'<svg class="fc-ch fc-ch-delta" viewBox="0 0 {w:.0f} {h:.0f}" aria-hidden="true">'
+        f'<svg class="fc-ch fc-ch-delta" viewBox="0 0 {total_w:.0f} {h:.0f}" aria-hidden="true">'
         f"<title>{_esc(title)}</title>"
         f"{zero_line}"
-        f'{bar(before, 2.0, "fc-ch-delta-prev")}'
-        f'{bar(after, 12.0, "fc-ch-bar")}'
+        f'<text class="fc-ch-x" x="0" y="11">작년</text>'
+        f'{bar(before, 4.0, "fc-ch-delta-prev")}'
+        f'<text class="fc-ch-x" x="{val_x:.0f}" y="11">{_esc(before_text)}</text>'
+        f'<text class="fc-ch-value" x="0" y="27">올해</text>'
+        f'{bar(after, 20.0, "fc-ch-bar")}'
+        f'<text class="fc-ch-value" x="{val_x:.0f}" y="27">{_esc(after_text)}</text>'
         f"</svg>"
     )
 

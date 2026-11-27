@@ -8,6 +8,6 @@
 <figure class="fc-peer">
   <figcaption class="fc-peer-head"><b>{{ strip.title }}</b> · {{ strip.position_text }}</figcaption>
   {{ strip.svg }}
-  <figcaption class="fc-peer-key"><span><span class="fc-key fc-key-box" aria-hidden="true"></span>IQR(가운데 50%)</span> <span><span class="fc-key fc-key-median" aria-hidden="true"></span>중앙값(Median)</span> <span><span class="fc-key fc-key-mine" aria-hidden="true"></span>{{ strip.value_text }}</span>{% if strip.has_band %} <span>· 아래 띠: 임계치 구간</span>{% endif %}</figcaption>
+  <figcaption class="fc-peer-key"><span><span class="fc-key fc-key-box" aria-hidden="true"></span>회색 상자: 섹터 중간 50%</span> <span><span class="fc-key fc-key-median" aria-hidden="true"></span>검은 선: 중앙값</span> <span><span class="fc-key fc-key-mine" aria-hidden="true"></span>파란 점: {{ strip.value_text }}</span>{% if strip.has_band %} <span>· 아래 색 띠: 정상·주의·위험 구간</span>{% endif %}</figcaption>
 </figure>
 {% endif %}

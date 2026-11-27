@@ -166,7 +166,8 @@
     for (var j = 0; j < rows.length; j++) {
       var row = rows[j];
       var key = row.getAttribute("data-key");
-      var formula = (row.querySelector(".fc-compare-formula") || {}).textContent;
+      var fEl = row.querySelector(".fc-compare-formula");
+      var formula = fEl ? (fEl.getAttribute("data-formula") || fEl.textContent) : "";
       clearColumns(row);
       shown.forEach(function (doc) {
         var metric = null;

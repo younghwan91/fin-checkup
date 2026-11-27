@@ -36,7 +36,7 @@
           <tr class="fc-compare-cat"><th scope="rowgroup" colspan="1">{{ group.category }}</th></tr>
           {% for row in group.rows %}
           <tr class="fc-compare-row" data-key="{{ row.key }}">
-            <th scope="row"><a href="{{ url(row.path) }}">{{ row.label }}</a><small class="fc-compare-formula">{{ row.formula }}</small></th>
+            <th scope="row"><a href="{{ url(row.path) }}">{{ row.label }}</a><small class="fc-compare-formula" data-formula="{{ row.formula }}">{{ row.formula | math }}</small></th>
           </tr>
           {% endfor %}
         </tbody>
