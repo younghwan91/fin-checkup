@@ -1,6 +1,6 @@
 {% from "_signal.html" import mark, badge %}
 <header class="fc-summary" id="summary">
-  <h1>{{ c.name }} <span class="fc-code">{{ c.stock_code }}</span>{% if c.market %} <span class="fc-code">{{ c.market }}</span>{% endif %}</h1>
+  <h1><span class="fc-co-avatar" aria-hidden="true">{{ c.name[0] }}</span>{{ c.name }} <span class="fc-code">{{ c.stock_code }}</span>{% if c.market %} <span class="fc-code">{{ c.market }}</span>{% endif %}</h1>
   <p class="fc-basis">{{ c.year }}년 {{ c.report_label }} · {{ c.statement_label }} · {{ c.sector_label }} 기준</p>
   {% if peer_group %}
   <p class="fc-basis">섹터 <a href="{{ url(peer_group.path) }}">{{ peer_group.info.name }}</a> (KSIC {{ peer_group.info.code }} · {{ peer_group.count }}곳)</p>
