@@ -4,34 +4,41 @@
 {% block description %}상장사 {{ "{:,}".format(site.companies | length) }}곳의 {{ site.year }} 사업연도 재무제표를 공개된 공식으로 계산해, 지표마다 신호등과 계산식·경계값을 함께 보여 드립니다. 회사 이름·종목코드·초성으로 찾을 수 있습니다.{% endblock %}
 {% block header_search %}{% endblock %}
 {% block main %}
-<section class="fc-landing">
-  <h1>회사 이름으로 재무 상태 보기</h1>
-  <p class="fc-lead">공시된 재무제표를 공개된 공식으로 계산해, 지표마다 신호등과 계산식을 함께 보여 드립니다.</p>
-  {% with search_id = "home" %}{% include "_search_box.html" %}{% endwith %}
-  {% with season_compact = true %}{% include "_season.html" %}{% endwith %}
-  <p class="fc-landing-links"><a href="{{ url('learn/') }}">처음 오셨나요? 신호등 읽는 법</a></p>
-  {# 이 브라우저에 담아 둔 것이 있을 때만 static/resume.js 가 연다. #}
-  <p class="fc-resume" id="fc-resume" hidden>이어 보기: <a data-resume="watch" href="{{ url('watch/') }}" hidden>담아 둔 관심종목</a> <a data-resume="compare" href="{{ url('compare/') }}" hidden>고른 회사 나란히 보기</a></p>
-</section>
-{#
-  결과 예시 — 고정 규칙(examples.default_example)으로 고른 회사 한눈에 보기의 첫 묶음 그대로. 순위·인기 목록이 아니다.
-#}
-{% if example %}
-{% set c = example.c %}
-{% set home = example.entry.path %}
-<section class="fc-example" aria-labelledby="example-title">
-  <h2 id="example-title">검색하면 이렇게 보여요 <span class="fc-example-co">예: <a href="{{ url(home) }}">{{ c.name }}</a> · {{ c.year }} 사업연도</span></h2>
-  <ul class="fc-chips" aria-label="신호 개수">
-  {% for chip in c.chips %}
-    <li class="fc-chip sig-{{ chip.signal.key }}">{{ mark(chip.signal.key) }}{{ chip.signal.label }} <b>{{ chip.count }}</b></li>
-  {% endfor %}
-  </ul>
-  <p class="fc-example-group">{{ example.group.category }}</p>
-  <ul class="fc-example-rows">{% for m in example.group.rows %}<li class="sig-{{ m.signal.key }}"><a href="{{ url(home) }}#m-{{ m.key }}">{{ badge(m.signal.key, m.signal.label) }} <span class="fc-example-label">{{ m.label }}</span> <span class="fc-example-value">{{ m.value_text }}</span></a></li>{% endfor %}</ul>
-  <p class="fc-example-more"><a href="{{ url(home) }}">{{ c.name }} 페이지</a>에서 나머지 지표 {{ example.rest }}개와 지표마다 계산식·경계값을 볼 수 있어요.</p>
-  <p class="fc-hint">예시 회사는 색과 상관없이 일반 업종 중 최근 매출액이 가장 큰 회사로 고정해요. <a href="{{ url('learn/first-read/') }}">이 회사로 재무제표 처음 읽기</a></p>
-</section>
-{% endif %}
+<div class="fc-hero-grid">
+  <section class="fc-landing">
+    <p class="fc-eyebrow">DART · SEC EDGAR 공시 기반 재무 측정</p>
+    <h1>회사 이름으로 재무 상태 보기</h1>
+    <p class="fc-lead">공시된 재무제표를 공개된 공식으로 계산해, 지표마다 신호등과 계산식을 함께 보여 드립니다.</p>
+    {% with search_id = "home" %}{% include "_search_box.html" %}{% endwith %}
+    {% with season_compact = true %}{% include "_season.html" %}{% endwith %}
+    <p class="fc-landing-links"><a class="fc-guide-link" href="{{ url('learn/') }}">처음 오셨나요? 신호등 읽는 법 <span aria-hidden="true">→</span></a></p>
+    {# 이 브라우저에 담아 둔 것이 있을 때만 static/resume.js 가 연다. #}
+    <p class="fc-resume" id="fc-resume" hidden>이어 보기: <a data-resume="watch" href="{{ url('watch/') }}" hidden>담아 둔 관심종목</a> <a data-resume="compare" href="{{ url('compare/') }}" hidden>고른 회사 나란히 보기</a></p>
+  </section>
+  {#
+    결과 예시 — 고정 규칙(examples.default_example)으로 고른 회사 한눈에 보기의 첫 묶음 그대로. 순위·인기 목록이 아니다.
+  #}
+  {% if example %}
+  {% set c = example.c %}
+  {% set home = example.entry.path %}
+  <section class="fc-example" aria-labelledby="example-title">
+    <div class="fc-example-head">
+      <h2 id="example-title">검색하면 이렇게 보여요 <span class="fc-example-co">예: <a href="{{ url(home) }}">{{ c.name }}</a> · {{ c.year }} 사업연도</span></h2>
+      <ul class="fc-chips" aria-label="신호 개수">
+      {% for chip in c.chips %}
+        <li class="fc-chip sig-{{ chip.signal.key }}">{{ mark(chip.signal.key) }}{{ chip.signal.label }} <b>{{ chip.count }}</b></li>
+      {% endfor %}
+      </ul>
+    </div>
+    <p class="fc-example-group">{{ example.group.category }}</p>
+    <ul class="fc-example-rows">{% for m in example.group.rows %}<li class="sig-{{ m.signal.key }}"><a href="{{ url(home) }}#m-{{ m.key }}">{{ badge(m.signal.key, m.signal.label) }} <span class="fc-example-label">{{ m.label }}</span> <span class="fc-example-value">{{ m.value_text }}</span></a></li>{% endfor %}</ul>
+    <div class="fc-example-foot">
+      <p class="fc-example-more"><a href="{{ url(home) }}">{{ c.name }} 페이지</a>에서 나머지 지표 {{ example.rest }}개와 지표마다 계산식·경계값을 볼 수 있어요.</p>
+      <p class="fc-hint">예시 회사는 색과 상관없이 일반 업종 중 최근 매출액이 가장 큰 회사로 고정해요. <a href="{{ url('learn/first-read/') }}">이 회사로 재무제표 처음 읽기</a></p>
+    </div>
+  </section>
+  {% endif %}
+</div>
 {% include "_market_disclosures.html" %}
 {% endblock %}
 {% block scripts %}

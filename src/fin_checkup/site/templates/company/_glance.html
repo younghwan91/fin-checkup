@@ -5,10 +5,20 @@
 {% from "_signal.html" import mark, badge %}
 <section class="fc-section fc-glance" id="glance" aria-labelledby="glance-title">
   <h2 id="glance-title">한눈에 보기</h2>
+  {% if c.signal_meter is defined and c.signal_meter %}
+  <div class="fc-glance-meter">{{ c.signal_meter }}</div>
+  {% endif %}
+  {% if c.glance_points is defined and c.glance_points %}
+  <ul class="fc-glance-takeaway" aria-label="측정 요약">
+    {% for pt in c.glance_points %}
+    <li>{{ pt }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
   <dl class="fc-glance-groups">
   {% for group in c.groups %}
     <dt>{{ group.category }}</dt>
-    <dd><ul class="fc-glance-list">{% for m in group.rows %}<li class="sig-{{ m.signal.key }}"><a href="#m-{{ m.key }}">{{ mark(m.signal.key) }}{{ m.label }}<span class="fc-visually-hidden"> {{ m.signal.label }}</span></a></li>{% endfor %}</ul></dd>
+    <dd><ul class="fc-glance-list">{% for m in group.rows %}<li class="sig-{{ m.signal.key }}"><a href="#m-{{ m.key }}">{{ mark(m.signal.key) }}{{ m.label }} <span class="fc-glance-val{% if m.missing %} muted{% endif %}">{{ m.value_text }}</span><span class="fc-visually-hidden"> {{ m.signal.label }}</span></a></li>{% endfor %}</ul></dd>
   {% endfor %}
     <dt>위험 신호</dt>
     <dd>{% if c.red_flags %}<ul class="fc-glance-list">{% for flag in c.red_flags %}<li class="sig-red"><a href="#red-flags">{{ mark("red") }}<span class="fc-visually-hidden">위험 신호: </span>{{ flag.label }}</a></li>{% endfor %}</ul>{% else %}<a href="#red-flags">없음</a> <span class="fc-hint">(자본잠식·연속 영업손실 등)</span>{% endif %}</dd>

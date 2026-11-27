@@ -13,11 +13,14 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
+from markupsafe import Markup
+
 from fin_checkup.explain.metrics import get_explainer, threshold_text
 from fin_checkup.explain.sectors import PeerGroupInfo, peer_group_info
 from fin_checkup.metrics.engine import NOT_APPLICABLE_BY_SECTOR
 from fin_checkup.metrics.peers import MIN_PEERS
 from fin_checkup.metrics.sector import Sector
+from fin_checkup.site.charts import dist_strip_svg, signal_meter_svg
 from fin_checkup.site.context import CompanyEntry, Site
 from fin_checkup.site.groups import (
     Distribution,
@@ -59,6 +62,9 @@ class MetricBlock:
     thresholds: tuple[ThresholdLine, ...]
     #: 지표 해설 페이지 경로 (`/m/<key>/`).
     explainer_path: str
+    chart: Markup | None = None
+    has_band: bool = False
+    signal_meter: Markup | None = None
 
 
 def caveats_for(sector: Sector) -> list[Caveat]:
@@ -92,10 +98,37 @@ def threshold_lines(key: str, sectors: list[Sector]) -> tuple[ThresholdLine, ...
 
 def metric_blocks(entries: list[CompanyEntry], sectors: list[Sector]) -> list[MetricBlock]:
     """지표마다 분포 + 경계값 문장. 기준이 둘 이상이면 기준마다 (어느 쪽도 감추지 않는다)."""
-    return [
-        MetricBlock(dist=d, thresholds=threshold_lines(d.key, sectors), explainer_path=f"m/{d.key}/")
-        for d in distributions(entries)
-    ]
+    out: list[MetricBlock] = []
+    single_sector = sectors[0] if len(sectors) == 1 else None
+    for d in distributions(entries):
+        if single_sector is not None and d.key not in NOT_APPLICABLE_BY_SECTOR.get(single_sector, {}):
+            band = d.spec.sector_bands.get(single_sector, d.spec.band) if d.spec.sector_bands else d.spec.band
+        else:
+            band = None
+        chart = dist_strip_svg(
+            label=d.spec.label,
+            count=d.count,
+            p10=d.p10,
+            q1=d.q1,
+            median=d.median,
+            q3=d.q3,
+            p90=d.p90,
+            unit=d.spec.unit,
+            band=band,
+            chart_id=f"dist-{d.key}",
+        )
+        meter = signal_meter_svg([(s.signal.value, s.signal.label, s.count) for s in d.signals])
+        out.append(
+            MetricBlock(
+                dist=d,
+                thresholds=threshold_lines(d.key, sectors),
+                explainer_path=f"m/{d.key}/",
+                chart=chart,
+                has_band=band is not None,
+                signal_meter=meter,
+            )
+        )
+    return out
 
 
 @company_context("peer_group")

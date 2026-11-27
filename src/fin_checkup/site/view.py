@@ -8,10 +8,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from markupsafe import Markup
+
+from fin_checkup.explain.metrics import get_explainer
+from fin_checkup.explain.why import why_color
 from fin_checkup.format import format_metric
 from fin_checkup.metrics.engine import Metric
-from fin_checkup.metrics.peers import SelfDelta
+from fin_checkup.metrics.peers import PeerStat, SelfDelta
 from fin_checkup.metrics.redflags import RedFlag
+from fin_checkup.metrics.sector import Sector
 from fin_checkup.metrics.signals import Signal
 from fin_checkup.models import FsDiv
 from fin_checkup.presentation import (
@@ -22,6 +27,7 @@ from fin_checkup.presentation import (
     summary_chips,
 )
 from fin_checkup.service import Checkup
+from fin_checkup.site.charts import delta_bar_svg, signal_meter_svg
 
 
 @dataclass(frozen=True)
@@ -47,7 +53,9 @@ class Chip:
 class MetricRow:
     key: str
     label: str
+    why_text: str
     description: str
+    one_liner: str
     signal: SignalView
     #: 표시 값. 값이 없으면 `format.MISSING`.
     value_text: str
@@ -62,6 +70,7 @@ class MetricRow:
     delta_values: str
     delta_change: str
     delta_direction: str
+    delta_svg: Markup | None
     missing: bool
     not_applicable: bool
 
@@ -105,13 +114,24 @@ class CompanyView:
     red_flags: list[RedFlag]
     #: 직전 사업연도가 캐시에 없으면 None.
     changes: ChangesView | None
+    glance_points: list[str]
+    signal_meter: Markup
 
 
-def _row(metric: Metric, currency: str, delta: SelfDelta | None) -> MetricRow:
+def _row(
+    metric: Metric,
+    currency: str,
+    delta: SelfDelta | None,
+    peer_stat: PeerStat | None,
+    sector: Sector,
+) -> MetricRow:
+    explainer = get_explainer(metric.key)
     return MetricRow(
         key=metric.key,
         label=metric.label,
-        description=metric.description,
+        why_text=why_color(metric, None, None, sector=sector, currency=currency),
+        description=explainer.why_look,
+        one_liner=explainer.one_liner,
         signal=SignalView.of(metric.signal),
         value_text=format_metric(metric, currency),
         formula=metric.formula,
@@ -125,9 +145,65 @@ def _row(metric: Metric, currency: str, delta: SelfDelta | None) -> MetricRow:
         else f"{delta.before_text} → {delta.after_text}",
         delta_change="" if delta is None or delta.unchanged else delta.change_text,
         delta_direction="" if delta is None else delta.direction_text,
+        delta_svg=None
+        if delta is None or delta.unchanged
+        else delta_bar_svg(delta.previous, delta.current, delta.before_text, delta.after_text),
         missing=metric.signal is Signal.UNKNOWN,
         not_applicable=metric.signal is Signal.NOT_APPLICABLE,
     )
+
+
+def _glance_points(data: Checkup, changes: ChangesView | None) -> list[str]:
+    """한눈에 보기 맨 위 '측정 요약' — LLM 없이 공시 수치·신호만으로 '그래서 무엇을 먼저 볼까'를 짚는다."""
+    result = data.result
+    currency = result.currency
+    points: list[str] = []
+
+    if data.red_flags:
+        labels = ", ".join(f.label for f in data.red_flags)
+        points.append(f"재무제표로 확인된 위험 신호 {len(data.red_flags)}건이 있습니다: {labels}.")
+
+    reds = [m for m in result.metrics if m.signal is Signal.RED]
+    yellows = [m for m in result.metrics if m.signal is Signal.YELLOW]
+    greens = [m for m in result.metrics if m.signal is Signal.GREEN]
+    if reds or yellows:
+        chunks = []
+        if reds:
+            chunks.append("위험 " + ", ".join(f"{m.label}({format_metric(m, currency)})" for m in reds[:3]))
+        if yellows:
+            names = ", ".join(f"{m.label}({format_metric(m, currency)})" for m in yellows[:3])
+            chunks.append(f"주의 {names}")
+        points.append("경계값을 벗어난 지표를 먼저 보세요: " + " · ".join(chunks) + ".")
+    elif greens and not data.red_flags:
+        points.append(
+            f"판정 가능한 지표 {len(greens)}개가 모두 정상 구간이며, "
+            "자본잠식·연속 영업손실 같은 위험 신호는 없습니다."
+        )
+
+    if changes is not None and changes.rows:
+        names = ", ".join(r.label for r in changes.rows[:3])
+        more = " 외" if len(changes.rows) > 3 else ""
+        points.append(f"작년 대비 신호 등급이 바뀐 지표 {len(changes.rows)}개가 있습니다 ({names}{more}).")
+    elif data.deltas:
+        better = sum(1 for d in data.deltas.values() if d.improved is True)
+        worse = sum(1 for d in data.deltas.values() if d.improved is False)
+        if better or worse:
+            points.append(
+                f"작년과 견주면 경계값 기준으로 좋아진 쪽 {better}개, "
+                f"나빠진 쪽 {worse}개입니다 — 변화 폭은 아래 카드에서 확인하세요."
+            )
+
+    na_cnt = sum(1 for m in result.metrics if m.signal is Signal.NOT_APPLICABLE)
+    unk_cnt = sum(1 for m in result.metrics if m.signal is Signal.UNKNOWN)
+    if na_cnt or unk_cnt:
+        extra = []
+        if na_cnt:
+            extra.append(f"{result.sector.label} 업종 특성상 판정하지 않는 지표 {na_cnt}개")
+        if unk_cnt:
+            extra.append(f"공시에서 계정을 찾지 못한 지표 {unk_cnt}개")
+        points.append(" · ".join(extra) + "가 있습니다.")
+
+    return points
 
 
 def company_view(data: Checkup) -> CompanyView:
@@ -170,10 +246,15 @@ def company_view(data: Checkup) -> CompanyView:
         groups=[
             MetricGroup(
                 category=category.value,
-                rows=[_row(m, currency, data.deltas.get(m.key)) for m in metrics],
+                rows=[
+                    _row(m, currency, data.deltas.get(m.key), data.peers.get(m.key), result.sector)
+                    for m in metrics
+                ],
             )
             for category, metrics in metrics_by_category(result)
         ],
         red_flags=list(data.red_flags),
         changes=changes,
+        glance_points=_glance_points(data, changes),
+        signal_meter=signal_meter_svg([(s.value, s.label, n) for s, n in summary_chips(result)]),
     )

@@ -18,10 +18,17 @@
       <dt>중앙값</dt><dd><b>{{ d.text(d.median) }}</b></dd>
       <dt>3사분위</dt><dd>{{ d.text(d.q3) }}</dd>
     </dl>
+    {% if b.chart %}
+    <figure class="fc-peer">
+      {{ b.chart }}
+      <figcaption class="fc-peer-key"><span><span class="fc-key fc-key-box" aria-hidden="true"></span>가운데 50%</span> <span><span class="fc-key fc-key-median" aria-hidden="true"></span>중앙값</span>{% if b.has_band %} <span>· 아래 띠: 경계값 구간</span>{% endif %}</figcaption>
+    </figure>
+    {% endif %}
     {% else %}
     <p class="fc-note">값이 있는 회사가 {{ d.count }}곳이라({{ min_peers }}곳 미만) 분포를 내지 않습니다.</p>
     {% endif %}
     {% if show_signals %}
+    {% if b.signal_meter %}<div class="fc-glance-meter">{{ b.signal_meter }}</div>{% endif %}
     <ul class="fc-shares" aria-label="{{ d.spec.label }} 신호 비율">
       {% for s in d.signals %}
       <li class="sig-{{ s.signal.value }}">{{ mark(s.signal.value) }}{{ s.signal.label }} {{ s.percent }}% <small>({{ "{:,}".format(s.count) }}곳)</small></li>

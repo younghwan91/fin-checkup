@@ -5,11 +5,9 @@
 #}
 {% set strip = peer_strips.get(m.key) %}
 {% if strip %}
-<details class="fc-peer">
-  <summary><b>{{ strip.title }}</b> · {{ strip.spread_text }} · {{ strip.value_text }} <span class="fc-peer-more">그림</span></summary>
-  <figure>
+<figure class="fc-peer">
+  <figcaption class="fc-peer-head"><b>{{ strip.title }}</b> · {{ strip.position_text }}</figcaption>
   {{ strip.svg }}
   <figcaption class="fc-peer-key"><span><span class="fc-key fc-key-box" aria-hidden="true"></span>가운데 50%</span> <span><span class="fc-key fc-key-median" aria-hidden="true"></span>중앙값</span> <span><span class="fc-key fc-key-mine" aria-hidden="true"></span>{{ strip.value_text }}</span>{% if strip.has_band %} <span>· 아래 띠: 경계값 구간</span>{% endif %}</figcaption>
-  </figure>
-</details>
+</figure>
 {% endif %}

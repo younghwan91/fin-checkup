@@ -29,6 +29,11 @@
   <section class="fc-section" id="distribution" aria-labelledby="dist-title">
     <h2 id="dist-title">지표 17개</h2>
     <p class="fc-hint">지표 이름을 누르면 그 지표가 무엇인지, 경계값을 왜 그렇게 잡았는지 설명하는 페이지로 갑니다.</p>
+    <ul class="fc-market-toc" aria-label="지표 바로가기">
+      {% for b in blocks %}
+      <li><a href="#d-{{ b.dist.key }}">{{ b.dist.spec.label }}</a></li>
+      {% endfor %}
+    </ul>
     {% with show_signals=True %}{% include "_distribution.html" %}{% endwith %}
   </section>
 </article>

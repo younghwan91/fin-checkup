@@ -36,17 +36,15 @@ def cards(out) -> list[str]:
     return re.findall(r'<li class="fc-metric .*?</li>\n    (?=<li class="fc-metric|</ul>)', text, re.S)
 
 
-def test_peer_figure_sits_in_a_closed_details_with_a_numeric_summary(out):
+def test_peer_figure_is_shown_directly_with_numeric_summary(out):
     with_strip = [c for c in cards(out) if "fc-peer" in c]
     assert with_strip, "시드에 분포 그림이 있는 카드가 없다"
     for card in with_strip:
-        details = re.search(r'<details class="fc-peer">(.*?)</details>', card, re.S)
-        assert details, "분포 그림은 <details> 안에"
-        summary = re.search(r"<summary>(.*?)</summary>", details.group(1), re.S).group(1)
+        fig = re.search(r'<figure class="fc-peer">(.*?)</figure>', card, re.S)
+        assert fig, "분포 그림은 <figure class=\"fc-peer\"> 안에 바로 보여 준다"
         for needed in ("분포", "가운데 50%", "중앙값", "이 회사"):
-            assert needed in summary, needed
-        assert "<svg" in details.group(1)
-        assert "<details open" not in card
+            assert needed in fig.group(1), needed
+        assert "<svg" in fig.group(1)
 
 
 def test_formula_and_band_are_never_folded(out):
@@ -60,7 +58,7 @@ def test_folded_cards_pass_the_site_guard(out):
     assert check_site(out) == []
 
 
-def test_browser_phone_cards_stay_short_and_open_on_tap(out):
+def test_browser_phone_cards_stay_short_and_show_peer_chart(out):
     from site_browser import chromium, serve
 
     with serve(out) as base, chromium() as browser:
@@ -70,12 +68,10 @@ def test_browser_phone_cards_stay_short_and_open_on_tap(out):
             "els => els.map(e => e.getBoundingClientRect().height)"
         )
         assert heights and max(heights) < MAX_CARD_HEIGHT, heights
-        card = page.locator("li.fc-metric:has(details.fc-peer)").first
-        svg = card.locator("details.fc-peer svg")
-        assert not svg.is_visible()
-        assert card.locator("dl.fc-basis-list").is_visible()
-        card.locator("details.fc-peer summary").click()
+        card = page.locator("li.fc-metric:has(figure.fc-peer)").first
+        svg = card.locator("figure.fc-peer svg")
         assert svg.is_visible()
+        assert card.locator("dl.fc-basis-list").is_visible()
 
 
 def test_last_year_row_separates_change_from_evaluation(out):
