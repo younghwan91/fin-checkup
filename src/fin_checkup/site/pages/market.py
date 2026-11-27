@@ -29,7 +29,11 @@ def market_page(site: Site) -> Iterator[Output]:
     blocks = metric_blocks(site.companies, sectors)
     overview = signal_overview_svg(
         [
-            (b.dist.spec.label, [(s.signal.value, s.signal.label, s.count) for s in b.dist.signals])
+            (
+                b.dist.key,
+                b.dist.spec.label,
+                [(s.signal.value, s.signal.label, s.count) for s in b.dist.signals],
+            )
             for b in blocks
         ],
         "market-overview",

@@ -440,6 +440,9 @@ h3 { font-size: .84rem; font-weight: 700; color: var(--ink-muted); margin: 1.2re
 .fc-heatmap-wrap h3 { margin: 0 0 .25rem; }
 .fc-ch-heatmap, .fc-ch-overview { max-width: 100%; }
 .fc-hm-label { fill: var(--ink); font-size: 11px; font-weight: 500; }
+.fc-hm-link { cursor: pointer; }
+.fc-hm-link .fc-hm-label { fill: var(--link); }
+.fc-hm-link:hover .fc-hm-label { text-decoration: underline; }
 .fc-hm-col { fill: var(--ink-muted); font-size: 10px; font-weight: 600; }
 .fc-hm-latest { fill: var(--ink); font-weight: 700; }
 .fc-hm-rect { fill: var(--tint, var(--surface-sunk)); stroke: var(--border); stroke-width: 1; }
@@ -632,14 +635,6 @@ h3 { font-size: .84rem; font-weight: 700; color: var(--ink-muted); margin: 1.2re
 /* ── 업종·분포 (sector/, market/, _distribution.html) ─── */
 
 .fc-dist .fc-metric { border-left-color: var(--border); }
-.fc-market-toc { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: .35rem; }
-.fc-market-toc a {
-  display: inline-block; padding: .2rem .55rem; font-size: .8rem; font-weight: 500;
-  color: var(--ink); text-decoration: none;
-  background: var(--surface-sunk); border: 1px solid var(--border); border-radius: 999px;
-  transition: border-color .15s ease, background .15s ease;
-}
-.fc-market-toc a:hover { border-color: var(--link); background: var(--surface); }
 .fc-dist-count { margin-left: auto; color: var(--ink-muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
 .fc-dist-stats {
   display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 0 1.2rem;

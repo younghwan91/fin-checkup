@@ -955,7 +955,8 @@ def signal_heatmap_svg(data: Checkup, years: int = 5) -> Markup:
     for ri, spec in enumerate(METRIC_DEFS):
         ry = head_h + ri * row_h
         parts.append(
-            f'<text class="fc-hm-label" x="0" y="{ry + 14:.1f}">{_esc(spec.label)}</text>'
+            f'<a class="fc-hm-link" href="#m-{_esc(spec.key)}">'
+            f'<text class="fc-hm-label" x="0" y="{ry + 14:.1f}">{_esc(spec.label)}</text></a>'
         )
         for ci, yr in enumerate(span):
             cx = label_w + ci * (col_w + gap)
@@ -988,7 +989,7 @@ def signal_heatmap_svg(data: Checkup, years: int = 5) -> Markup:
 
 
 def signal_overview_svg(
-    rows: Sequence[tuple[str, Sequence[tuple[str, str, int]]]],
+    rows: Sequence[tuple[str, str, Sequence[tuple[str, str, int]]]],
     chart_id: str,
 ) -> Markup:
     """17개 지표 신호 구성 100% 누적 막대 — 섹터·시장 전체의 신호 분포를 한 축에서 비교."""
@@ -1003,9 +1004,12 @@ def signal_overview_svg(
         f'role="img" aria-labelledby="{cid}-t" xmlns="http://www.w3.org/2000/svg">',
         f'<title id="{cid}-t">17개 지표 신호 구성 비율</title>',
     ]
-    for ri, (label, shares) in enumerate(rows):
+    for ri, (key, label, shares) in enumerate(rows):
         ry = 3.0 + ri * row_h
-        parts.append(f'<text class="fc-hm-label" x="0" y="{ry + 13:.1f}">{_esc(label)}</text>')
+        parts.append(
+            f'<a class="fc-hm-link" href="#d-{_esc(key)}">'
+            f'<text class="fc-hm-label" x="0" y="{ry + 13:.1f}">{_esc(label)}</text></a>'
+        )
         total = sum(cnt for _, _, cnt in shares)
         if total > 0:
             x = label_w
@@ -1057,8 +1061,9 @@ def sector_heatmap_svg(
         ry = head_h + ri * row_h
         short_name = name[:14] + ("…" if len(name) > 14 else "")
         parts.append(
+            f'<a class="fc-hm-link" href="{_esc(code)}/">'
             f'<text class="fc-hm-label" x="0" y="{ry + 14:.1f}">'
-            f"{_esc(code)} {_esc(short_name)} ({total})</text>"
+            f"{_esc(code)} {_esc(short_name)} ({total})</text></a>"
         )
         for ci, (m_label, _key, red_pct, all_na, red_cnt) in enumerate(cells):
             cx = label_w + ci * (col_w + gap)
