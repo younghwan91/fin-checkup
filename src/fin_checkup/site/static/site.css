@@ -499,6 +499,14 @@ h3 { font-size: .84rem; font-weight: 700; color: var(--ink-muted); margin: 1.2re
   text-decoration: underline dotted; text-underline-offset: 3px; text-decoration-color: var(--border-strong);
 }
 .fc-metric-label a:hover { text-decoration-style: solid; text-decoration-color: var(--link); }
+.fc-def-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.15em; height: 1.15em; margin-left: .28rem; vertical-align: .08em;
+  font-size: .72em; font-weight: 700; color: var(--ink-muted);
+  background: var(--surface-sunk); border: 1px solid var(--border-strong); border-radius: 50%;
+}
+.fc-metric-label a:hover .fc-def-badge { color: var(--link); border-color: var(--link); }
+.fc-metric-ctx { font-size: .76rem; color: var(--ink-muted); font-weight: 500; white-space: nowrap; }
 .fc-def-pop {
   display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 6;
   width: min(20rem, 75vw); padding: .55rem .75rem;
@@ -506,8 +514,16 @@ h3 { font-size: .84rem; font-weight: 700; color: var(--ink-muted); margin: 1.2re
   box-shadow: var(--shadow-lg); font-size: .82rem; font-weight: 400; line-height: 1.45; color: var(--ink);
 }
 .fc-def-pop small { display: block; margin-top: .25rem; color: var(--link); font-weight: 500; }
-.fc-metric-label:hover .fc-def-pop, .fc-metric-label:focus-within .fc-def-pop { display: block; }
-.fc-ch-delta { display: block; width: 100%; max-width: 11rem; height: 22px; margin-top: .28rem; overflow: visible; }
+.fc-metric-label:hover .fc-def-pop, .fc-metric-label:focus-within .fc-def-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.15em; height: 1.15em; margin-left: .28rem; vertical-align: .08em;
+  font-size: .72em; font-weight: 700; color: var(--ink-muted);
+  background: var(--surface-sunk); border: 1px solid var(--border-strong); border-radius: 50%;
+}
+.fc-metric-label a:hover .fc-def-badge { color: var(--link); border-color: var(--link); }
+.fc-metric-ctx { font-size: .76rem; color: var(--ink-muted); font-weight: 500; white-space: nowrap; }
+.fc-def-pop { display: block; }
+.fc-ch-delta { display: block; width: 100%; max-width: 15.5rem; height: 34px; margin-top: .32rem; overflow: visible; }
 .fc-ch-delta-prev { fill: var(--chart-box); }
 .fc-metric-value {
   margin-left: auto; font-size: 1.15rem; font-weight: 650;
