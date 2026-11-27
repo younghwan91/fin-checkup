@@ -37,7 +37,7 @@
   --tint-unknown: #eeeeec;
   --hm-1: #eef4fb;
   --hm-2: #d6e6f7;
-  --hm-3: #fdf3df;
+  --hm-3: #fae6be;
 
   /* 차트 막대 — 상태색과 겹치지 않는 파랑 하나 (dataviz validate_palette: 밝은·어두운 면 모두 통과) */
   --chart-1: #2a78d6;
@@ -83,7 +83,7 @@
     --tint-unknown: #262624;
     --hm-1: #1a222c;
     --hm-2: #223042;
-    --hm-3: #2e2716;
+    --hm-3: #3d3219;
 
     --chart-1: #3987e5;
     --chart-grid: #2a2a27;
@@ -343,8 +343,8 @@ h3 { font-size: .84rem; font-weight: 700; color: var(--ink-muted); margin: 1.2re
 .fc-hm-rate-1 .fc-hm-rect { fill: var(--hm-1); }
 .fc-hm-rate-2 .fc-hm-rect { fill: var(--hm-2); }
 .fc-hm-rate-3 .fc-hm-rect { fill: var(--hm-3); }
-.fc-hm-rate-4 .fc-hm-rect { fill: var(--sig-red); stroke: var(--sig-red); }
-.fc-hm-rate-4 .fc-hm-glyph { fill: var(--surface); }
+.fc-hm-rate-4 .fc-hm-rect { fill: var(--tint-red); stroke: var(--sig-red); }
+.fc-hm-rate-4 .fc-hm-glyph { fill: var(--ink); }
 .fc-hm-na .fc-hm-rect { fill: var(--tint-not_applicable); }
 .fc-hm-na .fc-hm-glyph { fill: var(--ink-muted); }
 .fc-glance-takeaway {
