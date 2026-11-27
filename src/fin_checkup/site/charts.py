@@ -810,7 +810,7 @@ def signal_meter_svg(chips: Sequence[tuple[str, str, int]]) -> Markup:
     for i, (key, label, count) in enumerate(active):
         seg_w = (count / total) * usable if i < len(active) - 1 else max(w - x, 1.0)
         rects.append(
-            f'<rect class="fc-ch-meter-seg sig-{_esc(key)}" x="{x:.1f}" y="0" '
+            f'<rect class="fc-ch-meter-seg seg-{_esc(key)}" x="{x:.1f}" y="0" '
             f'width="{max(seg_w, 1.0):.1f}" height="{h:.0f}" rx="3">'
             f"<title>{_esc(label)} {count}개</title></rect>"
         )
@@ -977,7 +977,7 @@ def signal_heatmap_svg(data: Checkup, years: int = 5) -> Markup:
             glyph = _HM_GLYPH[sig]
             tip = f"{yr}년 {spec.label}: {note}"
             parts.append(
-                f'<g class="fc-hm-cell sig-{sig.value}"><title>{_esc(tip)}</title>'
+                f'<g class="fc-hm-cell seg-{sig.value}"><title>{_esc(tip)}</title>'
                 f'<rect class="fc-hm-rect" x="{cx:.1f}" y="{ry + 2:.1f}" '
                 f'width="{col_w:.0f}" height="{row_h - 4:.0f}" rx="4"/>'
                 f'<text class="fc-hm-glyph" x="{cx + col_w / 2:.1f}" y="{ry + 14.5:.1f}" '
@@ -1014,7 +1014,7 @@ def signal_overview_svg(
                 w = (cnt / total) * bar_w if i < len(active) - 1 else max(label_w + bar_w - x, 0.5)
                 pct = round(cnt / total * 100)
                 parts.append(
-                    f'<rect class="fc-ch-meter-seg sig-{_esc(k)}" x="{x:.1f}" y="{ry + 3:.1f}" '
+                    f'<rect class="fc-ch-meter-seg seg-{_esc(k)}" x="{x:.1f}" y="{ry + 3:.1f}" '
                     f'width="{max(w, 0.5):.1f}" height="12" rx="2">'
                     f"<title>{_esc(label)} · {_esc(lbl)} {pct}% ({cnt:,}곳)</title></rect>"
                 )

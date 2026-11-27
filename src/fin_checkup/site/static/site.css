@@ -271,12 +271,12 @@ h3 { font-size: .84rem; font-weight: 700; color: var(--ink-muted); margin: 1.2re
 
 /* ── 신호 ─────────────────────────────────────────────── */
 
-.sig-green { --sig: var(--sig-green); --tint: var(--tint-green); }
-.sig-yellow { --sig: var(--sig-yellow); --tint: var(--tint-yellow); }
-.sig-red { --sig: var(--sig-red); --tint: var(--tint-red); }
-.sig-neutral { --sig: var(--sig-neutral); --tint: var(--tint-neutral); }
-.sig-not_applicable { --sig: var(--sig-not_applicable); --tint: var(--tint-not_applicable); }
-.sig-unknown { --sig: var(--sig-unknown); --tint: var(--tint-unknown); }
+.seg-green, .sig-green { --sig: var(--sig-green); --tint: var(--tint-green); }
+.seg-yellow, .sig-yellow { --sig: var(--sig-yellow); --tint: var(--tint-yellow); }
+.seg-red, .sig-red { --sig: var(--sig-red); --tint: var(--tint-red); }
+.seg-neutral, .sig-neutral { --sig: var(--sig-neutral); --tint: var(--tint-neutral); }
+.seg-not_applicable, .sig-not_applicable { --sig: var(--sig-not_applicable); --tint: var(--tint-not_applicable); }
+.seg-unknown, .sig-unknown { --sig: var(--sig-unknown); --tint: var(--tint-unknown); }
 
 .fc-chips, .fc-legend { list-style: none; padding: 0; margin: .6rem 0; display: flex; flex-wrap: wrap; gap: .4rem; }
 .fc-legend { flex-direction: column; align-items: flex-start; }
